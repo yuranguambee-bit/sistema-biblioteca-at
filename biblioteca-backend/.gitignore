@@ -1,0 +1,23 @@
+# Dependências (NUNCA enviar!)
+node_modules/
+package-lock.json
+
+# Variáveis de ambiente (contém passwords!)
+.env
+.env.local
+.env.production
+
+# Ficheiros compilados
+dist/
+build/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
