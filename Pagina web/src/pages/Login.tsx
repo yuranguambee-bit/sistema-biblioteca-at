@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
+// Lê o URL da API a partir da variável de ambiente
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3005';
+
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +19,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3005/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ Email: email, Password: password }),
