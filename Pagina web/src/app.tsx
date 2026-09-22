@@ -7,8 +7,11 @@ import { Dashboard } from './pages/Dashboard';
 import { CadastrarObra } from './pages/CadastrarObra';
 import { CadastrarAutor } from './pages/CadastrarAutor';
 import { CadastrarCliente } from './pages/CadastrarCliente';
+import { ListaClientes } from './pages/ListaClientes';
+import { DetalhesCliente } from './pages/DetalhesCliente';
 import { CadastrarEditora } from './pages/CadastrarEditora';
 import { Emprestimos } from './pages/Emprestimos';
+import { Comprovativo } from './pages/Comprovativo';
 import { HistoricoEmprestimos } from './pages/HistoricoEmprestimos';
 import { Reservas } from './pages/Reservas';
 import { Acervo } from './pages/Acervo';
@@ -30,8 +33,11 @@ function SistemaPrivado() {
         <Route path="/cadastrar-obra" element={<CadastrarObra />} />
         <Route path="/cadastrar-autor" element={<CadastrarAutor />} />
         <Route path="/cadastrar-cliente" element={<CadastrarCliente />} />
+        <Route path="/clientes" element={<ListaClientes />} />
+        <Route path="/clientes/:id" element={<DetalhesCliente />} />
         <Route path="/cadastrar-editora" element={<CadastrarEditora />} />
         <Route path="/emprestimos" element={<Emprestimos />} />
+        <Route path="/comprovativo/:id" element={<Comprovativo />} />
         <Route path="/historico" element={<HistoricoEmprestimos />} />
         <Route path="/reservas" element={<Reservas />} />
         <Route path="/acervo" element={<Acervo />} />

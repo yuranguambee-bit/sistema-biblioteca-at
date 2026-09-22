@@ -1,14 +1,30 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useToast } from '../contexts/ToastContext';
+import { apiFetch } from '../services/api';
 
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
   const { showToast } = useToast();
+  const [atrasados, setAtrasados] = useState(0);
+
+  useEffect(() => {
+    const carregarAtrasados = () => {
+      apiFetch('/api/estatisticas')
+        .then((r) => r.json())
+        .then((data) => setAtrasados(data.emprestimosAtrasados || 0))
+        .catch((e) => console.error(e));
+    };
+
+    carregarAtrasados();
+    const intervalo = setInterval(carregarAtrasados, 30000);
+    return () => clearInterval(intervalo);
+  }, []);
 
   const handleLogout = async () => {
     const ok = await confirm({
@@ -36,13 +52,22 @@ export function Header() {
       </div>
 
       <nav className="bg-at-blue-light px-6 py-3 flex flex-wrap items-center justify-between text-sm">
-        <ul className="flex flex-wrap gap-x-6 gap-y-2">
+        <ul className="flex flex-wrap gap-x-6 gap-y-2 items-center">
           <li><Link to="/" className="hover:text-gray-300 font-semibold">Início</Link></li>
           <li><Link to="/cadastrar-obra" className="hover:text-gray-300">Cadastrar Obra</Link></li>
           <li><Link to="/cadastrar-autor" className="hover:text-gray-300">Cadastrar Autor</Link></li>
-          <li><Link to="/cadastrar-cliente" className="hover:text-gray-300">Clientes</Link></li>
+          <li><Link to="/clientes" className="hover:text-gray-300">Clientes</Link></li>
           <li><Link to="/cadastrar-editora" className="hover:text-gray-300">Editoras</Link></li>
-          <li><Link to="/emprestimos" className="hover:text-gray-300">Empréstimos</Link></li>
+          <li>
+            <Link to="/emprestimos" className="hover:text-gray-300 flex items-center gap-1.5 relative">
+              Empréstimos
+              {atrasados > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center animate-pulse">
+                  {atrasados}
+                </span>
+              )}
+            </Link>
+          </li>
           <li><Link to="/reservas" className="hover:text-gray-300">Reservas</Link></li>
           <li><Link to="/historico" className="hover:text-gray-300">Histórico</Link></li>
           <li><Link to="/acervo" className="hover:text-gray-300">Acervo</Link></li>

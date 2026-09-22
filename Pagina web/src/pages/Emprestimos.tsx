@@ -1,21 +1,26 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { AlertTriangle, Clock, Filter, Printer } from 'lucide-react';
 
 interface Obra { Id: number; Titulo: string; Autor: string; }
 interface Cliente { Id: number; Nome: string; }
 interface Emprestimo { 
   Id: number; Obra: string; Cliente: string; 
   DataEmprestimo: string; DataPrevistaDevolucao: string;
+  DiasAtraso: number;
 }
 
 export function Emprestimos() {
+  const navigate = useNavigate();
   const [obras, setObras] = useState<Obra[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [obraId, setObraId] = useState('');
   const [clienteId, setClienteId] = useState('');
+  const [filtroAtraso, setFiltroAtraso] = useState(false);
   const { showToast } = useToast();
   const { confirm } = useConfirm();
 
@@ -46,11 +51,14 @@ export function Emprestimos() {
         method: 'POST',
         body: JSON.stringify({ ObraId: Number(obraId), ClienteId: Number(clienteId) }),
       });
+      const data = await response.json();
+      
       if (response.ok) {
-        showToast('Empréstimo realizado com sucesso!', 'success');
-        carregarDados();
+        showToast('Empréstimo realizado! A abrir comprovativo...', 'success');
+        // Redireciona diretamente para o comprovativo
+        setTimeout(() => navigate(`/comprovativo/${data.emprestimoId}`), 800);
       } else {
-        showToast('Erro ao realizar empréstimo.', 'error');
+        showToast(data.error || 'Erro ao realizar empréstimo.', 'error');
       }
     } catch (error) {
       showToast('Erro de ligação ao servidor.', 'error');
@@ -103,9 +111,31 @@ export function Emprestimos() {
     }
   };
 
+  const emprestimosFiltrados = filtroAtraso
+    ? emprestimos.filter(e => e.DiasAtraso > 0)
+    : emprestimos;
+
+  const totalAtrasados = emprestimos.filter(e => e.DiasAtraso > 0).length;
+
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6">
-      <div className="bg-white rounded-lg shadow-sm p-8 border-t-4 border-at-blue mb-8">
+      {totalAtrasados > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-2xl p-5 mb-6 flex items-start gap-4">
+          <div className="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="text-red-600" size={22} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-red-700">
+              {totalAtrasados} empréstimo(s) em atraso
+            </h3>
+            <p className="text-sm text-red-600 mt-1">
+              Alguns leitores já ultrapassaram o prazo de devolução. Considera enviar um lembrete.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-8">
         <h2 className="text-2xl font-bold text-at-blue mb-6">Novo Empréstimo</h2>
         <form onSubmit={handleEmprestar} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           <div>
@@ -131,11 +161,32 @@ export function Emprestimos() {
             </button>
           </div>
         </form>
+        <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
+          💡 Após confirmar, o comprovativo será aberto automaticamente para impressão.
+        </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-at-blue">Empréstimos Ativos ({emprestimos.length})</h3>
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-bold text-at-blue">
+            Empréstimos Ativos ({emprestimos.length})
+            {totalAtrasados > 0 && (
+              <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">
+                {totalAtrasados} em atraso
+              </span>
+            )}
+          </h3>
+          <button
+            onClick={() => setFiltroAtraso(!filtroAtraso)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+              filtroAtraso
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Filter size={14} />
+            {filtroAtraso ? 'A mostrar só atrasados' : 'Mostrar só atrasados'}
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -145,31 +196,65 @@ export function Emprestimos() {
                 <th className="p-4 font-semibold">Cliente</th>
                 <th className="p-4 font-semibold">Empréstimo</th>
                 <th className="p-4 font-semibold">Devolver até</th>
+                <th className="p-4 font-semibold text-center">Estado</th>
                 <th className="p-4 font-semibold text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="text-sm text-gray-700">
-              {emprestimos.length === 0 ? (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhum empréstimo ativo.</td></tr>
+              {emprestimosFiltrados.length === 0 ? (
+                <tr><td colSpan={6} className="p-6 text-center text-gray-500">
+                  {filtroAtraso ? 'Nenhum empréstimo em atraso. 🎉' : 'Nenhum empréstimo ativo.'}
+                </td></tr>
               ) : (
-                emprestimos.map((emp) => (
-                  <tr key={emp.Id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-4 font-medium">{emp.Obra}</td>
-                    <td className="p-4">{emp.Cliente}</td>
-                    <td className="p-4">{emp.DataEmprestimo}</td>
-                    <td className="p-4 font-semibold text-red-600">{emp.DataPrevistaDevolucao}</td>
-                    <td className="p-4 text-center space-x-2">
-                      <button onClick={() => handleRenovar(emp.Id)}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors">
-                        +15 dias
-                      </button>
-                      <button onClick={() => handleDevolver(emp.Id, emp.Obra)}
-                        className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors">
-                        Devolver
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                emprestimosFiltrados.map((emp) => {
+                  const atrasado = emp.DiasAtraso > 0;
+                  return (
+                    <tr 
+                      key={emp.Id} 
+                      className={`border-b border-gray-100 transition-colors ${
+                        atrasado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <td className="p-4 font-medium">{emp.Obra}</td>
+                      <td className="p-4">{emp.Cliente}</td>
+                      <td className="p-4">{emp.DataEmprestimo}</td>
+                      <td className={`p-4 font-semibold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>
+                        {emp.DataPrevistaDevolucao}
+                      </td>
+                      <td className="p-4 text-center">
+                        {atrasado ? (
+                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-red-200">
+                            <AlertTriangle size={12} />
+                            Atrasado {emp.DiasAtraso} dia(s)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-green-200">
+                            <Clock size={12} />
+                            Em dia
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <button 
+                            onClick={() => navigate(`/comprovativo/${emp.Id}`)}
+                            className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1"
+                            title="Ver comprovativo">
+                            <Printer size={12} /> Comprovativo
+                          </button>
+                          <button onClick={() => handleRenovar(emp.Id)}
+                            className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors">
+                            +15 dias
+                          </button>
+                          <button onClick={() => handleDevolver(emp.Id, emp.Obra)}
+                            className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors">
+                            Devolver
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

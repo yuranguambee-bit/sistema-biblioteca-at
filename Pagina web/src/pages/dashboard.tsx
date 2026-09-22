@@ -6,7 +6,8 @@ import {
   PieChart as RechartsPieChart, Pie, Cell
 } from 'recharts';
 import { 
-  BookOpen, CheckCircle, BookMarked, TrendingUp, BarChart3, PieChart, ArrowRight, Clock, Bookmark
+  BookOpen, CheckCircle, BookMarked, TrendingUp, BarChart3, PieChart, 
+  ArrowRight, Clock, Bookmark, AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ interface Estatisticas {
   disponiveis: number; 
   emprestimosAtivos: number;
   reservasPendentes?: number;
+  emprestimosAtrasados?: number;
 }
 interface Graficos {
   emprestimosPorMes: { Mes: string; Total: number }[];
@@ -44,7 +46,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function Dashboard() {
   const [obras, setObras] = useState<Obra[]>([]);
-  const [stats, setStats] = useState<Estatisticas>({ totalObras: 0, disponiveis: 0, emprestimosAtivos: 0, reservasPendentes: 0 });
+  const [stats, setStats] = useState<Estatisticas>({ 
+    totalObras: 0, disponiveis: 0, emprestimosAtivos: 0, reservasPendentes: 0, emprestimosAtrasados: 0 
+  });
   const [graficos, setGraficos] = useState<Graficos>({ emprestimosPorMes: [], obrasPorStatus: [] });
   const [loading, setLoading] = useState(true);
 
@@ -87,6 +91,8 @@ export function Dashboard() {
     ? Math.round((stats.disponiveis / stats.totalObras) * 100) 
     : 0;
 
+  const atrasados = stats.emprestimosAtrasados || 0;
+
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6">
       {/* BANNER */}
@@ -111,7 +117,30 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* CARTÕES DE ESTATÍSTICAS - Agora com 4 cartões */}
+      {/* AVISO DE ATRASOS */}
+      {atrasados > 0 && (
+        <Link 
+          to="/emprestimos"
+          className="block bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 rounded-2xl p-5 mb-8 hover:shadow-lg transition-all duration-200 group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 shadow-md">
+              <AlertTriangle className="text-white animate-pulse" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-red-700">
+                ⚠️ {atrasados} empréstimo(s) em atraso
+              </h3>
+              <p className="text-sm text-red-600 mt-1">
+                Existem obras que já ultrapassaram o prazo de devolução. Clica para ver e resolver.
+              </p>
+            </div>
+            <ArrowRight className="text-red-600 group-hover:translate-x-1 transition-transform" size={24} />
+          </div>
+        </Link>
+      )}
+
+      {/* CARTÕES DE ESTATÍSTICAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500"></div>

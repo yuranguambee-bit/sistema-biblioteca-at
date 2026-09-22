@@ -151,7 +151,6 @@ app.get('/api/obras/disponiveis', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// Reservas de uma obra específica
 app.get('/api/obras/:id/reservas', verificarToken, async (req, res) => {
     const id = req.params.id;
     try {
@@ -172,7 +171,6 @@ app.get('/api/obras/:id/reservas', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// Histórico de empréstimos de uma obra
 app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
     const id = req.params.id;
     try {
@@ -194,7 +192,6 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// Detalhes de uma obra
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
     const id = req.params.id;
     try {
@@ -277,6 +274,92 @@ app.post('/api/clientes', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+app.get('/api/clientes/:id/historico', verificarToken, async (req, res) => {
+    const id = req.params.id;
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('ClienteId', sql.Int, id)
+            .query(`
+                SELECT E.Id, O.Titulo as Obra, A.Nome as Autor,
+                       CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo,
+                       CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao,
+                       CONVERT(VARCHAR(10), E.DataDevolucao, 103) as DataDevolucao,
+                       CASE 
+                           WHEN E.Status = 'ATIVO' AND E.DataPrevistaDevolucao < CAST(GETDATE() AS DATE)
+                           THEN DATEDIFF(DAY, E.DataPrevistaDevolucao, GETDATE())
+                           ELSE 0 
+                       END as DiasAtraso,
+                       E.Status
+                FROM Emprestimos E
+                INNER JOIN Obras O ON E.ObraId = O.Id
+                LEFT JOIN Autores A ON O.AutorId = A.Id
+                WHERE E.ClienteId = @ClienteId
+                ORDER BY E.DataEmprestimo DESC
+            `);
+        res.json(result.recordset);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/clientes/:id/reservas', verificarToken, async (req, res) => {
+    const id = req.params.id;
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('ClienteId', sql.Int, id)
+            .query(`
+                SELECT R.Id, O.Id as ObraId, O.Titulo as Obra, O.Status as ObraStatus,
+                       CONVERT(VARCHAR(10), R.DataReserva, 103) as DataReserva
+                FROM Reservas R
+                INNER JOIN Obras O ON R.ObraId = O.Id
+                WHERE R.ClienteId = @ClienteId AND R.Status = 'PENDENTE'
+                ORDER BY R.DataReserva DESC
+            `);
+        res.json(result.recordset);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/clientes/:id', verificarToken, async (req, res) => {
+    const id = req.params.id;
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        const cliente = await pool.request()
+            .input('Id', sql.Int, id)
+            .query('SELECT Id, Nome, Email, Telefone FROM Clientes WHERE Id = @Id');
+        
+        if (cliente.recordset.length === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado.' });
+        }
+        
+        const totalEmprestimos = await pool.request()
+            .input('ClienteId', sql.Int, id)
+            .query('SELECT COUNT(*) as total FROM Emprestimos WHERE ClienteId = @ClienteId');
+        
+        const emprestimosAtivos = await pool.request()
+            .input('ClienteId', sql.Int, id)
+            .query("SELECT COUNT(*) as total FROM Emprestimos WHERE ClienteId = @ClienteId AND Status = 'ATIVO'");
+        
+        const emprestimosAtrasados = await pool.request()
+            .input('ClienteId', sql.Int, id)
+            .query("SELECT COUNT(*) as total FROM Emprestimos WHERE ClienteId = @ClienteId AND Status = 'ATIVO' AND DataPrevistaDevolucao < CAST(GETDATE() AS DATE)");
+        
+        const totalReservas = await pool.request()
+            .input('ClienteId', sql.Int, id)
+            .query("SELECT COUNT(*) as total FROM Reservas WHERE ClienteId = @ClienteId AND Status = 'PENDENTE'");
+        
+        res.json({
+            cliente: cliente.recordset[0],
+            estatisticas: {
+                totalEmprestimos: totalEmprestimos.recordset[0].total,
+                emprestimosAtivos: emprestimosAtivos.recordset[0].total,
+                emprestimosAtrasados: emprestimosAtrasados.recordset[0].total,
+                totalReservas: totalReservas.recordset[0].total
+            }
+        });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
 // ============ EDITORAS ============
 app.get('/api/editoras', verificarToken, async (req, res) => {
     try {
@@ -297,7 +380,6 @@ app.post('/api/editoras', verificarToken, async (req, res) => {
 });
 
 // ============ RESERVAS ============
-// Lista todas as reservas pendentes (com info da obra e posição)
 app.get('/api/reservas', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
@@ -317,13 +399,10 @@ app.get('/api/reservas', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// Cria uma reserva
 app.post('/api/reservas', verificarToken, async (req, res) => {
     const { ObraId, ClienteId } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
-        
-        // Verifica se o cliente já tem reserva pendente para esta obra
         const check = await pool.request()
             .input('ObraId', sql.Int, ObraId)
             .input('ClienteId', sql.Int, ClienteId)
@@ -342,7 +421,6 @@ app.post('/api/reservas', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// Cancela uma reserva
 app.delete('/api/reservas/:id', verificarToken, async (req, res) => {
     const id = req.params.id;
     try {
@@ -362,12 +440,32 @@ app.get('/api/emprestimos', verificarToken, async (req, res) => {
             SELECT E.Id, O.Titulo as Obra, C.Nome as Cliente, 
                    CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo, 
                    CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao,
+                   DATEDIFF(DAY, E.DataPrevistaDevolucao, GETDATE()) as DiasAtraso,
                    E.Status
             FROM Emprestimos E
             INNER JOIN Obras O ON E.ObraId = O.Id
             INNER JOIN Clientes C ON E.ClienteId = C.Id
             WHERE E.Status = 'ATIVO'
-            ORDER BY E.DataEmprestimo DESC
+            ORDER BY DiasAtraso DESC, E.DataEmprestimo DESC
+        `);
+        res.json(result.recordset);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/emprestimos/atrasados', verificarToken, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request().query(`
+            SELECT E.Id, O.Titulo as Obra, C.Nome as Cliente,
+                   C.Email as ClienteEmail, C.Telefone as ClienteTelefone,
+                   CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo,
+                   CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao,
+                   DATEDIFF(DAY, E.DataPrevistaDevolucao, GETDATE()) as DiasAtraso
+            FROM Emprestimos E
+            INNER JOIN Obras O ON E.ObraId = O.Id
+            INNER JOIN Clientes C ON E.ClienteId = C.Id
+            WHERE E.Status = 'ATIVO' AND E.DataPrevistaDevolucao < CAST(GETDATE() AS DATE)
+            ORDER BY DiasAtraso DESC
         `);
         res.json(result.recordset);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -391,6 +489,40 @@ app.get('/api/emprestimos/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// COMPROVATIVO DE EMPRÉSTIMO
+app.get('/api/emprestimos/:id/comprovativo', verificarToken, async (req, res) => {
+    const id = req.params.id;
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('Id', sql.Int, id)
+            .query(`
+                SELECT 
+                    E.Id,
+                    CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo,
+                    CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao,
+                    CONVERT(VARCHAR(10), E.DataDevolucao, 103) as DataDevolucao,
+                    E.Status,
+                    C.Id as ClienteId, C.Nome as Cliente, C.Email as ClienteEmail, C.Telefone as ClienteTelefone,
+                    O.Id as ObraId, O.Titulo as Obra, O.Ano as ObraAno,
+                    A.Nome as Autor,
+                    Ed.Nome as Editora
+                FROM Emprestimos E
+                INNER JOIN Clientes C ON E.ClienteId = C.Id
+                INNER JOIN Obras O ON E.ObraId = O.Id
+                LEFT JOIN Autores A ON O.AutorId = A.Id
+                LEFT JOIN Editoras Ed ON O.EditoraId = Ed.Id
+                WHERE E.Id = @Id
+            `);
+        
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: 'Empréstimo não encontrado.' });
+        }
+        
+        res.json(result.recordset[0]);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
 app.post('/api/emprestimos', verificarToken, async (req, res) => {
     const { ObraId, ClienteId } = req.body;
     const pool = await sql.connect(dbConfig);
@@ -398,19 +530,22 @@ app.post('/api/emprestimos', verificarToken, async (req, res) => {
     try {
         await transaction.begin();
         const r1 = new sql.Request(transaction);
-        await r1.input('ObraId', sql.Int, ObraId).input('ClienteId', sql.Int, ClienteId)
+        const insertResult = await r1.input('ObraId', sql.Int, ObraId).input('ClienteId', sql.Int, ClienteId)
             .query(`INSERT INTO Emprestimos (ObraId, ClienteId, DataEmprestimo, DataPrevistaDevolucao, Status) 
+                    OUTPUT INSERTED.Id
                     VALUES (@ObraId, @ClienteId, GETDATE(), DATEADD(DAY, 15, GETDATE()), 'ATIVO')`);
+        
+        const novoEmprestimoId = insertResult.recordset[0].Id;
+        
         const r2 = new sql.Request(transaction);
         await r2.input('ObraId', sql.Int, ObraId).query(`UPDATE Obras SET Status = 'EMPRESTADO' WHERE Id = @ObraId`);
         
-        // Marca a reserva deste cliente como ATENDIDA (se existir)
         const r3 = new sql.Request(transaction);
         await r3.input('ObraId', sql.Int, ObraId).input('ClienteId', sql.Int, ClienteId)
             .query(`UPDATE Reservas SET Status = 'ATENDIDA' WHERE ObraId = @ObraId AND ClienteId = @ClienteId AND Status = 'PENDENTE'`);
         
         await transaction.commit();
-        res.status(201).json({ message: 'Empréstimo realizado!' });
+        res.status(201).json({ message: 'Empréstimo realizado!', emprestimoId: novoEmprestimoId });
     } catch (error: any) {
         await transaction.rollback();
         res.status(500).json({ error: 'Erro ao realizar empréstimo.' });
@@ -459,16 +594,19 @@ app.get('/api/estatisticas', verificarToken, async (req, res) => {
         const disponiveis = await pool.request().query("SELECT COUNT(*) as total FROM Obras WHERE Status = 'DISPONIVEL'");
         const emprestimosAtivos = await pool.request().query("SELECT COUNT(*) as total FROM Emprestimos WHERE Status = 'ATIVO'");
         const reservasPendentes = await pool.request().query("SELECT COUNT(*) as total FROM Reservas WHERE Status = 'PENDENTE'");
+        const emprestimosAtrasados = await pool.request().query(
+            "SELECT COUNT(*) as total FROM Emprestimos WHERE Status = 'ATIVO' AND DataPrevistaDevolucao < CAST(GETDATE() AS DATE)"
+        );
         res.json({
             totalObras: totalObras.recordset[0].total,
             disponiveis: disponiveis.recordset[0].total,
             emprestimosAtivos: emprestimosAtivos.recordset[0].total,
-            reservasPendentes: reservasPendentes.recordset[0].total
+            reservasPendentes: reservasPendentes.recordset[0].total,
+            emprestimosAtrasados: emprestimosAtrasados.recordset[0].total
         });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ GRÁFICOS DO DASHBOARD ============
 app.get('/api/estatisticas/graficos', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
