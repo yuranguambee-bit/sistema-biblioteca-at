@@ -86,6 +86,88 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ PERFIL DO UTILIZADOR ============
+app.get('/api/perfil', verificarToken, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('Id', sql.Int, userId)
+            .query('SELECT Id, Nome, Email, Role FROM Usuarios WHERE Id = @Id');
+        
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ error: 'Utilizador não encontrado.' });
+        }
+        
+        res.json(result.recordset[0]);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/perfil/password', verificarToken, async (req, res) => {
+    const userId = (req as any).user.id;
+    const { PasswordAtual, PasswordNova } = req.body;
+
+    if (!PasswordAtual || !PasswordNova) {
+        return res.status(400).json({ error: 'Preenche todos os campos.' });
+    }
+
+    if (PasswordNova.length < 6) {
+        return res.status(400).json({ error: 'A nova password deve ter pelo menos 6 caracteres.' });
+    }
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        // Busca o utilizador atual
+        const userResult = await pool.request()
+            .input('Id', sql.Int, userId)
+            .query('SELECT PasswordHash FROM Usuarios WHERE Id = @Id');
+        
+        if (userResult.recordset.length === 0) {
+            return res.status(404).json({ error: 'Utilizador não encontrado.' });
+        }
+        
+        // Verifica a password atual
+        const passwordOk = await bcrypt.compare(PasswordAtual, userResult.recordset[0].PasswordHash);
+        if (!passwordOk) {
+            return res.status(400).json({ error: 'A password atual está incorreta.' });
+        }
+        
+        // Encripta e guarda a nova password
+        const novoHash = await bcrypt.hash(PasswordNova, 10);
+        await pool.request()
+            .input('Id', sql.Int, userId)
+            .input('PasswordHash', sql.NVarChar, novoHash)
+            .query('UPDATE Usuarios SET PasswordHash = @PasswordHash WHERE Id = @Id');
+        
+        res.json({ message: 'Password alterada com sucesso!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/perfil/atividade', verificarToken, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        // Empréstimos mais recentes e ativos (como atividade do sistema)
+        const emprestimosRecentes = await pool.request()
+            .query(`
+                SELECT TOP 5 
+                    E.Id, O.Titulo as Obra, C.Nome as Cliente,
+                    CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as Data,
+                    E.Status
+                FROM Emprestimos E
+                INNER JOIN Obras O ON E.ObraId = O.Id
+                INNER JOIN Clientes C ON E.ClienteId = C.Id
+                ORDER BY E.DataEmprestimo DESC
+            `);
+        
+        res.json({
+            emprestimosRecentes: emprestimosRecentes.recordset
+        });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
 // ============ GESTÃO DE UTILIZADORES ============
 app.get('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
     try {
@@ -489,7 +571,6 @@ app.get('/api/emprestimos/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// COMPROVATIVO DE EMPRÉSTIMO
 app.get('/api/emprestimos/:id/comprovativo', verificarToken, async (req, res) => {
     const id = req.params.id;
     try {

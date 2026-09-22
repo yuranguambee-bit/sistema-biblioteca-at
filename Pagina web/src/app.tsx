@@ -18,6 +18,7 @@ import { Acervo } from './pages/Acervo';
 import { DetalhesObra } from './pages/DetalhesObra';
 import { Relatorios } from './pages/Relatorios';
 import { Utilizadores } from './pages/Utilizadores';
+import { Perfil } from './pages/Perfil';
 import { Login } from './pages/Login';
 
 function SistemaPrivado() {
@@ -30,6 +31,7 @@ function SistemaPrivado() {
       <Header />
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/perfil" element={<Perfil />} />
         <Route path="/cadastrar-obra" element={<CadastrarObra />} />
         <Route path="/cadastrar-autor" element={<CadastrarAutor />} />
         <Route path="/cadastrar-cliente" element={<CadastrarCliente />} />

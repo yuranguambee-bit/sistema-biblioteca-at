@@ -78,13 +78,19 @@ export function Header() {
         </ul>
         
         <div className="flex items-center gap-4 mt-2 md:mt-0">
-          <span className="flex items-center gap-1">
-            <User size={16} /> 
-            {user?.nome || 'Utilizador'} 
+          <Link 
+            to="/perfil"
+            className="flex items-center gap-1 hover:text-gray-300 transition-colors group"
+            title="Ver o meu perfil"
+          >
+            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+              <User size={14} />
+            </div>
+            <span className="font-medium">{user?.nome || 'Utilizador'}</span>
             <span className={`ml-1 px-2 py-0.5 rounded text-xs ${user?.role === 'Admin' ? 'bg-yellow-400 text-black' : 'bg-blue-400 text-white'}`}>
               {user?.role}
             </span>
-          </span>
+          </Link>
           <span className="text-gray-400">|</span>
           <button onClick={handleLogout} className="flex items-center gap-1 hover:text-red-300 transition-colors">
             <LogOut size={16} /> Sair
