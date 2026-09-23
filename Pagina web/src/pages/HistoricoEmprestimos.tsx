@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../services/api';
 import { 
-  Search, Filter, ChevronLeft, ChevronRight, 
+  Search, ChevronLeft, ChevronRight, 
   ChevronsLeft, ChevronsRight, History, CheckCircle, 
-  AlertTriangle, Clock, X, Calendar, TrendingUp
+  Clock, X
 } from 'lucide-react';
 
 interface Emprestimo {
@@ -18,7 +18,6 @@ interface Emprestimo {
 
 const ITENS_POR_PAGINA = 10;
 
-// Converter "DD/MM/AAAA" para Date
 function parseData(data: string): Date {
   const [dia, mes, ano] = data.split('/').map(Number);
   return new Date(ano, mes - 1, dia);
@@ -28,12 +27,10 @@ export function HistoricoEmprestimos() {
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filtros
   const [pesquisa, setPesquisa] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<'TODOS' | 'ATIVO' | 'DEVOLVIDO'>('TODOS');
   const [filtroData, setFiltroData] = useState<'TODOS' | 'MES' | 'TRIMESTRE' | 'ANO'>('TODOS');
 
-  // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
 
   useEffect(() => {
@@ -46,12 +43,10 @@ export function HistoricoEmprestimos() {
       .catch((e) => { console.error(e); setLoading(false); });
   }, []);
 
-  // Reset da página quando os filtros mudam
   useEffect(() => {
     setPaginaAtual(1);
   }, [pesquisa, filtroStatus, filtroData]);
 
-  // Aplicar todos os filtros
   const emprestimosFiltrados = useMemo(() => {
     const hoje = new Date();
     const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -59,16 +54,13 @@ export function HistoricoEmprestimos() {
     const inicioAno = new Date(hoje.getFullYear(), 0, 1);
 
     return emprestimos.filter((emp) => {
-      // 1. Pesquisa (título ou cliente)
       const p = pesquisa.toLowerCase();
       const correspondePesquisa =
         emp.Obra.toLowerCase().includes(p) ||
         emp.Cliente.toLowerCase().includes(p);
 
-      // 2. Status
       const correspondeStatus = filtroStatus === 'TODOS' || emp.Status === filtroStatus;
 
-      // 3. Data (com base na data do empréstimo)
       let correspondeData = true;
       if (filtroData !== 'TODOS') {
         const dataEmp = parseData(emp.DataEmprestimo);
@@ -81,7 +73,6 @@ export function HistoricoEmprestimos() {
     });
   }, [emprestimos, pesquisa, filtroStatus, filtroData]);
 
-  // Paginação
   const totalPaginas = Math.max(1, Math.ceil(emprestimosFiltrados.length / ITENS_POR_PAGINA));
   const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
   const emprestimosPaginados = emprestimosFiltrados.slice(inicio, inicio + ITENS_POR_PAGINA);
@@ -100,13 +91,11 @@ export function HistoricoEmprestimos() {
 
   const temFiltrosAtivos = pesquisa !== '' || filtroStatus !== 'TODOS' || filtroData !== 'TODOS';
 
-  // Contagens
   const totalAtivos = emprestimos.filter(e => e.Status === 'ATIVO').length;
   const totalDevolvidos = emprestimos.filter(e => e.Status === 'DEVOLVIDO').length;
 
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6">
-      {/* Cabeçalho */}
       <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -128,7 +117,6 @@ export function HistoricoEmprestimos() {
         </div>
       </div>
 
-      {/* Cartões de Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500"></div>
@@ -173,10 +161,8 @@ export function HistoricoEmprestimos() {
         </div>
       </div>
 
-      {/* Filtros e Pesquisa */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Pesquisa */}
           <div className="md:col-span-1">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               🔍 Pesquisar
@@ -193,7 +179,6 @@ export function HistoricoEmprestimos() {
             </div>
           </div>
 
-          {/* Filtro Status */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               📊 Estado
@@ -209,7 +194,6 @@ export function HistoricoEmprestimos() {
             </select>
           </div>
 
-          {/* Filtro Data */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               📅 Período
@@ -227,7 +211,6 @@ export function HistoricoEmprestimos() {
           </div>
         </div>
 
-        {/* Barra de Filtros Ativos */}
         {temFiltrosAtivos && (
           <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100">
             <p className="text-sm text-gray-600">
@@ -246,7 +229,6 @@ export function HistoricoEmprestimos() {
         )}
       </div>
 
-      {/* Tabela */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
@@ -306,7 +288,6 @@ export function HistoricoEmprestimos() {
           )}
         </div>
 
-        {/* Paginação */}
         {!loading && emprestimosFiltrados.length > 0 && (
           <div className="p-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-4">
             <div className="text-sm text-gray-600">

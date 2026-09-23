@@ -6,7 +6,7 @@ import {
   PieChart as RechartsPieChart, Pie, Cell
 } from 'recharts';
 import { 
-  BookOpen, CheckCircle, BookMarked, TrendingUp, BarChart3, PieChart, 
+  BookOpen, CheckCircle, BookMarked, BarChart3, PieChart, 
   ArrowRight, Clock, Bookmark, AlertTriangle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -95,7 +95,6 @@ export function Dashboard() {
 
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6">
-      {/* BANNER */}
       <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-8 mb-8 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 right-20 w-40 h-40 bg-white/5 rounded-full -mb-20"></div>
@@ -117,7 +116,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* AVISO DE ATRASOS */}
       {atrasados > 0 && (
         <Link 
           to="/emprestimos"
@@ -140,7 +138,6 @@ export function Dashboard() {
         </Link>
       )}
 
-      {/* CARTÕES DE ESTATÍSTICAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500"></div>
@@ -201,7 +198,6 @@ export function Dashboard() {
         </Link>
       </div>
 
-      {/* GRÁFICOS */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
         <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
@@ -262,7 +258,7 @@ export function Dashboard() {
               <ResponsiveContainer width="100%" height={200}>
                 <RechartsPieChart>
                   <Pie data={dadosPie} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={5} fill="#8884d8" dataKey="value" stroke="none">
-                    {dadosPie.map((entry, index) => (
+                    {dadosPie.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={CORES_STATUS[graficos.obrasPorStatus[index]?.name] || '#8884d8'} />
                     ))}
                   </Pie>
@@ -286,7 +282,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* TABELA DE ÚLTIMAS OBRAS */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">

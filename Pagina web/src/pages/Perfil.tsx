@@ -24,7 +24,7 @@ interface Atividade {
 }
 
 export function Perfil() {
-  const { user } = useAuth();
+  useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
@@ -32,7 +32,6 @@ export function Perfil() {
   const [atividade, setAtividade] = useState<Atividade[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Formulário de mudança de password
   const [passwordAtual, setPasswordAtual] = useState('');
   const [passwordNova, setPasswordNova] = useState('');
   const [passwordConfirmar, setPasswordConfirmar] = useState('');
@@ -54,7 +53,6 @@ export function Perfil() {
       .catch((e) => { console.error(e); setLoading(false); });
   }, []);
 
-  // Indicador de força da password
   const calcularForcaPassword = (pwd: string) => {
     let forca = 0;
     if (pwd.length >= 6) forca++;
@@ -137,7 +135,6 @@ export function Perfil() {
 
   return (
     <main className="max-w-5xl mx-auto p-6 mt-6">
-      {/* Cabeçalho */}
       <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 right-24 w-40 h-40 bg-white/5 rounded-full -mb-20"></div>
@@ -166,9 +163,7 @@ export function Perfil() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Coluna Esquerda: Informações Pessoais */}
         <div className="space-y-6">
-          {/* Cartão de Informações */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -201,7 +196,6 @@ export function Perfil() {
             </div>
           </div>
 
-          {/* Cartão de Atividade Recente */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center">
@@ -234,7 +228,6 @@ export function Perfil() {
           </div>
         </div>
 
-        {/* Coluna Direita: Alterar Password */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
@@ -247,7 +240,6 @@ export function Perfil() {
           </div>
 
           <form onSubmit={handleAlterarPassword} className="p-5 space-y-4">
-            {/* Password Atual */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password Atual
@@ -272,7 +264,6 @@ export function Perfil() {
               </div>
             </div>
 
-            {/* Nova Password */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Nova Password
@@ -296,7 +287,6 @@ export function Perfil() {
                 </button>
               </div>
 
-              {/* Barra de força */}
               {passwordNova && (
                 <div className="mt-2">
                   <div className="flex gap-1">
@@ -319,7 +309,6 @@ export function Perfil() {
               )}
             </div>
 
-            {/* Confirmar Password */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Confirmar Nova Password
@@ -358,7 +347,6 @@ export function Perfil() {
               )}
             </div>
 
-            {/* Botão */}
             <div className="pt-2">
               <button
                 type="submit"
@@ -370,7 +358,6 @@ export function Perfil() {
               </button>
             </div>
 
-            {/* Aviso de Segurança */}
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded text-xs text-yellow-800">
               <p className="font-bold mb-1">💡 Dica de segurança</p>
               <ul className="list-disc list-inside space-y-0.5 text-yellow-700">

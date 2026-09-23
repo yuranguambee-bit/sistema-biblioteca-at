@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { ArrowLeft, Printer, BookOpen, XCircle } from 'lucide-react';
@@ -23,7 +23,6 @@ interface ComprovativoData {
 
 export function Comprovativo() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const [data, setData] = useState<ComprovativoData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +71,6 @@ export function Comprovativo() {
     );
   }
 
-  // Número de recibo formatado: AT-AAAA-NNNNN
   const anoAtual = new Date().getFullYear();
   const numeroRecibo = `AT-${anoAtual}-${String(data.Id).padStart(5, '0')}`;
 
@@ -82,7 +80,6 @@ export function Comprovativo() {
 
   return (
     <main className="max-w-3xl mx-auto p-6 mt-6">
-      {/* Botões (escondidos na impressão) */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
         <Link 
           to="/emprestimos"
@@ -98,10 +95,8 @@ export function Comprovativo() {
         </button>
       </div>
 
-      {/* COMPROVATIVO (aparece na impressão) */}
       <div className="bg-white rounded-2xl shadow-sm p-10 print:rounded-none print:shadow-none print:p-8 border-2 border-at-blue print:border print:border-gray-400">
         
-        {/* Cabeçalho */}
         <div className="text-center border-b-2 border-at-blue pb-6 mb-6">
           <div className="w-20 h-20 mx-auto bg-at-blue rounded-full flex items-center justify-center mb-3">
             <BookOpen className="text-white" size={36} />
@@ -113,7 +108,6 @@ export function Comprovativo() {
           </h2>
         </div>
 
-        {/* Número e Data */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-gray-50 rounded-lg p-4 print:bg-white print:border print:border-gray-300">
           <div>
             <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Nº de Comprovativo</p>
@@ -125,7 +119,6 @@ export function Comprovativo() {
           </div>
         </div>
 
-        {/* Dados do Leitor */}
         <div className="mb-6">
           <h3 className="text-xs font-bold text-at-blue uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">
             📖 Dados do Leitor
@@ -154,7 +147,6 @@ export function Comprovativo() {
           </div>
         </div>
 
-        {/* Dados da Obra */}
         <div className="mb-6">
           <h3 className="text-xs font-bold text-at-blue uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">
             📚 Dados da Obra
@@ -183,7 +175,6 @@ export function Comprovativo() {
           </div>
         </div>
 
-        {/* Datas */}
         <div className="mb-6">
           <h3 className="text-xs font-bold text-at-blue uppercase tracking-wider mb-3 pb-2 border-b border-gray-200">
             📅 Datas
@@ -204,7 +195,6 @@ export function Comprovativo() {
           </div>
         </div>
 
-        {/* Regras */}
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 print:bg-white print:border print:border-gray-400">
           <p className="text-xs text-yellow-800 font-bold uppercase mb-2">⚠️ Regras Importantes</p>
           <ul className="text-xs text-gray-700 space-y-1 list-disc list-inside">
@@ -215,7 +205,6 @@ export function Comprovativo() {
           </ul>
         </div>
 
-        {/* Assinaturas */}
         <div className="grid grid-cols-2 gap-12 mt-12 pt-8">
           <div className="text-center">
             <div className="border-t border-gray-400 pt-2">
@@ -231,7 +220,6 @@ export function Comprovativo() {
           </div>
         </div>
 
-        {/* Rodapé */}
         <div className="text-center mt-8 pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-400">
             Documento emitido automaticamente pelo Sistema de Gestão de Biblioteca — AT Moçambique
