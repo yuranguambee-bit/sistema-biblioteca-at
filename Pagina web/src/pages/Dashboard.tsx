@@ -8,7 +8,7 @@ import {
 import { 
   BookOpen, CheckCircle, BookMarked, BarChart3, PieChart, 
   ArrowRight, Clock, Bookmark, AlertTriangle, 
-  Plus, UserPlus, Building2, Users, TrendingUp, Award,
+  UserPlus, Building2, Users, TrendingUp, Award,
   Sparkles, Calendar, Library
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -86,7 +86,6 @@ export function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Saudação por hora do dia
   const hora = horaAtual.getHours();
   let saudacao = 'Bom dia';
   let emoji = '☀️';
@@ -119,9 +118,7 @@ export function Dashboard() {
 
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6">
-      {/* ============ HERO — SAUDAÇÃO PERSONALIZADA ============ */}
       <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-8 text-white">
-        {/* Bolhas decorativas */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
         <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-white/5 rounded-full"></div>
@@ -151,7 +148,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Taxa de disponibilidade */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl px-6 py-5 border border-white/20 shadow-lg">
             <div className="flex items-center gap-3 mb-2">
               <Sparkles className="text-yellow-300" size={18} />
@@ -165,7 +161,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ============ ALERTA DE ATRASOS ============ */}
       {atrasados > 0 && (
         <Link 
           to="/emprestimos"
@@ -188,9 +183,7 @@ export function Dashboard() {
         </Link>
       )}
 
-      {/* ============ 4 KPI CARDS ============ */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        {/* Total Obras */}
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
@@ -205,7 +198,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Disponíveis */}
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
@@ -220,7 +212,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Empréstimos */}
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-red-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
@@ -235,7 +226,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Reservas */}
         <Link to="/reservas" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-yellow-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
@@ -253,7 +243,6 @@ export function Dashboard() {
         </Link>
       </div>
 
-      {/* ============ AÇÕES RÁPIDAS ============ */}
       <div className="mb-8">
         <h3 className="text-lg font-bold text-at-blue mb-4 flex items-center gap-2">
           <Sparkles size={20} /> Ações Rápidas
@@ -309,12 +298,10 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ============ GRÁFICOS ============ */}
       <h3 className="text-lg font-bold text-at-blue mb-4 flex items-center gap-2">
         <TrendingUp size={20} /> Análise Visual
       </h3>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
-        {/* Barras */}
         <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
@@ -354,7 +341,6 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Donut */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -399,9 +385,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ============ TOP 5 OBRAS + ÚLTIMAS OBRAS ============ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top 5 mais emprestadas */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center">
@@ -454,7 +438,6 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Últimas obras cadastradas */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">

@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  User, Users, Search, Plus, Edit3, Trash2, Save, X, 
-  Calendar, Globe, BookOpen, Award, FileText, UserPlus
+  User, Users, Search, Edit3, Trash2, Save, X, 
+  Calendar, Globe, BookOpen, FileText, UserPlus
 } from 'lucide-react';
 
 interface Autor {
@@ -20,12 +19,10 @@ interface Autor {
 }
 
 export function CadastrarAutor() {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const { user } = useAuth();
 
-  // Formulário
   const [nome, setNome] = useState('');
   const [sobrenome, setSobrenome] = useState('');
   const [nacionalidade, setNacionalidade] = useState('');
@@ -34,7 +31,6 @@ export function CadastrarAutor() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvando, setSalvando] = useState(false);
 
-  // Lista
   const [autores, setAutores] = useState<Autor[]>([]);
   const [loading, setLoading] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
@@ -79,7 +75,6 @@ export function CadastrarAutor() {
 
     setSalvando(true);
 
-    // Converte data "DD/MM/AAAA" (se vier do backend) para "AAAA-MM-DD"
     let dataParaEnviar = dataNascimento || null;
     if (dataParaEnviar && dataParaEnviar.includes('/')) {
       const [dia, mes, ano] = dataParaEnviar.split('/');
@@ -125,7 +120,6 @@ export function CadastrarAutor() {
     setNome(autor.Nome);
     setSobrenome(autor.Sobrenome || '');
     setNacionalidade(autor.Nacionalidade || '');
-    // Converte "DD/MM/AAAA" para "AAAA-MM-DD" para o input date
     if (autor.DataNascimento) {
       const [dia, mes, ano] = autor.DataNascimento.split('/');
       setDataNascimento(`${ano}-${mes}-${dia}`);
@@ -166,7 +160,6 @@ export function CadastrarAutor() {
 
   return (
     <main className="max-w-6xl mx-auto p-6 mt-6">
-      {/* ============ FORMULÁRIO ============ */}
       <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
         <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
@@ -185,7 +178,6 @@ export function CadastrarAutor() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Nome e Sobrenome */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -221,7 +213,6 @@ export function CadastrarAutor() {
             </div>
           </div>
 
-          {/* Nacionalidade e Data de Nascimento */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -255,7 +246,6 @@ export function CadastrarAutor() {
             </div>
           </div>
 
-          {/* Biografia */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Biografia <span className="text-gray-400 font-normal">(opcional)</span>
@@ -272,7 +262,6 @@ export function CadastrarAutor() {
             </div>
           </div>
 
-          {/* Botões */}
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
             <button
               type="submit"
@@ -305,9 +294,7 @@ export function CadastrarAutor() {
         </form>
       </div>
 
-      {/* ============ LISTA DE AUTORES ============ */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        {/* Cabeçalho com pesquisa */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
@@ -323,7 +310,6 @@ export function CadastrarAutor() {
             </div>
           </div>
 
-          {/* Pesquisa */}
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
@@ -342,7 +328,6 @@ export function CadastrarAutor() {
           )}
         </div>
 
-        {/* Tabela */}
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-gray-500">A carregar autores...</div>

@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  BookOpen, Search, User, BookMarked, Bookmark, Users, Building2, 
+  BookOpen, Search, User, BookMarked, Bookmark, Users, 
   BarChart3, Settings, Shield, Mail, ChevronDown, ChevronUp,
   CheckCircle, AlertTriangle, Info, Printer, FileText, Lock,
-  Award, Clock, TrendingUp, Hash, Sparkles, ArrowRight
+  Award, Clock, Hash, Sparkles, ArrowRight
 } from 'lucide-react';
 
 interface Seccao {
