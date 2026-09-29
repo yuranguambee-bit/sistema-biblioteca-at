@@ -1,39 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../services/api';
 import { 
-  FileText, Printer, TrendingUp, Users, BookX, 
+  FileText, Printer, Users, BookX, 
   Calendar, Filter, BookOpen, Award, X
 } from 'lucide-react';
 
 type TipoRelatorio = 'inventario' | 'emprestimos' | 'clientes' | 'topLeitores' | 'nuncaEmprestadas';
 type FiltroData = 'TODOS' | '7DIAS' | '30DIAS' | 'ANO';
-
-interface Emprestimo {
-  Id: number;
-  Obra: string;
-  Cliente: string;
-  DataEmprestimo: string;
-  DataPrevistaDevolucao: string;
-  DataDevolucao: string | null;
-  Status: string;
-}
-
-interface Cliente {
-  Id: number;
-  Nome: string;
-  Email: string | null;
-  Telefone: string | null;
-  TotalEmprestimos: number;
-}
-
-interface Obra {
-  Id: number;
-  Titulo: string;
-  Autor: string | null;
-  Editora: string | null;
-  Ano: number;
-  Status: string;
-}
 
 // Converte "DD/MM/AAAA" para Date
 function parseDataPT(data: string): Date {
@@ -68,7 +41,7 @@ export function Relatorios() {
     const endpoint = 
       tipo === 'inventario' || tipo === 'nuncaEmprestadas' ? 'obras' :
       tipo === 'emprestimos' ? 'emprestimos/historico' :
-      tipo === 'clientes' || tipo === 'topLeitores' ? 'clientes' : 'obras';
+      'clientes';
 
     apiFetch(`/api/${endpoint}`)
       .then((r) => r.json())
@@ -79,7 +52,6 @@ export function Relatorios() {
       .catch((e) => { console.error(e); setLoading(false); });
   }, [tipo]);
 
-  // Aplica filtro de data (só se aplica aos empréstimos)
   const dadosFiltrados = useMemo(() => {
     if (tipo !== 'emprestimos' || filtroData === 'TODOS') return dados;
 
@@ -105,18 +77,11 @@ export function Relatorios() {
     });
   }, [dados, tipo, filtroData]);
 
-  // Processa os dados conforme o tipo de relatório
   const dadosProcessados = useMemo(() => {
     if (tipo === 'topLeitores') {
       return [...dados]
         .sort((a, b) => (b.TotalEmprestimos || 0) - (a.TotalEmprestimos || 0))
         .filter((c) => (c.TotalEmprestimos || 0) > 0);
-    }
-    if (tipo === 'nuncaEmprestadas') {
-      // Filtra obras que não têm empréstimos — vamos buscar a lista de obras com empréstimos
-      // Como não temos essa info diretamente, filtramos por todas e apresentamos (o backend ideal
-      // teria um endpoint específico). Para agora, mostramos todas as obras.
-      return dados;
     }
     return dadosFiltrados;
   }, [dados, dadosFiltrados, tipo]);
@@ -126,7 +91,6 @@ export function Relatorios() {
 
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
-      {/* Cabeçalho */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border-l-4 border-at-blue flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-at-blue">Relatórios</h2>
@@ -140,7 +104,6 @@ export function Relatorios() {
         </button>
       </div>
 
-      {/* Separadores */}
       <div className="bg-white rounded-2xl shadow-sm p-3 mb-4 flex flex-wrap gap-2 print:hidden">
         <button 
           onClick={() => setTipo('inventario')}
@@ -184,7 +147,6 @@ export function Relatorios() {
         </button>
       </div>
 
-      {/* Filtro de data (só para Empréstimos) */}
       {tipo === 'emprestimos' && (
         <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 flex flex-wrap items-center gap-3 print:hidden">
           <div className="flex items-center gap-2 text-gray-600">
@@ -226,9 +188,7 @@ export function Relatorios() {
         </div>
       )}
 
-      {/* ============ RELATÓRIO (aparece na impressão) ============ */}
       <div className="bg-white rounded-2xl shadow-sm p-8 print-shadow-none">
-        {/* Cabeçalho do relatório */}
         <div className="text-center mb-8 border-b-2 border-at-blue pb-6">
           <h1 className="text-2xl font-bold text-at-blue">Autoridade Tributária de Moçambique</h1>
           <h2 className="text-lg font-semibold text-gray-700 mt-2">{tituloRelatorio}</h2>
@@ -244,7 +204,6 @@ export function Relatorios() {
           </div>
         </div>
 
-        {/* Conteúdo */}
         {loading ? (
           <div className="p-10 text-center text-gray-500">A gerar relatório...</div>
         ) : dadosProcessados.length === 0 ? (
@@ -262,7 +221,6 @@ export function Relatorios() {
           </div>
         ) : (
           <>
-            {/* INVENTÁRIO */}
             {tipo === 'inventario' && (
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
@@ -290,7 +248,6 @@ export function Relatorios() {
               </table>
             )}
 
-            {/* EMPRÉSTIMOS */}
             {tipo === 'emprestimos' && (
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
@@ -320,7 +277,6 @@ export function Relatorios() {
               </table>
             )}
 
-            {/* CLIENTES */}
             {tipo === 'clientes' && (
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
@@ -346,7 +302,6 @@ export function Relatorios() {
               </table>
             )}
 
-            {/* TOP LEITORES */}
             {tipo === 'topLeitores' && (
               <div>
                 <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-yellow-400 p-4 rounded-md mb-6">
@@ -383,7 +338,6 @@ export function Relatorios() {
               </div>
             )}
 
-            {/* NUNCA EMPRESTADAS */}
             {tipo === 'nuncaEmprestadas' && (
               <div>
                 <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-400 p-4 rounded-md mb-6">
@@ -418,7 +372,6 @@ export function Relatorios() {
               </div>
             )}
 
-            {/* Rodapé */}
             <div className="mt-10 pt-6 border-t border-gray-300 text-center text-xs text-gray-500">
               <p>Total de registos: <strong>{dadosProcessados.length}</strong></p>
               <p className="mt-2">Sistema de Gestão de Biblioteca - AT Moçambique</p>

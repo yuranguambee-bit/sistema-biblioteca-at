@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { 
-  ArrowLeft, User, Mail, Phone, BookOpen, AlertTriangle, 
+  ArrowLeft, Mail, Phone, AlertTriangle, 
   CheckCircle, Clock, Bookmark, History, Award, XCircle, 
   TrendingUp, Calendar, Star, UserCheck, BookMarked
 } from 'lucide-react';
@@ -116,13 +116,12 @@ export function DetalhesCliente() {
         <ArrowLeft size={16} /> Voltar à lista de clientes
       </Link>
 
-      {/* ============ CABEÇALHO DO CLIENTE ============ */}
+      {/* CABEÇALHO */}
       <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
 
         <div className="relative flex flex-wrap items-start gap-6">
-          {/* Avatar grande */}
           <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-white font-bold text-3xl shadow-2xl flex-shrink-0 ${
             bomLeitor ? 'bg-gradient-to-br from-yellow-400 to-amber-500 ring-4 ring-yellow-300/50' :
             temAtrasos ? 'bg-gradient-to-br from-red-500 to-red-700 ring-4 ring-red-400/50' :
@@ -131,9 +130,7 @@ export function DetalhesCliente() {
             {bomLeitor ? <Star size={40} /> : iniciais}
           </div>
 
-          {/* Dados */}
           <div className="flex-1 min-w-[250px]">
-            {/* Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {bomLeitor && (
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900 flex items-center gap-1 shadow-md">
@@ -155,10 +152,8 @@ export function DetalhesCliente() {
               </span>
             </div>
 
-            {/* Nome */}
             <h1 className="text-3xl md:text-4xl font-bold mb-3 leading-tight">{cliente.Nome}</h1>
 
-            {/* Contactos */}
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-blue-100 text-sm">
               {cliente.Email && (
                 <span className="flex items-center gap-1.5">
@@ -175,7 +170,7 @@ export function DetalhesCliente() {
         </div>
       </div>
 
-      {/* ============ ESTATÍSTICAS DO CLIENTE ============ */}
+      {/* ESTATÍSTICAS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
@@ -232,7 +227,7 @@ export function DetalhesCliente() {
         </div>
       </div>
 
-      {/* ============ RESERVAS ATIVAS ============ */}
+      {/* RESERVAS */}
       {reservas.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
@@ -274,7 +269,7 @@ export function DetalhesCliente() {
         </div>
       )}
 
-      {/* ============ HISTÓRICO DE EMPRÉSTIMOS ============ */}
+      {/* HISTÓRICO */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -352,7 +347,7 @@ export function DetalhesCliente() {
         </div>
       </div>
 
-      {/* ============ INFO ADICIONAL / AÇÕES ============ */}
+      {/* RESUMO */}
       {estatisticas.totalEmprestimos > 0 && (
         <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-at-blue rounded-2xl p-5 flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-at-blue flex items-center justify-center text-white flex-shrink-0 shadow-md">
