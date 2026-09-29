@@ -5,6 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Autocomplete } from '../components/Autocomplete';
+import { TableSkeleton } from '../components/Skeleton';
 import { 
   AlertTriangle, Clock, Filter, Printer, BookOpen, User, 
   CheckCircle, Calendar, BookMarked, Info, Settings, X, Save
@@ -25,12 +26,12 @@ export function Emprestimos() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [obraId, setObraId] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [filtroAtraso, setFiltroAtraso] = useState(false);
   const [processando, setProcessando] = useState(false);
   
-  // Configurações do sistema
   const [diasEmprestimo, setDiasEmprestimo] = useState(15);
   const [valorMultaDia, setValorMultaDia] = useState(40);
   const [modalConfigAberto, setModalConfigAberto] = useState(false);
@@ -65,7 +66,8 @@ export function Emprestimos() {
       const resEmprestimos = await apiFetch('/api/emprestimos');
       const dataEmprestimos = await resEmprestimos.json();
       setEmprestimos(Array.isArray(dataEmprestimos) ? dataEmprestimos : []);
-    } catch (error) { console.error(error); }
+      setLoading(false);
+    } catch (error) { console.error(error); setLoading(false); }
   };
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export function Emprestimos() {
         setValorMultaDia(configTemporaria.multa);
         showToast('Configurações atualizadas!', 'success');
         setModalConfigAberto(false);
-        carregarDados(); // Recarrega para aplicar as novas multas
+        carregarDados();
       } else {
         showToast('Erro ao guardar configurações.', 'error');
       }
@@ -198,8 +200,7 @@ export function Emprestimos() {
   const totalMultas = emprestimos.reduce((acc, e) => acc + (e.ValorMulta || 0), 0);
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
-      {/* Alerta de atrasos */}
+    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
       {totalAtrasados > 0 && (
         <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 shadow-md">
@@ -216,7 +217,6 @@ export function Emprestimos() {
         </div>
       )}
 
-      {/* Formulário */}
       <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-8">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -228,7 +228,6 @@ export function Emprestimos() {
               <p className="text-xs text-gray-500 mt-0.5">Preenche os dados do empréstimo</p>
             </div>
           </div>
-          {/* Botão Configurar (só Admin) */}
           {user?.role === 'Admin' && (
             <button
               type="button"
@@ -242,7 +241,6 @@ export function Emprestimos() {
           )}
         </div>
 
-        {/* Info dinâmica */}
         <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md mb-6 flex items-start gap-3">
           <Info className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
           <div className="text-sm text-blue-900">
@@ -270,7 +268,6 @@ export function Emprestimos() {
             />
           </div>
 
-          {/* Preview */}
           {obraId && clienteId && (
             <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -295,7 +292,6 @@ export function Emprestimos() {
             </div>
           )}
 
-          {/* Botões */}
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
             <button
               type="submit"
@@ -316,7 +312,6 @@ export function Emprestimos() {
         </form>
       </div>
 
-      {/* Tabela */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-bold text-at-blue">
@@ -338,93 +333,95 @@ export function Emprestimos() {
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-at-blue text-white text-sm">
-                <th className="p-4 font-semibold">Obra</th>
-                <th className="p-4 font-semibold">Cliente</th>
-                <th className="p-4 font-semibold">Empréstimo</th>
-                <th className="p-4 font-semibold">Devolver até</th>
-                <th className="p-4 font-semibold text-center">Estado</th>
-                <th className="p-4 font-semibold text-right">Multa</th>
-                <th className="p-4 font-semibold text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm text-gray-700">
-              {emprestimosFiltrados.length === 0 ? (
-                <tr><td colSpan={7} className="p-6 text-center text-gray-500">
-                  {filtroAtraso ? 'Nenhum empréstimo em atraso. 🎉' : 'Nenhum empréstimo ativo.'}
-                </td></tr>
-              ) : (
-                emprestimosFiltrados.map((emp) => {
-                  const atrasado = emp.DiasAtraso > 0;
-                  return (
-                    <tr 
-                      key={emp.Id} 
-                      className={`border-b border-gray-100 transition-colors ${
-                        atrasado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <td className="p-4 font-medium">{emp.Obra}</td>
-                      <td className="p-4">{emp.Cliente}</td>
-                      <td className="p-4">{emp.DataEmprestimo}</td>
-                      <td className={`p-4 font-semibold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>
-                        {emp.DataPrevistaDevolucao}
-                      </td>
-                      <td className="p-4 text-center">
-                        {atrasado ? (
-                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-red-200">
-                            <AlertTriangle size={12} />
-                            Atrasado {emp.DiasAtraso} dia(s)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-green-200">
-                            <Clock size={12} />
-                            Em dia
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4 text-right">
-                        {emp.ValorMulta > 0 ? (
-                          <span className="font-bold text-red-600">
-                            {emp.ValorMulta.toLocaleString('pt-MZ')} MT
-                          </span>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="flex flex-wrap items-center justify-center gap-2">
-                          <button 
-                            onClick={() => navigate(`/comprovativo/${emp.Id}`)}
-                            className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1"
-                            title="Ver comprovativo">
-                            <Printer size={12} /> Comprovativo
-                          </button>
-                          <button onClick={() => handleRenovar(emp.Id)}
-                            className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors">
-                            +{diasEmprestimo}d
-                          </button>
-                          <button onClick={() => handleDevolver(emp.Id, emp.Obra)}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors">
-                            Devolver
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+          {loading ? (
+            <TableSkeleton rows={5} cols={7} />
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-at-blue text-white text-sm">
+                  <th className="p-4 font-semibold">Obra</th>
+                  <th className="p-4 font-semibold">Cliente</th>
+                  <th className="p-4 font-semibold">Empréstimo</th>
+                  <th className="p-4 font-semibold">Devolver até</th>
+                  <th className="p-4 font-semibold text-center">Estado</th>
+                  <th className="p-4 font-semibold text-right">Multa</th>
+                  <th className="p-4 font-semibold text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm text-gray-700">
+                {emprestimosFiltrados.length === 0 ? (
+                  <tr><td colSpan={7} className="p-6 text-center text-gray-500">
+                    {filtroAtraso ? 'Nenhum empréstimo em atraso. 🎉' : 'Nenhum empréstimo ativo.'}
+                  </td></tr>
+                ) : (
+                  emprestimosFiltrados.map((emp) => {
+                    const atrasado = emp.DiasAtraso > 0;
+                    return (
+                      <tr 
+                        key={emp.Id} 
+                        className={`border-b border-gray-100 transition-colors ${
+                          atrasado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <td className="p-4 font-medium">{emp.Obra}</td>
+                        <td className="p-4">{emp.Cliente}</td>
+                        <td className="p-4">{emp.DataEmprestimo}</td>
+                        <td className={`p-4 font-semibold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>
+                          {emp.DataPrevistaDevolucao}
+                        </td>
+                        <td className="p-4 text-center">
+                          {atrasado ? (
+                            <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-red-200">
+                              <AlertTriangle size={12} />
+                              Atrasado {emp.DiasAtraso} dia(s)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-green-200">
+                              <Clock size={12} />
+                              Em dia
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          {emp.ValorMulta > 0 ? (
+                            <span className="font-bold text-red-600">
+                              {emp.ValorMulta.toLocaleString('pt-MZ')} MT
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <button 
+                              onClick={() => navigate(`/comprovativo/${emp.Id}`)}
+                              className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1"
+                              title="Ver comprovativo">
+                              <Printer size={12} /> Comprovativo
+                            </button>
+                            <button onClick={() => handleRenovar(emp.Id)}
+                              className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors">
+                              +{diasEmprestimo}d
+                            </button>
+                            <button onClick={() => handleDevolver(emp.Id, emp.Obra)}
+                              className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors">
+                              Devolver
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      {/* ============ MODAL DE CONFIGURAÇÕES ============ */}
       {modalConfigAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-            {/* Cabeçalho do Modal */}
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
@@ -444,19 +441,14 @@ export function Emprestimos() {
               </button>
             </div>
 
-            {/* Campos */}
             <div className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   📅 Dias de Empréstimo
                 </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Prazo padrão para devolução das obras
-                </p>
+                <p className="text-xs text-gray-500 mb-2">Prazo padrão para devolução das obras</p>
                 <input
-                  type="number"
-                  min={1}
-                  max={365}
+                  type="number" min={1} max={365}
                   value={configTemporaria.dias}
                   onChange={(e) => setConfigTemporaria({ ...configTemporaria, dias: Number(e.target.value) || 1 })}
                   className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-center font-bold text-lg"
@@ -464,8 +456,7 @@ export function Emprestimos() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {[3, 7, 15, 30].map((d) => (
                     <button
-                      key={d}
-                      type="button"
+                      key={d} type="button"
                       onClick={() => setConfigTemporaria({ ...configTemporaria, dias: d })}
                       className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
                         configTemporaria.dias === d
@@ -483,14 +474,10 @@ export function Emprestimos() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   💰 Valor da Multa (MT/dia)
                 </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Valor cobrado por cada dia de atraso
-                </p>
+                <p className="text-xs text-gray-500 mb-2">Valor cobrado por cada dia de atraso</p>
                 <div className="relative">
                   <input
-                    type="number"
-                    min={0}
-                    max={100000}
+                    type="number" min={0} max={100000}
                     value={configTemporaria.multa}
                     onChange={(e) => setConfigTemporaria({ ...configTemporaria, multa: Number(e.target.value) || 0 })}
                     className="w-full p-3 pr-16 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-center font-bold text-lg"
@@ -502,8 +489,7 @@ export function Emprestimos() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {[10, 20, 40, 50, 100].map((v) => (
                     <button
-                      key={v}
-                      type="button"
+                      key={v} type="button"
                       onClick={() => setConfigTemporaria({ ...configTemporaria, multa: v })}
                       className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
                         configTemporaria.multa === v
@@ -517,7 +503,6 @@ export function Emprestimos() {
                 </div>
               </div>
 
-              {/* Pré-visualização */}
               <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                 <p className="text-xs font-bold text-blue-900 mb-1">📊 Como vai ficar:</p>
                 <p className="text-xs text-blue-800">
@@ -528,7 +513,6 @@ export function Emprestimos() {
               </div>
             </div>
 
-            {/* Botões */}
             <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
               <button
                 type="button"

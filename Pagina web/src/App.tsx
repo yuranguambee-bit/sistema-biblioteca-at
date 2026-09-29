@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ConfirmProvider } from './contexts/ConfirmContext';
+import { RotaPermissao } from './components/RotaPermissao';
 import { Header } from './components/Header';
 import { Dashboard } from './pages/Dashboard';
 import { CadastrarObra } from './pages/CadastrarObra';
@@ -18,6 +19,7 @@ import { Acervo } from './pages/Acervo';
 import { DetalhesObra } from './pages/DetalhesObra';
 import { Relatorios } from './pages/Relatorios';
 import { Utilizadores } from './pages/Utilizadores';
+import { Permissoes } from './pages/Permissoes';
 import { Perfil } from './pages/Perfil';
 import { Manual } from './pages/Manual';
 import { Login } from './pages/Login';
@@ -31,23 +33,52 @@ function SistemaPrivado() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <Routes>
+        {/* Rotas sempre acessíveis (qualquer utilizador autenticado) */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/perfil" element={<Perfil />} />
-        <Route path="/manual" element={<Manual />} />
-        <Route path="/cadastrar-obra" element={<CadastrarObra />} />
-        <Route path="/cadastrar-autor" element={<CadastrarAutor />} />
-        <Route path="/cadastrar-cliente" element={<CadastrarCliente />} />
-        <Route path="/clientes" element={<ListaClientes />} />
         <Route path="/clientes/:id" element={<DetalhesCliente />} />
-        <Route path="/cadastrar-editora" element={<CadastrarEditora />} />
-        <Route path="/emprestimos" element={<Emprestimos />} />
-        <Route path="/comprovativo/:id" element={<Comprovativo />} />
-        <Route path="/historico" element={<HistoricoEmprestimos />} />
-        <Route path="/reservas" element={<Reservas />} />
-        <Route path="/acervo" element={<Acervo />} />
         <Route path="/obras/:id" element={<DetalhesObra />} />
-        <Route path="/relatorios" element={<Relatorios />} />
+        <Route path="/comprovativo/:id" element={<Comprovativo />} />
+
+        {/* Rotas protegidas por permissão */}
+        <Route path="/cadastrar-obra" element={
+          <RotaPermissao chave="obras"><CadastrarObra /></RotaPermissao>
+        } />
+        <Route path="/cadastrar-autor" element={
+          <RotaPermissao chave="autores"><CadastrarAutor /></RotaPermissao>
+        } />
+        <Route path="/cadastrar-cliente" element={
+          <RotaPermissao chave="clientes"><CadastrarCliente /></RotaPermissao>
+        } />
+        <Route path="/clientes" element={
+          <RotaPermissao chave="clientes"><ListaClientes /></RotaPermissao>
+        } />
+        <Route path="/cadastrar-editora" element={
+          <RotaPermissao chave="editoras"><CadastrarEditora /></RotaPermissao>
+        } />
+        <Route path="/emprestimos" element={
+          <RotaPermissao chave="emprestimos"><Emprestimos /></RotaPermissao>
+        } />
+        <Route path="/historico" element={
+          <RotaPermissao chave="historico"><HistoricoEmprestimos /></RotaPermissao>
+        } />
+        <Route path="/reservas" element={
+          <RotaPermissao chave="reservas"><Reservas /></RotaPermissao>
+        } />
+        <Route path="/acervo" element={
+          <RotaPermissao chave="acervo"><Acervo /></RotaPermissao>
+        } />
+        <Route path="/relatorios" element={
+          <RotaPermissao chave="relatorios"><Relatorios /></RotaPermissao>
+        } />
+        <Route path="/manual" element={
+          <RotaPermissao chave="manual"><Manual /></RotaPermissao>
+        } />
+
+        {/* Rotas exclusivas do Admin */}
         <Route path="/utilizadores" element={<Utilizadores />} />
+        <Route path="/permissoes" element={<Permissoes />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

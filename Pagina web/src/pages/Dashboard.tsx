@@ -117,8 +117,8 @@ export function Dashboard() {
   const atrasados = stats.emprestimosAtrasados || 0;
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
-      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-8 text-white">
+      <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
+        <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-8 text-white animate-fade-down">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
         <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-white/5 rounded-full"></div>

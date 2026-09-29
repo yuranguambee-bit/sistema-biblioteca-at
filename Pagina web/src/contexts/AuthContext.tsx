@@ -1,10 +1,25 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+
+interface Permissoes {
+  obras?: boolean;
+  autores?: boolean;
+  clientes?: boolean;
+  editoras?: boolean;
+  emprestimos?: boolean;
+  reservas?: boolean;
+  historico?: boolean;
+  acervo?: boolean;
+  relatorios?: boolean;
+  manual?: boolean;
+  [key: string]: boolean | undefined;
+}
 
 interface User {
   id: number;
   nome: string;
   email: string;
   role: string;
+  permissoes?: Permissoes;
 }
 
 interface AuthContextData {
@@ -13,6 +28,7 @@ interface AuthContextData {
   login: (user: User, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  temPermissao: (chave: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -38,8 +54,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('@biblioteca:token');
   };
 
+  // Verifica se o utilizador tem permissão para uma chave
+  // Admin tem SEMPRE acesso a tudo
+  const temPermissao = useCallback((chave: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'Admin') return true;
+    return user.permissoes?.[chave] === true;
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, temPermissao }}>
       {children}
     </AuthContext.Provider>
   );

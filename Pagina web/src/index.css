@@ -5,32 +5,117 @@
 body {
   background-color: #f3f4f6;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Animações dos Toasts */
+/* ============ ANIMAÇÕES GLOBAIS ============ */
+
+/* Toast (já existia) */
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(100px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 .animate-toast-in { animation: toast-in 0.3s ease-out; }
 
-/* Animação dos Modais */
+/* Modal - fade do fundo */
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
 
+/* Modal - escala */
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.9); }
   to   { opacity: 1; transform: scale(1); }
 }
 .animate-scale-in { animation: scale-in 0.2s ease-out; }
 
-/* Estilos de impressão */
+/* Fade up - para páginas e cartões */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.4s ease-out; }
+
+/* Fade down - para header e banner */
+@keyframes fade-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-down { animation: fade-down 0.4s ease-out; }
+
+/* Fade in simples */
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade { animation: fade 0.4s ease-out; }
+
+/* Slide in da esquerda */
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-left { animation: slide-in-left 0.4s ease-out; }
+
+/* Pulse suave (para badges e avisos) */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+
+/* Shimmer - para skeletons de loading */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+/* ============ TRANSIÇÕES PADRÃO ============ */
+
+button, a, input, select, textarea {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+  border: 2px solid #f1f5f9;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ============ IMPRESSÃO ============ */
 @media print {
-  body { background-color: white; }
-  .print-shadow-none { box-shadow: none !important; border: 1px solid #ddd !important; }
-  .print-hide { display: none !important; }
-  .print-show { display: block !important; }
+  body {
+    background-color: white;
+  }
+  .print-shadow-none {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+  .print-hide {
+    display: none !important;
+  }
+  .print-show {
+    display: block !important;
+  }
 }

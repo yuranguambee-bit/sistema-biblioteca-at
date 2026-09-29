@@ -8,6 +8,7 @@ import {
   Eye, UserPlus, Search, Users, Edit3, Trash2, Save, X, 
   User, Mail, Phone, BookOpen, AlertCircle
 } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 
 interface Cliente {
   Id: number;
@@ -28,7 +29,6 @@ export function ListaClientes() {
   const [loading, setLoading] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
 
-  // Modal de edição
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Cliente | null>(null);
   const [formNome, setFormNome] = useState('');
@@ -133,8 +133,7 @@ export function ListaClientes() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
-      {/* Cabeçalho */}
+    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
       <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -164,7 +163,6 @@ export function ListaClientes() {
         </div>
       </div>
 
-      {/* Pesquisa */}
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
         <label className="block text-sm font-semibold text-gray-700 mb-2">
           🔍 Pesquisar Cliente
@@ -186,11 +184,10 @@ export function ListaClientes() {
         )}
       </div>
 
-      {/* Tabela */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">A carregar clientes...</div>
+            <TableSkeleton rows={6} cols={5} />
           ) : clientesFiltrados.length === 0 ? (
             <div className="p-12 text-center">
               <Users size={56} className="mx-auto mb-3 text-gray-300" />
@@ -290,11 +287,9 @@ export function ListaClientes() {
         </div>
       </div>
 
-      {/* ============ MODAL DE EDIÇÃO ============ */}
       {modalAberto && editando && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-            {/* Cabeçalho */}
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white shadow-lg">
@@ -314,7 +309,6 @@ export function ListaClientes() {
               </button>
             </div>
 
-            {/* Formulário */}
             <form onSubmit={handleGuardarEdicao} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -365,7 +359,6 @@ export function ListaClientes() {
                 </div>
               </div>
 
-              {/* Aviso sobre empréstimos ativos */}
               {editando.EmprestimosAtivos > 0 && (
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded text-xs text-yellow-800 flex items-start gap-2">
                   <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
@@ -376,7 +369,6 @@ export function ListaClientes() {
                 </div>
               )}
 
-              {/* Botões */}
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"

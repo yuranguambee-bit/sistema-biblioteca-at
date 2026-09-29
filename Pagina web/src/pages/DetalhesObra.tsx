@@ -5,7 +5,9 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   ArrowLeft, BookOpen, User, Building2, CheckCircle, XCircle, 
-  Clock, Mail, Phone, History, Bookmark, Plus
+  Clock, Mail, Phone, History, Bookmark, Plus, Printer,
+  Calendar, Award, TrendingUp, Users, UserPlus, AlertTriangle,
+  BookMarked, Sparkles
 } from 'lucide-react';
 
 interface ObraDetalhe {
@@ -128,7 +130,7 @@ export function DetalhesObra() {
 
   if (loading) {
     return (
-      <main className="max-w-5xl mx-auto p-6 mt-6">
+      <main className="max-w-5xl mx-auto p-6 mt-6 animate-fade-up">
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
           A carregar detalhes...
         </div>
@@ -154,51 +156,147 @@ export function DetalhesObra() {
 
   const isDisponivel = obra.Status === 'DISPONIVEL';
   const totalEmprestimos = historico.length;
+  const emprestimosDevolvidos = historico.filter(h => h.Status === 'DEVOLVIDO').length;
+  const emprestimosAtivos = historico.filter(h => h.Status === 'ATIVO').length;
+  const isTop5 = totalEmprestimos >= 3; // Badge "Popular" se tiver 3+ empréstimos
 
   return (
-    <main className="max-w-5xl mx-auto p-6 mt-6">
+    <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
+      {/* Botão Voltar */}
       <Link to="/acervo"
         className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
         <ArrowLeft size={16} /> Voltar ao Acervo
       </Link>
 
-      {/* Cabeçalho */}
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+      {/* ============ CABEÇALHO DA OBRA ============ */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
+        <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
+
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div className="flex-1 min-w-[280px]">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                 <BookOpen size={22} />
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                 isDisponivel ? 'bg-green-400 text-green-900' : 'bg-red-400 text-red-900'
               }`}>
-                {isDisponivel ? '● DISPONÍVEL' : '● EMPRESTADO'}
+                ● {obra.Status}
               </span>
+              {isTop5 && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900 flex items-center gap-1">
+                  <Award size={12} /> POPULAR
+                </span>
+              )}
             </div>
-            <h1 className="text-3xl font-bold mb-2">{obra.Titulo}</h1>
+
+            {/* Título */}
+            <h1 className="text-3xl md:text-4xl font-bold mb-3 leading-tight">{obra.Titulo}</h1>
             <p className="text-blue-100 text-sm">
               Obra #<strong>{obra.Id}</strong> · Publicada em <strong>{obra.Ano}</strong>
             </p>
           </div>
+
+          {/* Ações rápidas */}
           <div className="flex flex-col gap-3">
             {isDisponivel ? (
               <Link to="/emprestimos"
-                className="bg-white text-at-blue px-6 py-3 rounded-md font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
-                <CheckCircle size={16} /> Requisitar Obra
+                className="bg-white text-at-blue px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
+                <CheckCircle size={18} /> Requisitar Obra
               </Link>
             ) : (
               <button onClick={() => setMostrarFormReserva(!mostrarFormReserva)}
-                className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-md font-bold hover:bg-yellow-300 transition-colors text-sm flex items-center gap-2 shadow-lg">
-                <Bookmark size={16} /> {mostrarFormReserva ? 'Fechar' : 'Reservar Obra'}
+                className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-lg font-bold hover:bg-yellow-300 transition-colors text-sm flex items-center gap-2 shadow-lg">
+                <Bookmark size={18} /> {mostrarFormReserva ? 'Fechar' : 'Reservar Obra'}
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Formulário de Reserva (aparece quando clica em Reservar) */}
+      {/* ============ ESTATÍSTICAS DA OBRA ============ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <BookMarked className="text-at-blue" size={18} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p>
+            </div>
+            <p className="text-3xl font-bold text-at-blue">{totalEmprestimos}</p>
+            <p className="text-xs text-gray-400 mt-1">empréstimos</p>
+          </div>
+        </div>
+
+        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="text-green-600" size={18} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Devolvidos</p>
+            </div>
+            <p className="text-3xl font-bold text-green-600">{emprestimosDevolvidos}</p>
+            <p className="text-xs text-gray-400 mt-1">já entregues</p>
+          </div>
+        </div>
+
+        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="text-orange-600" size={18} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ativos</p>
+            </div>
+            <p className="text-3xl font-bold text-orange-600">{emprestimosAtivos}</p>
+            <p className="text-xs text-gray-400 mt-1">em curso</p>
+          </div>
+        </div>
+
+        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-yellow-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="text-yellow-600" size={18} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reservas</p>
+            </div>
+            <p className="text-3xl font-bold text-yellow-600">{reservas.length}</p>
+            <p className="text-xs text-gray-400 mt-1">na fila</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ============ DADOS DA OBRA ============ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+            <User className="text-purple-600" size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Autor</p>
+            <p className="text-base font-bold text-gray-800 truncate">{obra.Autor || 'Sem autor'}</p>
+            {obra.Nacionalidade && (
+              <p className="text-xs text-gray-500 mt-0.5">🌍 {obra.Nacionalidade}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <Building2 className="text-blue-600" size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Editora</p>
+            <p className="text-base font-bold text-gray-800 truncate">{obra.Editora || 'Sem editora'}</p>
+            {obra.EditoraContacto && (
+              <p className="text-xs text-gray-500 mt-0.5">📞 {obra.EditoraContacto}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ============ FORMULÁRIO DE RESERVA ============ */}
       {mostrarFormReserva && !isDisponivel && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-2xl p-6 mb-6 animate-fade-in">
           <h3 className="text-base font-bold text-yellow-800 mb-4 flex items-center gap-2">
@@ -220,52 +318,14 @@ export function DetalhesObra() {
         </div>
       )}
 
-      {/* Cartões de Informação */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-              <User className="text-purple-600" size={20} />
-            </div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Autor</p>
-          </div>
-          <p className="text-base font-bold text-gray-800">{obra.Autor || 'Sem autor'}</p>
-          {obra.Nacionalidade && <p className="text-xs text-gray-500 mt-1">🌍 {obra.Nacionalidade}</p>}
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-              <Building2 className="text-blue-600" size={20} />
-            </div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Editora</p>
-          </div>
-          <p className="text-base font-bold text-gray-800">{obra.Editora || 'Sem editora'}</p>
-          {obra.EditoraContacto && <p className="text-xs text-gray-500 mt-1">📞 {obra.EditoraContacto}</p>}
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-              <History className="text-orange-600" size={20} />
-            </div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Histórico</p>
-          </div>
-          <p className="text-base font-bold text-gray-800">{totalEmprestimos} empréstimo(s)</p>
-          {reservas.length > 0 && (
-            <p className="text-xs text-yellow-600 font-semibold mt-1">● {reservas.length} reserva(s) pendente(s)</p>
-          )}
-        </div>
-      </div>
-
-      {/* Fila de Reservas */}
+      {/* ============ FILA DE RESERVAS ============ */}
       {!isDisponivel && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
-          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center">
-              <Bookmark className="text-yellow-600" size={18} />
+          <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Bookmark className="text-yellow-600" size={20} />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="text-base font-bold text-at-blue">Fila de Reservas</h3>
               <p className="text-xs text-gray-400">
                 {reservas.length === 0 ? 'Ninguém à espera' : `${reservas.length} pessoa(s) à espera`}
@@ -282,17 +342,22 @@ export function DetalhesObra() {
           ) : (
             <div className="divide-y divide-gray-50">
               {reservas.map((reserva, index) => (
-                <div key={reserva.Id} className="px-6 py-4 flex flex-wrap items-center justify-between gap-3 hover:bg-yellow-50/30 transition-colors">
+                <div key={reserva.Id} className={`px-5 py-4 flex flex-wrap items-center justify-between gap-3 transition-colors ${
+                  index === 0 ? 'bg-yellow-50/50' : 'hover:bg-yellow-50/30'
+                }`}>
                   <div className="flex items-center gap-4 flex-1">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
                       index === 0 
-                        ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300' 
+                        ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-lg ring-2 ring-yellow-300' 
                         : 'bg-gray-100 text-gray-600'
                     }`}>
                       {index + 1}º
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800">{reserva.Cliente}</p>
+                      <p className={`font-semibold ${index === 0 ? 'text-yellow-900' : 'text-gray-800'}`}>
+                        {reserva.Cliente}
+                        {index === 0 && <span className="ml-2 text-xs bg-yellow-400 text-yellow-900 px-2 py-0.5 rounded-full">PRÓXIMO</span>}
+                      </p>
                       <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-x-3">
                         {reserva.ClienteEmail && <span>✉️ {reserva.ClienteEmail}</span>}
                         {reserva.ClienteTelefone && <span>📞 {reserva.ClienteTelefone}</span>}
@@ -315,16 +380,21 @@ export function DetalhesObra() {
         </div>
       )}
 
-      {/* Histórico de Empréstimos */}
+      {/* ============ HISTÓRICO DE EMPRÉSTIMOS ============ */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-            <History className="text-at-blue" size={18} />
+        <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <History className="text-at-blue" size={20} />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-base font-bold text-at-blue">Histórico de Empréstimos</h3>
-            <p className="text-xs text-gray-400">Quem já requisitou esta obra</p>
+            <p className="text-xs text-gray-400">Todos os empréstimos desta obra</p>
           </div>
+          {totalEmprestimos > 0 && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+              {totalEmprestimos} registo(s)
+            </span>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -332,6 +402,7 @@ export function DetalhesObra() {
             <div className="p-12 text-center text-gray-400">
               <History size={48} className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">Esta obra nunca foi requisitada</p>
+              <p className="text-xs mt-1">Será o primeiro a requisitá-la?</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse">

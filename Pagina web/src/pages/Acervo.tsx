@@ -5,6 +5,7 @@ import { apiFetch } from '../services/api';
 import { exportarParaCSV } from '../utils/exportar';
 import { useToast } from '../contexts/ToastContext';
 import { Eye } from 'lucide-react';
+import { TableSkeleton } from '../components/Skeleton';
 
 interface Autor { Id: number; Nome: string; }
 interface Editora { Id: number; Nome: string; }
@@ -89,7 +90,7 @@ export function Acervo() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
+    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-at-blue">Acervo da Biblioteca</h2>
@@ -158,7 +159,7 @@ export function Acervo() {
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-6 text-center text-gray-500">A carregar o acervo...</div>
+            <TableSkeleton rows={8} cols={5} />
           ) : obrasFiltradas.length === 0 ? (
             <div className="p-10 text-center">
               <p className="text-4xl mb-3">📭</p>

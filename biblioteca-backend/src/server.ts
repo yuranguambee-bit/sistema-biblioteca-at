@@ -22,6 +22,16 @@ const dbConfig: sql.config = {
     options: { encrypt: false, trustServerCertificate: true }
 };
 
+// ============ UTILITÁRIOS ============
+function parsePermissoes(valor: any): any {
+    if (!valor) return {};
+    try {
+        return typeof valor === 'string' ? JSON.parse(valor) : valor;
+    } catch {
+        return {};
+    }
+}
+
 async function obterConfig(chave: string, fallback: number): Promise<number> {
     try {
         const pool = await sql.connect(dbConfig);
@@ -54,7 +64,7 @@ async function seedAdmin() {
                 .input('Email', sql.NVarChar, 'admin@at.gov.mz')
                 .input('PasswordHash', sql.NVarChar, hash)
                 .input('Role', sql.NVarChar, 'Admin')
-                .query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role) VALUES (@Nome, @Email, @PasswordHash, @Role)');
+                .query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role, Permissoes) VALUES (@Nome, @Email, @PasswordHash, @Role, \'{}\')');
             console.log('🌱 Utilizador Admin criado: admin@at.gov.mz / admin123');
         }
     } catch (error) { console.error('Erro ao criar admin:', error); }
@@ -66,7 +76,7 @@ function verificarToken(req: Request, res: Response, next: NextFunction) {
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'Acesso negado. Sem token.' });
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
         (req as any).user = decoded;
         next();
     } catch (error) { res.status(401).json({ error: 'Token inválido ou expirado.' }); }
@@ -80,6 +90,18 @@ function apenasAdmin(req: Request, res: Response, next: NextFunction) {
     next();
 }
 
+// Verifica se o utilizador tem permissão para uma chave específica
+function verificarPermissao(chave: string) {
+    return (req: Request, res: Response, next: NextFunction) => {
+        const user = (req as any).user;
+        if (!user) return res.status(401).json({ error: 'Não autenticado.' });
+        if (user.role === 'Admin') return next(); // Admin tem sempre acesso
+        const permissoes = parsePermissoes(user.permissoes);
+        if (permissoes[chave] === true) return next();
+        return res.status(403).json({ error: 'Não tens permissão para esta ação.' });
+    };
+}
+
 // ============ AUTENTICAÇÃO ============
 app.post('/api/auth/login', async (req: Request, res: Response) => {
     const { Email, Password } = req.body;
@@ -87,7 +109,7 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
             .input('Email', sql.NVarChar, Email)
-            .query('SELECT Id, Nome, Email, PasswordHash, Role FROM Usuarios WHERE Email = @Email');
+            .query('SELECT Id, Nome, Email, PasswordHash, Role, Permissoes FROM Usuarios WHERE Email = @Email');
 
         if (result.recordset.length === 0) return res.status(401).json({ error: 'Email ou password incorretos.' });
 
@@ -95,12 +117,23 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         const passwordOk = await bcrypt.compare(Password, user.PasswordHash);
         if (!passwordOk) return res.status(401).json({ error: 'Email ou password incorretos.' });
 
+        const permissoes = parsePermissoes(user.Permissoes);
+
         const token = jwt.sign(
-            { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role },
+            { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes },
             JWT_SECRET, { expiresIn: '8h' }
         );
 
-        res.json({ token, user: { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role } });
+        res.json({ 
+            token, 
+            user: { 
+                id: user.Id, 
+                nome: user.Nome, 
+                email: user.Email, 
+                role: user.Role, 
+                permissoes 
+            } 
+        });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -142,9 +175,16 @@ app.get('/api/perfil', verificarToken, async (req, res) => {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
             .input('Id', sql.Int, userId)
-            .query('SELECT Id, Nome, Email, Role FROM Usuarios WHERE Id = @Id');
+            .query('SELECT Id, Nome, Email, Role, Permissoes FROM Usuarios WHERE Id = @Id');
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Utilizador não encontrado.' });
-        res.json(result.recordset[0]);
+        const u = result.recordset[0];
+        res.json({
+            Id: u.Id,
+            Nome: u.Nome,
+            Email: u.Email,
+            Role: u.Role,
+            permissoes: parsePermissoes(u.Permissoes)
+        });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -187,12 +227,19 @@ app.get('/api/perfil/atividade', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ UTILIZADORES ============
+// ============ UTILIZADORES E PERMISSÕES ============
 app.get('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const result = await pool.request().query('SELECT Id, Nome, Email, Role FROM Usuarios ORDER BY Nome');
-        res.json(result.recordset);
+        const result = await pool.request().query('SELECT Id, Nome, Email, Role, Permissoes FROM Usuarios ORDER BY Nome');
+        const usuarios = result.recordset.map((u: any) => ({
+            Id: u.Id,
+            Nome: u.Nome,
+            Email: u.Email,
+            Role: u.Role,
+            permissoes: parsePermissoes(u.Permissoes)
+        }));
+        res.json(usuarios);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -206,12 +253,32 @@ app.post('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
             .input('Email', sql.NVarChar, Email)
             .input('PasswordHash', sql.NVarChar, hash)
             .input('Role', sql.NVarChar, Role || 'Bibliotecario')
-            .query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role) VALUES (@Nome, @Email, @PasswordHash, @Role)');
+            .input('Permissoes', sql.NVarChar, '{}')
+            .query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role, Permissoes) VALUES (@Nome, @Email, @PasswordHash, @Role, @Permissoes)');
         res.status(201).json({ message: 'Utilizador criado com sucesso!' });
     } catch (error: any) {
         if (error.message.includes('UNIQUE')) return res.status(400).json({ error: 'Este email já está registado.' });
         res.status(500).json({ error: error.message });
     }
+});
+
+// Atualizar permissões de um utilizador
+app.put('/api/usuarios/:id/permissoes', verificarToken, apenasAdmin, async (req, res) => {
+    const id = req.params.id;
+    const { permissoes } = req.body;
+
+    if (!permissoes || typeof permissoes !== 'object') {
+        return res.status(400).json({ error: 'Permissões inválidas.' });
+    }
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool.request()
+            .input('Id', sql.Int, id)
+            .input('Permissoes', sql.NVarChar, JSON.stringify(permissoes))
+            .query('UPDATE Usuarios SET Permissoes = @Permissoes WHERE Id = @Id');
+        res.json({ message: 'Permissões atualizadas com sucesso!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete('/api/usuarios/:id', verificarToken, apenasAdmin, async (req, res) => {
@@ -311,7 +378,7 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post('/api/obras', verificarToken, async (req, res) => {
+app.post('/api/obras', verificarToken, verificarPermissao('obras'), async (req, res) => {
     const { Titulo, Ano, AutorId, EditoraId } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
@@ -323,7 +390,7 @@ app.post('/api/obras', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.delete('/api/obras/:id', verificarToken, apenasAdmin, async (req, res) => {
+app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras'), async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         await pool.request().input('Id', sql.Int, req.params.id).query('DELETE FROM Obras WHERE Id = @Id');
@@ -348,7 +415,7 @@ app.get('/api/autores', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post('/api/autores', verificarToken, async (req, res) => {
+app.post('/api/autores', verificarToken, verificarPermissao('autores'), async (req, res) => {
     const { Nome, Sobrenome, Nacionalidade, DataNascimento, Biografia } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
@@ -364,7 +431,7 @@ app.post('/api/autores', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.put('/api/autores/:id', verificarToken, async (req, res) => {
+app.put('/api/autores/:id', verificarToken, verificarPermissao('autores'), async (req, res) => {
     const id = req.params.id;
     const { Nome, Sobrenome, Nacionalidade, DataNascimento, Biografia } = req.body;
     try {
@@ -384,7 +451,7 @@ app.put('/api/autores/:id', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.delete('/api/autores/:id', verificarToken, apenasAdmin, async (req, res) => {
+app.delete('/api/autores/:id', verificarToken, verificarPermissao('autores'), async (req, res) => {
     const id = req.params.id;
     try {
         const pool = await sql.connect(dbConfig);
@@ -417,7 +484,7 @@ app.get('/api/clientes', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post('/api/clientes', verificarToken, async (req, res) => {
+app.post('/api/clientes', verificarToken, verificarPermissao('clientes'), async (req, res) => {
     const { Nome, Email, Telefone } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
@@ -427,7 +494,7 @@ app.post('/api/clientes', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.put('/api/clientes/:id', verificarToken, async (req, res) => {
+app.put('/api/clientes/:id', verificarToken, verificarPermissao('clientes'), async (req, res) => {
     const id = req.params.id;
     const { Nome, Email, Telefone } = req.body;
     try {
@@ -442,7 +509,7 @@ app.put('/api/clientes/:id', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.delete('/api/clientes/:id', verificarToken, apenasAdmin, async (req, res) => {
+app.delete('/api/clientes/:id', verificarToken, verificarPermissao('clientes'), async (req, res) => {
     const id = req.params.id;
     try {
         const pool = await sql.connect(dbConfig);
@@ -561,7 +628,7 @@ app.get('/api/editoras', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post('/api/editoras', verificarToken, async (req, res) => {
+app.post('/api/editoras', verificarToken, verificarPermissao('editoras'), async (req, res) => {
     const { Nome, Endereco, Telefone, Email, Website } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
@@ -577,7 +644,7 @@ app.post('/api/editoras', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.put('/api/editoras/:id', verificarToken, async (req, res) => {
+app.put('/api/editoras/:id', verificarToken, verificarPermissao('editoras'), async (req, res) => {
     const id = req.params.id;
     const { Nome, Endereco, Telefone, Email, Website } = req.body;
     try {
@@ -597,7 +664,7 @@ app.put('/api/editoras/:id', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.delete('/api/editoras/:id', verificarToken, apenasAdmin, async (req, res) => {
+app.delete('/api/editoras/:id', verificarToken, verificarPermissao('editoras'), async (req, res) => {
     const id = req.params.id;
     try {
         const pool = await sql.connect(dbConfig);
@@ -634,7 +701,7 @@ app.get('/api/reservas', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post('/api/reservas', verificarToken, async (req, res) => {
+app.post('/api/reservas', verificarToken, verificarPermissao('reservas'), async (req, res) => {
     const { ObraId, ClienteId } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
@@ -651,7 +718,7 @@ app.post('/api/reservas', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.delete('/api/reservas/:id', verificarToken, async (req, res) => {
+app.delete('/api/reservas/:id', verificarToken, verificarPermissao('reservas'), async (req, res) => {
     const id = req.params.id;
     try {
         const pool = await sql.connect(dbConfig);
@@ -762,7 +829,7 @@ app.get('/api/emprestimos/:id/comprovativo', verificarToken, async (req, res) =>
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-app.post('/api/emprestimos', verificarToken, async (req, res) => {
+app.post('/api/emprestimos', verificarToken, verificarPermissao('emprestimos'), async (req, res) => {
     const { ObraId, ClienteId } = req.body;
     const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
     const valorMultaDia = await obterConfig('ValorMultaDia', 40);
@@ -823,7 +890,7 @@ app.post('/api/emprestimos', verificarToken, async (req, res) => {
     }
 });
 
-app.put('/api/emprestimos/:id/devolver', verificarToken, async (req, res) => {
+app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emprestimos'), async (req, res) => {
     const emprestimoId = req.params.id;
     const pool = await sql.connect(dbConfig);
     const transaction = new sql.Transaction(pool);
@@ -844,7 +911,7 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, async (req, res) => {
     }
 });
 
-app.put('/api/emprestimos/:id/renovar', verificarToken, async (req, res) => {
+app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('emprestimos'), async (req, res) => {
     const emprestimoId = req.params.id;
     const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
     try {
