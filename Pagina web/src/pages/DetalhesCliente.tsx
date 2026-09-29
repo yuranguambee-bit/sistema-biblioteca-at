@@ -4,7 +4,8 @@ import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { 
   ArrowLeft, User, Mail, Phone, BookOpen, AlertTriangle, 
-  CheckCircle, Clock, Bookmark, History, Award, XCircle
+  CheckCircle, Clock, Bookmark, History, Award, XCircle, 
+  TrendingUp, Calendar, Star, UserCheck, BookMarked
 } from 'lucide-react';
 
 interface ClienteDetalhe {
@@ -79,7 +80,7 @@ export function DetalhesCliente() {
 
   if (loading) {
     return (
-      <main className="max-w-5xl mx-auto p-6 mt-6">
+      <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
           A carregar detalhes...
         </div>
@@ -89,7 +90,7 @@ export function DetalhesCliente() {
 
   if (!cliente) {
     return (
-      <main className="max-w-5xl mx-auto p-6 mt-6">
+      <main className="max-w-6xl mx-auto p-6 mt-6">
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
           <XCircle size={56} className="mx-auto mb-4 text-red-400" />
           <h2 className="text-xl font-bold text-gray-700 mb-2">Cliente não encontrado</h2>
@@ -103,45 +104,62 @@ export function DetalhesCliente() {
     );
   }
 
-  const isBomLeitor = estatisticas.emprestimosAtrasados === 0 && estatisticas.totalEmprestimos >= 3;
+  const iniciais = cliente.Nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   const temAtrasos = estatisticas.emprestimosAtrasados > 0;
+  const bomLeitor = !temAtrasos && estatisticas.totalEmprestimos >= 3;
+  const emprestimosDevolvidos = historico.filter(h => h.Status === 'DEVOLVIDO').length;
 
   return (
-    <main className="max-w-5xl mx-auto p-6 mt-6">
+    <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
       <Link to="/clientes"
         className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
         <ArrowLeft size={16} /> Voltar à lista de clientes
       </Link>
 
-      {/* Cabeçalho */}
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 right-24 w-40 h-40 bg-white/5 rounded-full -mb-20"></div>
-        
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div className="flex-1 min-w-[280px]">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                <User size={26} />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-400 text-white">
-                  Cliente #{cliente.Id}
+      {/* ============ CABEÇALHO DO CLIENTE ============ */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
+        <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
+
+        <div className="relative flex flex-wrap items-start gap-6">
+          {/* Avatar grande */}
+          <div className={`w-24 h-24 rounded-3xl flex items-center justify-center text-white font-bold text-3xl shadow-2xl flex-shrink-0 ${
+            bomLeitor ? 'bg-gradient-to-br from-yellow-400 to-amber-500 ring-4 ring-yellow-300/50' :
+            temAtrasos ? 'bg-gradient-to-br from-red-500 to-red-700 ring-4 ring-red-400/50' :
+            'bg-white/20 backdrop-blur-sm border-2 border-white/30'
+          }`}>
+            {bomLeitor ? <Star size={40} /> : iniciais}
+          </div>
+
+          {/* Dados */}
+          <div className="flex-1 min-w-[250px]">
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              {bomLeitor && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900 flex items-center gap-1 shadow-md">
+                  <Award size={12} /> BOM LEITOR
                 </span>
-                {isBomLeitor && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900 flex items-center gap-1">
-                    <Award size={12} /> BOM LEITOR
-                  </span>
-                )}
-                {temAtrasos && (
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white flex items-center gap-1 animate-pulse">
-                    <AlertTriangle size={12} /> COM ATRASOS
-                  </span>
-                )}
-              </div>
+              )}
+              {temAtrasos && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white flex items-center gap-1 shadow-md animate-pulse">
+                  <AlertTriangle size={12} /> COM ATRASOS
+                </span>
+              )}
+              {!bomLeitor && !temAtrasos && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-400 text-white flex items-center gap-1">
+                  <UserCheck size={12} /> LEITOR ATIVO
+                </span>
+              )}
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-sm border border-white/30">
+                Cliente #{cliente.Id}
+              </span>
             </div>
-            <h1 className="text-3xl font-bold mb-2">{cliente.Nome}</h1>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-blue-100 text-sm mt-3">
+
+            {/* Nome */}
+            <h1 className="text-3xl md:text-4xl font-bold mb-3 leading-tight">{cliente.Nome}</h1>
+
+            {/* Contactos */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-blue-100 text-sm">
               {cliente.Email && (
                 <span className="flex items-center gap-1.5">
                   <Mail size={14} /> {cliente.Email}
@@ -157,82 +175,90 @@ export function DetalhesCliente() {
         </div>
       </div>
 
-      {/* Cartões de Estatísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+      {/* ============ ESTATÍSTICAS DO CLIENTE ============ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
-              <BookOpen className="text-at-blue" size={18} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Empréstimos</p>
+              <BookMarked className="text-at-blue" size={18} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p>
             </div>
             <p className="text-3xl font-bold text-at-blue">{estatisticas.totalEmprestimos}</p>
-            <p className="text-xs text-gray-400 mt-1">total histórico</p>
+            <p className="text-xs text-gray-400 mt-1">empréstimos</p>
           </div>
         </div>
 
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="text-green-600" size={18} />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Devolvidos</p>
+            </div>
+            <p className="text-3xl font-bold text-green-600">{emprestimosDevolvidos}</p>
+            <p className="text-xs text-gray-400 mt-1">já entregues</p>
+          </div>
+        </div>
+
+        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="text-orange-600" size={18} />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ativos</p>
             </div>
-            <p className="text-3xl font-bold text-green-600">{estatisticas.emprestimosAtivos}</p>
+            <p className="text-3xl font-bold text-orange-600">{estatisticas.emprestimosAtivos}</p>
             <p className="text-xs text-gray-400 mt-1">em curso</p>
           </div>
         </div>
 
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-red-50 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500"></div>
+        <div className={`group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden ${
+          temAtrasos ? 'ring-2 ring-red-200' : ''
+        }`}>
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-red-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="text-red-600" size={18} />
+              <AlertTriangle className={`${temAtrasos ? 'text-red-600' : 'text-gray-400'}`} size={18} />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Atrasos</p>
             </div>
-            <p className={`text-3xl font-bold ${estatisticas.emprestimosAtrasados > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+            <p className={`text-3xl font-bold ${temAtrasos ? 'text-red-600' : 'text-gray-400'}`}>
               {estatisticas.emprestimosAtrasados}
             </p>
-            <p className="text-xs text-gray-400 mt-1">em atraso</p>
-          </div>
-        </div>
-
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-50 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <Bookmark className="text-yellow-600" size={18} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reservas</p>
-            </div>
-            <p className="text-3xl font-bold text-yellow-600">{estatisticas.totalReservas}</p>
-            <p className="text-xs text-gray-400 mt-1">pendentes</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {temAtrasos ? 'a resolver' : 'sem atrasos'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Reservas Ativas */}
+      {/* ============ RESERVAS ATIVAS ============ */}
       {reservas.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center">
-              <Bookmark className="text-yellow-600" size={18} />
+            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
+              <Bookmark className="text-yellow-600" size={20} />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="text-base font-bold text-at-blue">Reservas Ativas</h3>
               <p className="text-xs text-gray-400">Obras que este cliente está à espera</p>
             </div>
+            <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-bold">
+              {reservas.length} em fila
+            </span>
           </div>
+
           <div className="divide-y divide-gray-50">
             {reservas.map((reserva) => (
               <div key={reserva.Id} className="px-5 py-4 flex flex-wrap items-center justify-between gap-3 hover:bg-yellow-50/30 transition-colors">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-9 h-9 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                    <Bookmark className="text-yellow-700" size={16} />
+                  <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                    <Bookmark className="text-yellow-700" size={18} />
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">{reserva.Obra}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Reservado em {reserva.DataReserva}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 truncate">{reserva.Obra}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                      <Calendar size={11} /> Reservado em {reserva.DataReserva}
                     </p>
                   </div>
                 </div>
@@ -248,16 +274,21 @@ export function DetalhesCliente() {
         </div>
       )}
 
-      {/* Histórico de Empréstimos */}
+      {/* ============ HISTÓRICO DE EMPRÉSTIMOS ============ */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-            <History className="text-at-blue" size={18} />
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <History className="text-at-blue" size={20} />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-base font-bold text-at-blue">Histórico de Empréstimos</h3>
             <p className="text-xs text-gray-400">Todas as obras requisitadas por este cliente</p>
           </div>
+          {estatisticas.totalEmprestimos > 0 && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+              {estatisticas.totalEmprestimos} registo(s)
+            </span>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -320,6 +351,34 @@ export function DetalhesCliente() {
           )}
         </div>
       </div>
+
+      {/* ============ INFO ADICIONAL / AÇÕES ============ */}
+      {estatisticas.totalEmprestimos > 0 && (
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-at-blue rounded-2xl p-5 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-at-blue flex items-center justify-center text-white flex-shrink-0 shadow-md">
+            <TrendingUp size={22} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-at-blue">Resumo do Leitor</h3>
+            <p className="text-sm text-gray-700 mt-1">
+              {cliente.Nome.split(' ')[0]} já requisitou <strong>{estatisticas.totalEmprestimos}</strong> obra(s) 
+              {emprestimosDevolvidos > 0 && (
+                <> e devolveu <strong>{emprestimosDevolvidos}</strong></>
+              )}.
+              {bomLeitor && (
+                <span className="block mt-2 text-yellow-700 font-semibold flex items-center gap-1">
+                  <Star size={14} /> Excelente histórico — leitor exemplar!
+                </span>
+              )}
+              {temAtrasos && (
+                <span className="block mt-2 text-red-700 font-semibold flex items-center gap-1">
+                  <AlertTriangle size={14} /> Atenção: tem {estatisticas.emprestimosAtrasados} empréstimo(s) em atraso
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

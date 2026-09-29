@@ -135,8 +135,7 @@ export function Dashboard() {
               </div>
             </div>
             <p className="text-blue-100 text-sm max-w-2xl">
-              Bem-vindo ao painel de gestão da Biblioteca da Autoridade Tributária de Moçambique. 
-              Aqui tens uma visão geral do sistema em tempo real.
+              Bem-vindo ao painel de gestão da Biblioteca da Autoridade Tributária de Moçambique.
             </p>
             <div className="flex flex-wrap items-center gap-4 mt-4 text-xs text-blue-200">
               <span className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20">

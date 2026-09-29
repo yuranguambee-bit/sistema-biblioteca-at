@@ -20,6 +20,21 @@ interface Emprestimo {
   ValorMulta: number;
 }
 
+// Calcula o nível de urgência do empréstimo
+function nivelUrgencia(diasAtraso: number, dataPrevista: string): 'atrasado' | 'urgente' | 'ok' {
+  if (diasAtraso > 0) return 'atrasado';
+  
+  // Converte DD/MM/AAAA para Date
+  const [dia, mes, ano] = dataPrevista.split('/').map(Number);
+  const dataPrev = new Date(ano, mes - 1, dia);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const diffDias = Math.ceil((dataPrev.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDias <= 2) return 'urgente';
+  return 'ok';
+}
+
 export function Emprestimos() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -356,6 +371,8 @@ export function Emprestimos() {
                 ) : (
                   emprestimosFiltrados.map((emp) => {
                     const atrasado = emp.DiasAtraso > 0;
+                    const urgencia = nivelUrgencia(emp.DiasAtraso, emp.DataPrevistaDevolucao);
+
                     return (
                       <tr 
                         key={emp.Id} 
@@ -370,12 +387,19 @@ export function Emprestimos() {
                           {emp.DataPrevistaDevolucao}
                         </td>
                         <td className="p-4 text-center">
-                          {atrasado ? (
+                          {urgencia === 'atrasado' && (
                             <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-red-200">
                               <AlertTriangle size={12} />
                               Atrasado {emp.DiasAtraso} dia(s)
                             </span>
-                          ) : (
+                          )}
+                          {urgencia === 'urgente' && (
+                            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-amber-200">
+                              <Clock size={12} />
+                              Vence em breve
+                            </span>
+                          )}
+                          {urgencia === 'ok' && (
                             <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-green-200">
                               <Clock size={12} />
                               Em dia
