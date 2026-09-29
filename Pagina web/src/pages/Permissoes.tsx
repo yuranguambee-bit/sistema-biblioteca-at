@@ -3,10 +3,10 @@ import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  Shield, ShieldCheck, ShieldOff, User, Mail, Save, 
+  Shield, ShieldCheck, ShieldOff, Mail, Save, 
   BookOpen, UserPlus, Users, Building2, BookMarked, 
   Bookmark, History, Library, BarChart3, FileText,
-  CheckCircle, Crown, RefreshCw
+  Crown, RefreshCw
 } from 'lucide-react';
 
 interface Permissoes {
@@ -123,7 +123,6 @@ export function Permissoes() {
     return FUNCIONALIDADES.filter((f) => permissoes[f.chave] === true).length;
   };
 
-  // Separa admins e bibliotecários
   const admins = utilizadores.filter((u) => u.Role === 'Admin');
   const bibliotecarios = utilizadores.filter((u) => u.Role !== 'Admin');
 
@@ -138,8 +137,7 @@ export function Permissoes() {
   }
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
-      {/* Cabeçalho */}
+    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
       <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -161,7 +159,6 @@ export function Permissoes() {
         </div>
       </div>
 
-      {/* Aviso */}
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md mb-6 flex items-start gap-3">
         <ShieldCheck className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
         <div className="text-sm text-blue-900">
@@ -170,7 +167,6 @@ export function Permissoes() {
         </div>
       </div>
 
-      {/* Admins (só visualização) */}
       {admins.length > 0 && (
         <div className="mb-8">
           <h3 className="text-lg font-bold text-at-blue mb-3 flex items-center gap-2">
@@ -201,7 +197,6 @@ export function Permissoes() {
         </div>
       )}
 
-      {/* Bibliotecários */}
       <div>
         <h3 className="text-lg font-bold text-at-blue mb-3 flex items-center gap-2">
           <Users size={20} /> Bibliotecários ({bibliotecarios.length})
@@ -223,7 +218,6 @@ export function Permissoes() {
 
               return (
                 <div key={utilizador.Id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                  {/* Cabeçalho do utilizador */}
                   <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
                     <div className="flex items-center gap-3 flex-1 min-w-[250px]">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold">
@@ -263,7 +257,6 @@ export function Permissoes() {
                     </div>
                   </div>
 
-                  {/* Grid de funcionalidades */}
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {FUNCIONALIDADES.map((func) => {
                       const ativo = utilizador.permissoes[func.chave] === true;
@@ -291,7 +284,6 @@ export function Permissoes() {
                               {func.descricao}
                             </p>
                           </div>
-                          {/* Switch visual */}
                           <div className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 relative ${
                             ativo ? 'bg-green-500' : 'bg-gray-300'
                           }`}>
@@ -304,7 +296,6 @@ export function Permissoes() {
                     })}
                   </div>
 
-                  {/* Botão de guardar */}
                   <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
                     <button
                       onClick={() => guardarPermissoes(utilizador)}

@@ -5,9 +5,8 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   ArrowLeft, BookOpen, User, Building2, CheckCircle, XCircle, 
-  Clock, Mail, Phone, History, Bookmark, Plus, Printer,
-  Calendar, Award, TrendingUp, Users, UserPlus, AlertTriangle,
-  BookMarked, Sparkles
+  Clock, Mail, Phone, History, Bookmark, Plus,
+  Award, Users, BookMarked
 } from 'lucide-react';
 
 interface ObraDetalhe {
@@ -158,24 +157,21 @@ export function DetalhesObra() {
   const totalEmprestimos = historico.length;
   const emprestimosDevolvidos = historico.filter(h => h.Status === 'DEVOLVIDO').length;
   const emprestimosAtivos = historico.filter(h => h.Status === 'ATIVO').length;
-  const isTop5 = totalEmprestimos >= 3; // Badge "Popular" se tiver 3+ empréstimos
+  const isTop5 = totalEmprestimos >= 3;
 
   return (
     <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
-      {/* Botão Voltar */}
       <Link to="/acervo"
         className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
         <ArrowLeft size={16} /> Voltar ao Acervo
       </Link>
 
-      {/* ============ CABEÇALHO DA OBRA ============ */}
       <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
 
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div className="flex-1 min-w-[280px]">
-            {/* Badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                 <BookOpen size={22} />
@@ -192,14 +188,12 @@ export function DetalhesObra() {
               )}
             </div>
 
-            {/* Título */}
             <h1 className="text-3xl md:text-4xl font-bold mb-3 leading-tight">{obra.Titulo}</h1>
             <p className="text-blue-100 text-sm">
               Obra #<strong>{obra.Id}</strong> · Publicada em <strong>{obra.Ano}</strong>
             </p>
           </div>
 
-          {/* Ações rápidas */}
           <div className="flex flex-col gap-3">
             {isDisponivel ? (
               <Link to="/emprestimos"
@@ -216,7 +210,6 @@ export function DetalhesObra() {
         </div>
       </div>
 
-      {/* ============ ESTATÍSTICAS DA OBRA ============ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
@@ -267,7 +260,6 @@ export function DetalhesObra() {
         </div>
       </div>
 
-      {/* ============ DADOS DA OBRA ============ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -296,7 +288,6 @@ export function DetalhesObra() {
         </div>
       </div>
 
-      {/* ============ FORMULÁRIO DE RESERVA ============ */}
       {mostrarFormReserva && !isDisponivel && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-2xl p-6 mb-6 animate-fade-in">
           <h3 className="text-base font-bold text-yellow-800 mb-4 flex items-center gap-2">
@@ -318,7 +309,6 @@ export function DetalhesObra() {
         </div>
       )}
 
-      {/* ============ FILA DE RESERVAS ============ */}
       {!isDisponivel && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
@@ -380,7 +370,6 @@ export function DetalhesObra() {
         </div>
       )}
 
-      {/* ============ HISTÓRICO DE EMPRÉSTIMOS ============ */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
