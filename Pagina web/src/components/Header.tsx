@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { LogOut, User, BookOpen, ShieldCheck } from 'lucide-react';
+import { LogOut, User, BookOpen, ShieldCheck, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useToast } from '../contexts/ToastContext';
 import { apiFetch } from '../services/api';
+import { Notificacoes } from './Notificacoes';
 
 export function Header() {
   const { user, logout, temPermissao } = useAuth();
@@ -46,14 +47,14 @@ export function Header() {
     }
   };
 
-  // Links do menu — só aparecem se o utilizador tiver permissão
-  const linkClasses = "hover:text-yellow-300 transition-colors";
+  // Links legíveis, sem wrap
+  const linkClasses = "px-2.5 py-2 rounded-md hover:bg-white/10 hover:text-yellow-300 transition-colors text-[15px] font-semibold flex items-center gap-1.5 whitespace-nowrap";
 
   return (
     <header className="bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
-      {/* Cabeçalho — Logo em cima, título por baixo, centrado */}
-      <div className="flex flex-col items-center justify-center py-6 px-4">
-        <div className="w-24 h-24 mb-4 bg-white/10 backdrop-blur-sm rounded-3xl border border-white/20 flex items-center justify-center p-3 shadow-2xl hover:scale-105 transition-transform duration-300">
+      {/* ============ LINHA 1: LOGO + TÍTULO ============ */}
+      <div className="flex flex-col items-center justify-center py-5 px-4">
+        <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
           <img
             src="/logo-at.png"
             alt="Logotipo da Autoridade Tributária de Moçambique"
@@ -65,105 +66,118 @@ export function Header() {
           Autoridade Tributária de Moçambique
         </h1>
 
-        <p className="text-xs text-blue-200 font-medium tracking-[0.15em] uppercase mt-2">
+        <p className="text-sm text-blue-200 font-semibold tracking-[0.15em] uppercase mt-1.5">
           Sistema de Gestão de Biblioteca
         </p>
       </div>
 
-      {/* Navegação */}
-      <nav className="bg-at-blue-light/60 backdrop-blur-sm px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-blue-400/20">
-        <ul className="flex flex-wrap gap-x-6 gap-y-2 items-center">
-          <li><Link to="/" className={`${linkClasses} font-semibold`}>Início</Link></li>
+      {/* ============ LINHA 2: MENU + UTILIZADOR (tudo numa só linha) ============ */}
+      <div className="bg-at-blue-light/70 backdrop-blur-sm border-t border-blue-400/20 px-3">
+        <div className="flex items-center justify-between gap-2 py-1.5 w-full">
 
-          {temPermissao('obras') && (
-            <li><Link to="/cadastrar-obra" className={linkClasses}>Cadastrar Obra</Link></li>
-          )}
+          {/* MENU DE NAVEGAÇÃO - sem wrap forçado */}
+          <nav className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
+            <Link to="/" className={linkClasses}>
+              <Home size={16} /> Início
+            </Link>
 
-          {temPermissao('autores') && (
-            <li><Link to="/cadastrar-autor" className={linkClasses}>Cadastrar Autor</Link></li>
-          )}
+            {temPermissao('obras') && (
+              <Link to="/cadastrar-obra" className={linkClasses}>Obras</Link>
+            )}
 
-          {temPermissao('clientes') && (
-            <li><Link to="/clientes" className={linkClasses}>Clientes</Link></li>
-          )}
+            {temPermissao('autores') && (
+              <Link to="/cadastrar-autor" className={linkClasses}>Autores</Link>
+            )}
 
-          {temPermissao('editoras') && (
-            <li><Link to="/cadastrar-editora" className={linkClasses}>Editoras</Link></li>
-          )}
+            {temPermissao('clientes') && (
+              <Link to="/clientes" className={linkClasses}>Clientes</Link>
+            )}
 
-          {temPermissao('emprestimos') && (
-            <li>
-              <Link to="/emprestimos" className={`${linkClasses} flex items-center gap-1.5 relative`}>
+            {temPermissao('editoras') && (
+              <Link to="/cadastrar-editora" className={linkClasses}>Editoras</Link>
+            )}
+
+            {temPermissao('emprestimos') && (
+              <Link to="/emprestimos" className={`${linkClasses} relative`}>
                 Empréstimos
                 {atrasados > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center animate-pulse">
+                  <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center animate-pulse">
                     {atrasados}
                   </span>
                 )}
               </Link>
-            </li>
-          )}
+            )}
 
-          {temPermissao('reservas') && (
-            <li><Link to="/reservas" className={linkClasses}>Reservas</Link></li>
-          )}
+            {temPermissao('reservas') && (
+              <Link to="/reservas" className={linkClasses}>Reservas</Link>
+            )}
 
-          {temPermissao('historico') && (
-            <li><Link to="/historico" className={linkClasses}>Histórico</Link></li>
-          )}
+            {temPermissao('historico') && (
+              <Link to="/historico" className={linkClasses}>Histórico</Link>
+            )}
 
-          {temPermissao('acervo') && (
-            <li><Link to="/acervo" className={linkClasses}>Acervo</Link></li>
-          )}
+            {temPermissao('acervo') && (
+              <Link to="/acervo" className={linkClasses}>Acervo</Link>
+            )}
 
-          {temPermissao('relatorios') && (
-            <li><Link to="/relatorios" className={linkClasses}>📊 Relatórios</Link></li>
-          )}
+            {temPermissao('relatorios') && (
+              <Link to="/relatorios" className={linkClasses}>📊 Relatórios</Link>
+            )}
 
-          {temPermissao('manual') && (
-            <li>
-              <Link to="/manual" className={`${linkClasses} flex items-center gap-1`}>
-                <BookOpen size={14} /> Manual
+            {temPermissao('manual') && (
+              <Link to="/manual" className={linkClasses}>
+                <BookOpen size={16} /> Manual
               </Link>
-            </li>
-          )}
+            )}
 
-          {isAdmin && (
-            <>
-              <li>
-                <Link to="/utilizadores" className={`${linkClasses} font-semibold`}>
+            {isAdmin && (
+              <>
+                <Link to="/utilizadores" className={`${linkClasses} text-yellow-200`}>
                   🔐 Utilizadores
                 </Link>
-              </li>
-              <li>
-                <Link to="/permissoes" className="text-yellow-300 hover:text-yellow-100 transition-colors font-semibold flex items-center gap-1">
-                  <ShieldCheck size={14} /> Permissões
+                <Link to="/permissoes" className={`${linkClasses} text-yellow-200`}>
+                  <ShieldCheck size={16} /> Permissões
                 </Link>
-              </li>
-            </>
-          )}
-        </ul>
-        
-        <div className="flex items-center gap-4 mt-2 md:mt-0">
-          <Link 
-            to="/perfil"
-            className="flex items-center gap-1.5 hover:text-yellow-300 transition-colors group"
-            title="Ver o meu perfil"
-          >
-            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-              <User size={14} />
-            </div>
-            <span className="font-medium">{user?.nome || 'Utilizador'}</span>
-            <span className={`ml-1 px-2 py-0.5 rounded text-xs font-bold ${isAdmin ? 'bg-yellow-400 text-black' : 'bg-blue-400 text-white'}`}>
-              {user?.role}
-            </span>
-          </Link>
-          <span className="text-gray-400">|</span>
-          <button onClick={handleLogout} className="flex items-center gap-1 hover:text-red-300 transition-colors">
-            <LogOut size={16} /> Sair
-          </button>
+              </>
+            )}
+          </nav>
+
+          {/* BLOCO DO UTILIZADOR - compacto e fixo à direita */}
+          <div className="flex items-center gap-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
+            <Notificacoes />
+
+            <div className="w-px h-5 bg-white/20"></div>
+
+            <Link
+              to="/perfil"
+              className="flex items-center gap-1.5 hover:bg-white/10 px-2 py-1 rounded-full transition-colors"
+              title="Ver o meu perfil"
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-at-blue to-blue-700 flex items-center justify-center shadow ring-1 ring-white/20">
+                <User size={12} />
+              </div>
+              <span className="hidden xl:inline font-semibold text-xs text-white whitespace-nowrap">
+                {user?.nome?.split(' ')[0] || 'Utilizador'}
+              </span>
+              <span className={`hidden xl:inline px-1.5 rounded text-[9px] font-bold ${
+                isAdmin ? 'bg-yellow-400 text-black' : 'bg-blue-400 text-white'
+              }`}>
+                {user?.role}
+              </span>
+            </Link>
+
+            <div className="w-px h-5 bg-white/20"></div>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/50 px-2.5 py-1 rounded-full transition-colors text-xs font-semibold text-red-100 hover:text-white"
+              title="Terminar sessão"
+            >
+              <LogOut size={12} /> <span className="hidden md:inline">Sair</span>
+            </button>
+          </div>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }
