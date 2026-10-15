@@ -17,7 +17,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const JWT_SECRET = 'AT_Mocambique_Biblioteca_2024_ChaveSecreta';
+// ============ JWT SECRET (via variável de ambiente) ============
+const JWT_SECRET = process.env.JWT_SECRET || '';
+
+if (!JWT_SECRET) {
+    console.error('❌ ERRO CRÍTICO: JWT_SECRET não está definido!');
+    console.error('   Adiciona JWT_SECRET ao .env ou às variáveis de ambiente do Render.');
+    process.exit(1);
+}
 
 // ============ POOL POSTGRESQL ============
 const pool = new Pool({
