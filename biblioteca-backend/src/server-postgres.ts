@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { enviarEmailEmprestimo } from './utils/email';
 
 dotenv.config();
@@ -19,9 +20,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Permite pedidos sem origin (Postman, apps mobile, etc.)
         if (!origin) return callback(null, true);
-
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -33,6 +32,29 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// ============ RATE LIMITING (proteção contra abuso) ============
+
+// Limiter geral — protege toda a API contra abuso massivo
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,   // 15 minutos
+    max: 500,                   // máximo 500 pedidos por IP
+    message: { error: 'Demasiados pedidos. Tenta novamente em 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Limiter específico para login — muito mais restritivo
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,   // 15 minutos
+    max: 10,                    // máximo 10 tentativas por IP
+    message: { error: 'Demasiadas tentativas de login. Tenta novamente em 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,  // não conta logins bem-sucedidos
+});
+
+app.use(generalLimiter);
 
 // ============ JWT SECRET (via variável de ambiente) ============
 const JWT_SECRET = process.env.JWT_SECRET || '';
@@ -144,7 +166,7 @@ function verificarPermissao(chave: string) {
 }
 
 // ============ AUTENTICAÇÃO ============
-app.post('/api/auth/login', async (req: Request, res: Response) => {
+app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) => {
     const { Email, Password } = req.body;
     try {
         const result = await pool.query(
