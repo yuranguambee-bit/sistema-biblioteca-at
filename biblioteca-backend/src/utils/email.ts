@@ -135,3 +135,127 @@ export async function enviarEmailEmprestimo(dados: DadosEmprestimo): Promise<boo
     return false;
   }
 }
+
+// ============ BACKUP AUTOMÁTICO POR EMAIL ============
+
+interface DadosBackup {
+  destinatario: string;
+  dataBackup: string;
+  conteudo: any;
+}
+
+export async function enviarEmailBackup({ destinatario, dataBackup, conteudo }: DadosBackup): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log('⚠️  Resend API Key não configurada. A saltar envio do backup.');
+    return false;
+  }
+
+  if (!destinatario) {
+    console.log('⚠️  Email destinatário do backup não configurado.');
+    return false;
+  }
+
+  // Serializa o JSON com indentação legível
+  const json = JSON.stringify(conteudo, null, 2);
+  const buffer = Buffer.from(json, 'utf-8');
+  const tamanhoKB = (buffer.length / 1024).toFixed(2);
+
+  const nomeFicheiro = `backup_biblioteca_at_${new Date().toISOString().slice(0, 10)}.json`;
+
+  const contagens = conteudo?.tabelas
+    ? Object.entries(conteudo.tabelas)
+        .map(([nome, dados]: [string, any]) => `<li><strong>${nome}:</strong> ${Array.isArray(dados) ? dados.length : 0} registo(s)</li>`)
+        .join('')
+    : '';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .header { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; padding: 32px 24px; text-align: center; }
+        .header h1 { margin: 0; font-size: 22px; }
+        .header p { margin: 6px 0 0 0; font-size: 13px; color: #d1fae5; }
+        .content { padding: 32px 24px; }
+        .info-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 6px; margin: 20px 0; }
+        .info-box p { margin: 0 0 10px 0; font-size: 14px; color: #065f46; font-weight: bold; }
+        .info-box ul { margin: 0; padding-left: 20px; font-size: 13px; color: #065f46; }
+        .info-box li { margin-bottom: 4px; }
+        .meta { font-size: 13px; color: #6b7280; margin: 16px 0; }
+        .meta strong { color: #374151; }
+        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 6px; margin-top: 20px; font-size: 12px; color: #78350f; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>💾 Backup Automático</h1>
+          <p>Sistema de Gestão de Biblioteca — AT Moçambique</p>
+        </div>
+
+        <div class="content">
+          <p style="color:#374151; font-size:15px;">Olá,</p>
+          <p style="color:#4b5563; font-size:14px;">
+            Segue em anexo o backup completo da base de dados do Sistema de Biblioteca da AT Moçambique,
+            gerado automaticamente.
+          </p>
+
+          <div class="meta">
+            <p><strong>📅 Data do backup:</strong> ${dataBackup}</p>
+            <p><strong>📦 Tamanho:</strong> ${tamanhoKB} KB</p>
+            <p><strong>📎 Ficheiro:</strong> ${nomeFicheiro}</p>
+          </div>
+
+          <div class="info-box">
+            <p>📊 Registo por tabela:</p>
+            <ul>
+              ${contagens}
+            </ul>
+          </div>
+
+          <div class="warning">
+            <strong>⚠️ Importante:</strong> Guarda este email num local seguro. 
+            O ficheiro anexo contém todos os dados do sistema (utilizadores, obras, empréstimos, etc.). 
+            Em caso de necessidade, este backup pode ser usado para restaurar a base de dados.
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Este é um email automático. Por favor, não respondas.</p>
+          <p style="margin-top: 8px;">© ${new Date().getFullYear()} Autoridade Tributária de Moçambique</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: [destinatario],
+      subject: `💾 Backup Automático — Biblioteca AT (${dataBackup})`,
+      html,
+      attachments: [
+        {
+          filename: nomeFicheiro,
+          content: buffer,
+        },
+      ],
+    });
+
+    if (result.error) {
+      console.error(`❌ Erro do Resend ao enviar backup:`, result.error.message);
+      return false;
+    }
+
+    console.log(`✅ Backup enviado para ${destinatario} (id: ${result.data?.id}, ${tamanhoKB} KB)`);
+    return true;
+  } catch (error: any) {
+    console.error(`❌ Erro ao enviar backup:`, error.message);
+    return false;
+  }
+}

@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import { enviarEmailEmprestimo } from './utils/email';
+import { enviarEmailEmprestimo, enviarEmailBackup } from './utils/email';
 
 dotenv.config();
 
@@ -35,23 +35,21 @@ app.use(express.json());
 
 // ============ RATE LIMITING (proteção contra abuso) ============
 
-// Limiter geral — protege toda a API contra abuso massivo
 const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,   // 15 minutos
-    max: 500,                   // máximo 500 pedidos por IP
+    windowMs: 15 * 60 * 1000,
+    max: 500,
     message: { error: 'Demasiados pedidos. Tenta novamente em 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
-// Limiter específico para login — muito mais restritivo
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,   // 15 minutos
-    max: 10,                    // máximo 10 tentativas por IP
+    windowMs: 15 * 60 * 1000,
+    max: 10,
     message: { error: 'Demasiadas tentativas de login. Tenta novamente em 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
-    skipSuccessfulRequests: true,  // não conta logins bem-sucedidos
+    skipSuccessfulRequests: true,
 });
 
 app.use(generalLimiter);
@@ -204,6 +202,94 @@ app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) =>
         });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// ============ BACKUP AUTOMÁTICO ============
+// Endpoint protegido por BACKUP_SECRET (header x-backup-secret).
+// Deve ser chamado por um serviço externo (ex: cron-job.org) uma vez por semana.
+app.post('/api/backup/executar', async (req: Request, res: Response) => {
+    const secretHeader = req.headers['x-backup-secret'];
+    const secretEsperado = process.env.BACKUP_SECRET;
+
+    if (!secretEsperado) {
+        console.error('❌ BACKUP_SECRET não está definido no ambiente.');
+        return res.status(500).json({ error: 'Backup não configurado no servidor.' });
+    }
+
+    if (!secretHeader || secretHeader !== secretEsperado) {
+        console.warn('🚫 Tentativa de acesso não autorizado ao endpoint de backup.');
+        return res.status(401).json({ error: 'Não autorizado.' });
+    }
+
+    console.log('💾 A iniciar backup automático...');
+
+    try {
+        const tabelas = [
+            'usuarios',
+            'autores',
+            'editoras',
+            'obras',
+            'clientes',
+            'emprestimos',
+            'reservas',
+            'notificacoes',
+            'configuracoes',
+        ];
+
+        const dadosBackup: any = {
+            dataBackup: new Date().toISOString(),
+            versao: '1.0',
+            sistema: 'Sistema de Gestão de Biblioteca - AT Moçambique',
+            tabelas: {},
+        };
+
+        for (const tabela of tabelas) {
+            try {
+                const result = await pool.query(`SELECT * FROM ${tabela}`);
+                dadosBackup.tabelas[tabela] = result.rows;
+            } catch (err: any) {
+                console.warn(`⚠️ Não foi possível exportar a tabela "${tabela}":`, err.message);
+                dadosBackup.tabelas[tabela] = [];
+            }
+        }
+
+        const destinatario = process.env.BACKUP_EMAIL || process.env.EMAIL_USER || '';
+        const dataFormatada = new Date().toLocaleString('pt-PT', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+        });
+
+        const enviado = await enviarEmailBackup({
+            destinatario,
+            dataBackup: dataFormatada,
+            conteudo: dadosBackup,
+        });
+
+        if (!enviado) {
+            console.error('❌ Falha ao enviar email de backup.');
+            return res.status(500).json({ error: 'Backup gerado mas falhou o envio do email.' });
+        }
+
+        const totalRegistos = Object.values(dadosBackup.tabelas).reduce(
+            (acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0),
+            0
+        );
+
+        console.log(`✅ Backup concluído com sucesso (${totalRegistos} registos).`);
+
+        res.json({
+            message: 'Backup realizado com sucesso!',
+            data: dataFormatada,
+            destinatario,
+            totalRegistos,
+            tabelas: Object.fromEntries(
+                Object.entries(dadosBackup.tabelas).map(([k, v]: [string, any]) => [k, Array.isArray(v) ? v.length : 0])
+            ),
+        });
+    } catch (error: any) {
+        console.error('❌ Erro no backup:', error);
+        res.status(500).json({ error: 'Erro ao executar backup: ' + error.message });
     }
 });
 
