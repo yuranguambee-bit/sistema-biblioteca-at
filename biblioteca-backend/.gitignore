@@ -1,11 +1,12 @@
-# Dependências (NUNCA enviar!)
+# Dependências
 node_modules/
-package-lock.json
 
-# Variáveis de ambiente (contém passwords!)
+# Variáveis de ambiente (contêm passwords!)
 .env
 .env.local
 .env.production
+.env.postgres
+.env.postgres.local
 
 # Ficheiros compilados
 dist/
@@ -21,3 +22,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Cache
+.cache/
+*.tsbuildinfo

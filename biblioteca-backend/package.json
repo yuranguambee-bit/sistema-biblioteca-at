@@ -2,11 +2,12 @@
   "name": "biblioteca-backend",
   "version": "1.0.0",
   "description": "API para o Sistema de Biblioteca da AT Moçambique",
-  "main": "dist/server.js",
+  "main": "dist/server-postgres.js",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--dns-result-order=ipv4first ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:pg": "dotenv -e .env.postgres -- ts-node-dev --respawn --transpile-only src/server-postgres.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "dotenv -e .env.postgres -- node dist/server-postgres.js"
   },
   "keywords": [],
   "author": "Yuran Mauricio Guambe",
@@ -15,11 +16,12 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "dotenv-cli": "^7.4.1",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mssql": "^10.0.2",
-    "nodemailer": "^6.9.13",
-    "resend": "^6.30.0"
+    "pg": "^8.11.5",
+    "resend": "^3.4.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -28,9 +30,12 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/mssql": "^9.1.5",
     "@types/node": "^20.12.7",
-    "@types/nodemailer": "^6.4.14",
+    "@types/pg": "^8.11.5",
     "cross-env": "^7.0.3",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
