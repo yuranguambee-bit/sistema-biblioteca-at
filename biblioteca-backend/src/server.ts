@@ -9,7 +9,29 @@ import { enviarEmailEmprestimo } from './utils/email';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// ============ CORS RESTRITO (só origens autorizadas) ============
+const allowedOrigins = [
+    'https://sistema-biblioteca-at.vercel.app',  // produção (Vercel)
+    'http://localhost:5173',                     // desenvolvimento local (Vite)
+    'http://localhost:4173',                     // preview local (Vite preview)
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Permite pedidos sem origin (Postman, apps mobile, etc.)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`🚫 CORS bloqueou origem não autorizada: ${origin}`);
+            callback(new Error('Origem não autorizada pelo CORS.'));
+        }
+    },
+    credentials: true,
+}));
+
 app.use(express.json());
 
 // ============ JWT SECRET (via variável de ambiente) ============
