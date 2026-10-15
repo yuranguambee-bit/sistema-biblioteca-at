@@ -113,7 +113,7 @@ export function Notificacoes() {
   };
 
   return (
-    <div ref={wrapperRef} className="relative">
+    <div ref={wrapperRef} className="relative z-[200]">
       {/* Botão sino */}
       <button
         onClick={() => setAberto(!aberto)}
@@ -130,7 +130,7 @@ export function Notificacoes() {
 
       {/* Dropdown */}
       {aberto && (
-        <div className="absolute right-0 mt-3 w-[380px] max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[90] animate-fade-down">
+        <div className="absolute right-0 mt-3 w-[380px] max-w-[90vw] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[200] animate-fade-down">
           {/* Cabeçalho */}
           <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
             <div className="flex items-center gap-2">

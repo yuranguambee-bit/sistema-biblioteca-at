@@ -51,7 +51,7 @@ export function Header() {
   const linkClasses = "px-2.5 py-2 rounded-md hover:bg-white/10 hover:text-yellow-300 transition-colors text-[15px] font-semibold flex items-center gap-1.5 whitespace-nowrap";
 
   return (
-    <header className="bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
+    <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
       {/* ============ LINHA 1: LOGO + TÍTULO ============ */}
       <div className="flex flex-col items-center justify-center py-5 px-4">
         <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
