@@ -184,8 +184,6 @@ export function Permissoes() {
 
   const renderCheckbox = (utilizador: Utilizador, item: { chave: string, nome: string }, cor: 'blue' | 'purple' | 'orange' | 'pink') => {
     const ativo = utilizador.permissoes[item.chave] === true;
-    const bgClass = ativo ? `bg-${cor}-600 border-${cor}-600 text-white` : 'bg-white border-gray-300';
-    const hoverClass = `group-hover:border-${cor}-400`;
     
     const colorMap = {
       blue: { bg: 'bg-blue-600 border-blue-600', text: 'text-blue-800', bgLight: 'bg-blue-50/50 border-blue-100', hover: 'group-hover:border-blue-400' },
