@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface Permissoes {
-  // ============ MÓDULOS BASE (Para acesso à página e menu) ============
+  // ============ MÓDULOS BASE ============
   obras?: boolean;
   autores?: boolean;
   clientes?: boolean;
@@ -13,19 +13,60 @@ interface Permissoes {
   relatorios?: boolean;
   manual?: boolean;
 
-  // ============ AÇÕES DO MÓDULO AUTORES ============
+  // ============ OBRAS ============
+  obras_criar?: boolean;
+  obras_editar?: boolean;
+  obras_apagar?: boolean;
+  obras_campo_titulo?: boolean;
+  obras_campo_ano?: boolean;
+  obras_campo_exemplares?: boolean;
+  obras_campo_autor?: boolean;
+  obras_campo_editora?: boolean;
+  obras_campo_numeroedicao?: boolean;
+  obras_campo_nacionalidadelivro?: boolean;
+
+  // ============ AUTORES ============
   autores_criar?: boolean;
   autores_editar?: boolean;
   autores_apagar?: boolean;
-  
-  // ============ CAMPOS DO FORMULÁRIO DE AUTORES ============
   autores_campo_nome?: boolean;
   autores_campo_sobrenome?: boolean;
   autores_campo_nacionalidade?: boolean;
   autores_campo_datanascimento?: boolean;
   autores_campo_biografia?: boolean;
+  autores_campo_sexo?: boolean;
+  autores_campo_tiposlivros?: boolean;
 
-  // Permite chaves futuras sem dar erro no TypeScript
+  // ============ EDITORAS ============
+  editoras_criar?: boolean;
+  editoras_editar?: boolean;
+  editoras_apagar?: boolean;
+  editoras_campo_nome?: boolean;
+  editoras_campo_endereco?: boolean;
+  editoras_campo_telefone?: boolean;
+  editoras_campo_email?: boolean;
+  editoras_campo_website?: boolean;
+  editoras_campo_paisorigem?: boolean;
+
+  // ============ CLIENTES ============
+  clientes_criar?: boolean;
+  clientes_editar?: boolean;
+  clientes_apagar?: boolean;
+  clientes_campo_nome?: boolean;
+  clientes_campo_email?: boolean;
+  clientes_campo_telefone?: boolean;
+  clientes_campo_pi?: boolean;
+  clientes_campo_nuit?: boolean;
+
+  // ============ EMPRÉSTIMOS ============
+  emprestimos_criar?: boolean;
+  emprestimos_renovar?: boolean;
+  emprestimos_devolver?: boolean;
+
+  // ============ RESERVAS ============
+  reservas_criar?: boolean;
+  reservas_cancelar?: boolean;
+
   [key: string]: boolean | undefined;
 }
 
@@ -69,13 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('@biblioteca:token');
   };
 
-  // Verifica se o utilizador tem permissão para uma chave específica
-  // Admin tem SEMPRE acesso a tudo
   const temPermissao = useCallback((chave: string): boolean => {
     if (!user) return false;
     if (user.role === 'Admin') return true;
-    
-    // Verifica se a chave existe e está a true
     return user.permissoes?.[chave] === true;
   }, [user]);
 

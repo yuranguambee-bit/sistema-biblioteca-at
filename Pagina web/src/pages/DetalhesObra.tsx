@@ -3,10 +3,11 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   ArrowLeft, BookOpen, User, Building2, CheckCircle, XCircle, 
   Clock, Mail, Phone, History, Bookmark, Plus,
-  Award, Users, BookMarked
+  Award, Users, BookMarked, Lock, RefreshCw
 } from 'lucide-react';
 
 interface ObraDetalhe {
@@ -47,6 +48,7 @@ export function DetalhesObra() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { confirm } = useConfirm();
+  const { temPermissao } = useAuth();
   
   const [obra, setObra] = useState<ObraDetalhe | null>(null);
   const [historico, setHistorico] = useState<EmprestimoHistorico[]>([]);
@@ -55,6 +57,10 @@ export function DetalhesObra() {
   const [loading, setLoading] = useState(true);
   const [clienteSelecionado, setClienteSelecionado] = useState('');
   const [mostrarFormReserva, setMostrarFormReserva] = useState(false);
+  const [processando, setProcessando] = useState(false);
+
+  const podeReservar = temPermissao('reservas_criar');
+  const podeCancelarReserva = temPermissao('reservas_cancelar');
 
   const carregarTudo = async () => {
     if (!id) return;
@@ -87,8 +93,10 @@ export function DetalhesObra() {
 
   const handleCriarReserva = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!podeReservar) return showToast('Não tens permissão para criar reservas.', 'error');
     if (!clienteSelecionado) return;
     
+    setProcessando(true);
     try {
       const response = await apiFetch('/api/reservas', {
         method: 'POST',
@@ -104,9 +112,12 @@ export function DetalhesObra() {
         showToast(data.error || 'Erro ao criar reserva.', 'error');
       }
     } catch (error) { showToast('Erro de ligação ao servidor.', 'error'); }
+    finally { setProcessando(false); }
   };
 
   const handleCancelarReserva = async (reservaId: number, cliente: string) => {
+    if (!podeCancelarReserva) return showToast('Não tens permissão para cancelar reservas.', 'error');
+
     const ok = await confirm({
       title: 'Cancelar Reserva',
       message: `Queres cancelar a reserva de "${cliente}"?`,
@@ -144,8 +155,7 @@ export function DetalhesObra() {
           <XCircle size={56} className="mx-auto mb-4 text-red-400" />
           <h2 className="text-xl font-bold text-gray-700 mb-2">Obra não encontrada</h2>
           <p className="text-gray-500 text-sm mb-6">A obra que procuras não existe ou foi removida.</p>
-          <button onClick={() => navigate('/acervo')}
-            className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">
+          <button onClick={() => navigate('/acervo')} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">
             Voltar ao Acervo
           </button>
         </div>
@@ -161,8 +171,7 @@ export function DetalhesObra() {
 
   return (
     <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
-      <Link to="/acervo"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
+      <Link to="/acervo" className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
         <ArrowLeft size={16} /> Voltar ao Acervo
       </Link>
 
@@ -176,9 +185,7 @@ export function DetalhesObra() {
               <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                 <BookOpen size={22} />
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                isDisponivel ? 'bg-green-400 text-green-900' : 'bg-red-400 text-red-900'
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${isDisponivel ? 'bg-green-400 text-green-900' : 'bg-red-400 text-red-900'}`}>
                 ● {obra.Status}
               </span>
               {isTop5 && (
@@ -196,14 +203,18 @@ export function DetalhesObra() {
 
           <div className="flex flex-col gap-3">
             {isDisponivel ? (
-              <Link to="/emprestimos"
-                className="bg-white text-at-blue px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
+              <Link to="/emprestimos" className="bg-white text-at-blue px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
                 <CheckCircle size={18} /> Requisitar Obra
               </Link>
             ) : (
-              <button onClick={() => setMostrarFormReserva(!mostrarFormReserva)}
-                className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-lg font-bold hover:bg-yellow-300 transition-colors text-sm flex items-center gap-2 shadow-lg">
-                <Bookmark size={18} /> {mostrarFormReserva ? 'Fechar' : 'Reservar Obra'}
+              <button 
+                onClick={() => setMostrarFormReserva(!mostrarFormReserva)}
+                disabled={!podeReservar}
+                className="bg-yellow-400 text-yellow-900 px-6 py-3 rounded-lg font-bold hover:bg-yellow-300 transition-colors text-sm flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                title={podeReservar ? "Reservar Obra" : "Sem permissão para reservar"}
+              >
+                {podeReservar ? <Bookmark size={18} /> : <Lock size={18} />} 
+                {mostrarFormReserva ? 'Fechar' : 'Reservar Obra'}
               </button>
             )}
           </div>
@@ -268,9 +279,7 @@ export function DetalhesObra() {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Autor</p>
             <p className="text-base font-bold text-gray-800 truncate">{obra.Autor || 'Sem autor'}</p>
-            {obra.Nacionalidade && (
-              <p className="text-xs text-gray-500 mt-0.5">🌍 {obra.Nacionalidade}</p>
-            )}
+            {obra.Nacionalidade && <p className="text-xs text-gray-500 mt-0.5">🌍 {obra.Nacionalidade}</p>}
           </div>
         </div>
 
@@ -281,14 +290,12 @@ export function DetalhesObra() {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Editora</p>
             <p className="text-base font-bold text-gray-800 truncate">{obra.Editora || 'Sem editora'}</p>
-            {obra.EditoraContacto && (
-              <p className="text-xs text-gray-500 mt-0.5">📞 {obra.EditoraContacto}</p>
-            )}
+            {obra.EditoraContacto && <p className="text-xs text-gray-500 mt-0.5">📞 {obra.EditoraContacto}</p>}
           </div>
         </div>
       </div>
 
-      {mostrarFormReserva && !isDisponivel && (
+      {mostrarFormReserva && !isDisponivel && podeReservar && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-2xl p-6 mb-6 animate-fade-in">
           <h3 className="text-base font-bold text-yellow-800 mb-4 flex items-center gap-2">
             <Plus size={18} /> Adicionar Cliente à Fila de Reserva
@@ -296,14 +303,22 @@ export function DetalhesObra() {
           <form onSubmit={handleCriarReserva} className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[250px]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Cliente</label>
-              <select value={clienteSelecionado} onChange={(e) => setClienteSelecionado(e.target.value)} required
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white">
+              <select 
+                value={clienteSelecionado} 
+                onChange={(e) => setClienteSelecionado(e.target.value)} 
+                required
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
+              >
                 {clientes.map((c) => <option key={c.Id} value={c.Id}>{c.Nome}</option>)}
               </select>
             </div>
-            <button type="submit"
-              className="bg-yellow-500 text-white px-6 py-3 rounded-md font-semibold hover:bg-yellow-600 transition-colors text-sm">
-              Confirmar Reserva
+            <button 
+              type="submit" 
+              disabled={processando}
+              className="bg-yellow-500 text-white px-6 py-3 rounded-md font-semibold hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2 disabled:opacity-70"
+            >
+              {processando ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+              {processando ? 'A guardar...' : 'Confirmar Reserva'}
             </button>
           </form>
         </div>
@@ -327,20 +342,14 @@ export function DetalhesObra() {
             <div className="p-10 text-center text-gray-400">
               <Bookmark size={40} className="mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">Esta obra ainda não tem reservas</p>
-              <p className="text-xs mt-1">Clica em "Reservar Obra" acima para adicionar alguém à fila</p>
+              {podeReservar && <p className="text-xs mt-1">Clica em "Reservar Obra" acima para adicionar alguém à fila</p>}
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
               {reservas.map((reserva, index) => (
-                <div key={reserva.Id} className={`px-5 py-4 flex flex-wrap items-center justify-between gap-3 transition-colors ${
-                  index === 0 ? 'bg-yellow-50/50' : 'hover:bg-yellow-50/30'
-                }`}>
+                <div key={reserva.Id} className={`px-5 py-4 flex flex-wrap items-center justify-between gap-3 transition-colors ${index === 0 ? 'bg-yellow-50/50' : 'hover:bg-yellow-50/30'}`}>
                   <div className="flex items-center gap-4 flex-1">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                      index === 0 
-                        ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-lg ring-2 ring-yellow-300' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-lg ring-2 ring-yellow-300' : 'bg-gray-100 text-gray-600'}`}>
                       {index + 1}º
                     </div>
                     <div>
@@ -358,9 +367,13 @@ export function DetalhesObra() {
                     <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
                       <Clock size={12} /> {reserva.DataReserva}
                     </span>
-                    <button onClick={() => handleCancelarReserva(reserva.Id, reserva.Cliente)}
-                      className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline">
-                      Cancelar
+                    <button 
+                      onClick={() => handleCancelarReserva(reserva.Id, reserva.Cliente)}
+                      disabled={!podeCancelarReserva}
+                      className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      title={podeCancelarReserva ? "Cancelar" : "Sem permissão"}
+                    >
+                      {podeCancelarReserva ? 'Cancelar' : <><Lock size={10} /> Bloqueado</>}
                     </button>
                   </div>
                 </div>
@@ -411,16 +424,8 @@ export function DetalhesObra() {
                     <td className="px-6 py-4 font-semibold text-gray-800">{emp.Cliente}</td>
                     <td className="px-6 py-4">
                       <div className="space-y-1 text-xs">
-                        {emp.ClienteEmail && (
-                          <p className="flex items-center gap-1 text-gray-500">
-                            <Mail size={12} /> {emp.ClienteEmail}
-                          </p>
-                        )}
-                        {emp.ClienteTelefone && (
-                          <p className="flex items-center gap-1 text-gray-500">
-                            <Phone size={12} /> {emp.ClienteTelefone}
-                          </p>
-                        )}
+                        {emp.ClienteEmail && <p className="flex items-center gap-1 text-gray-500"><Mail size={12} /> {emp.ClienteEmail}</p>}
+                        {emp.ClienteTelefone && <p className="flex items-center gap-1 text-gray-500"><Phone size={12} /> {emp.ClienteTelefone}</p>}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-600 font-medium">{emp.DataEmprestimo}</td>
@@ -429,14 +434,8 @@ export function DetalhesObra() {
                       {emp.DataDevolucao || <span className="text-gray-300 italic">Pendente</span>}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                        emp.Status === 'ATIVO' 
-                          ? 'bg-red-50 text-red-700 ring-1 ring-red-200' 
-                          : 'bg-green-50 text-green-700 ring-1 ring-green-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          emp.Status === 'ATIVO' ? 'bg-red-500' : 'bg-green-500'
-                        }`}></span>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${emp.Status === 'ATIVO' ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-green-50 text-green-700 ring-1 ring-green-200'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${emp.Status === 'ATIVO' ? 'bg-red-500' : 'bg-green-500'}`}></span>
                         {emp.Status}
                       </span>
                     </td>

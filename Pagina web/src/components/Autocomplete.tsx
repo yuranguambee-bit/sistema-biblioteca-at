@@ -15,6 +15,7 @@ interface AutocompleteProps {
   label?: string;
   icon?: React.ReactNode;
   required?: boolean;
+  disabled?: boolean; // <- NOVO
 }
 
 export function Autocomplete({ 
@@ -24,7 +25,8 @@ export function Autocomplete({
   placeholder = 'Pesquisar...',
   label,
   icon,
-  required = false
+  required = false,
+  disabled = false // <- NOVO
 }: AutocompleteProps) {
   const [aberto, setAberto] = useState(false);
   const [pesquisa, setPesquisa] = useState('');
@@ -32,12 +34,10 @@ export function Autocomplete({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Encontra a opção atualmente selecionada
   const opcaoSelecionada = useMemo(() => {
     return options.find((o) => String(o.id) === String(value));
   }, [options, value]);
 
-  // Filtra as opções pela pesquisa
   const opcoesFiltradas = useMemo(() => {
     if (!pesquisa.trim()) return options;
     const p = pesquisa.toLowerCase();
@@ -47,12 +47,10 @@ export function Autocomplete({
     );
   }, [options, pesquisa]);
 
-  // Reset do índice quando as opções mudam
   useEffect(() => {
     setIndiceRealcado(0);
   }, [pesquisa]);
 
-  // Fechar quando clica fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
@@ -64,7 +62,6 @@ export function Autocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Navegação por teclado
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!aberto) {
       if (e.key === 'ArrowDown' || e.key === 'Enter') {
@@ -109,27 +106,29 @@ export function Autocomplete({
   return (
     <div ref={wrapperRef} className="relative">
       {label && (
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+          <span>{label} {required && <span className="text-red-500">*</span>}</span>
+          {disabled && <span className="text-xs text-red-400 flex items-center gap-1"><X size={12}/> Bloqueado</span>}
         </label>
       )}
 
-      {/* Campo principal */}
       <div
         onClick={() => {
+          if (disabled) return;
           setAberto(true);
           setTimeout(() => inputRef.current?.focus(), 50);
         }}
-        className={`w-full min-h-[46px] px-3 py-2.5 border rounded-md flex items-center gap-2 cursor-pointer transition-all ${
-          aberto
-            ? 'border-at-blue ring-2 ring-at-blue/20 bg-white'
-            : 'border-gray-300 hover:border-gray-400 bg-white'
+        className={`w-full min-h-[46px] px-3 py-2.5 border rounded-md flex items-center gap-2 transition-all ${
+          disabled
+            ? 'bg-gray-100 border-gray-200 cursor-not-allowed'
+            : aberto
+            ? 'border-at-blue ring-2 ring-at-blue/20 bg-white cursor-pointer'
+            : 'border-gray-300 hover:border-gray-400 bg-white cursor-pointer'
         }`}
       >
-        {icon && <div className="text-gray-400 flex-shrink-0">{icon}</div>}
+        {icon && <div className={`flex-shrink-0 ${disabled ? 'text-gray-400' : 'text-gray-400'}`}>{icon}</div>}
 
-        {/* Se está aberto → mostra input de pesquisa */}
-        {aberto ? (
+        {aberto && !disabled ? (
           <input
             ref={inputRef}
             type="text"
@@ -141,14 +140,12 @@ export function Autocomplete({
             autoFocus
           />
         ) : (
-          // Se está fechado → mostra a opção selecionada ou placeholder
           <span className={`flex-1 text-sm truncate ${opcaoSelecionada ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
             {opcaoSelecionada ? opcaoSelecionada.label : placeholder}
           </span>
         )}
 
-        {/* Botão de limpar */}
-        {opcaoSelecionada && !aberto && (
+        {opcaoSelecionada && !aberto && !disabled && (
           <button
             type="button"
             onClick={handleLimpar}
@@ -159,31 +156,26 @@ export function Autocomplete({
           </button>
         )}
 
-        {/* Seta */}
         <ChevronDown
           size={18}
-          className={`text-gray-400 flex-shrink-0 transition-transform ${aberto ? 'rotate-180' : ''}`}
+          className={`text-gray-400 flex-shrink-0 transition-transform ${aberto ? 'rotate-180' : ''} ${disabled ? 'opacity-50' : ''}`}
         />
       </div>
 
-      {/* Dropdown */}
-      {aberto && (
+      {aberto && !disabled && (
         <div className="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden animate-fade-in">
-          {/* Contagem */}
           <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
             <span className="text-xs text-gray-500 font-medium">
               {opcoesFiltradas.length} resultado{opcoesFiltradas.length !== 1 ? 's' : ''}
             </span>
-            <span className="text-xs text-gray-400">↑↓ para navegar · Enter para escolher</span>
+            <span className="text-xs text-gray-400">↑↓ navegar · Enter escolher</span>
           </div>
 
-          {/* Lista */}
           <div className="max-h-64 overflow-y-auto">
             {opcoesFiltradas.length === 0 ? (
               <div className="p-6 text-center text-gray-400">
                 <Search size={32} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm font-medium">Nenhum resultado</p>
-                <p className="text-xs mt-1">Tenta pesquisar por outro termo</p>
               </div>
             ) : (
               opcoesFiltradas.map((opcao, index) => {

@@ -5,7 +5,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   User, Users, Search, Edit3, Trash2, Save, X, 
-  Calendar, Globe, BookOpen, FileText, UserPlus, Lock, RefreshCw
+  Calendar, Globe, BookOpen, FileText, UserPlus, Lock, RefreshCw, Layers
 } from 'lucide-react';
 
 interface Autor {
@@ -15,6 +15,8 @@ interface Autor {
   Nacionalidade: string | null;
   DataNascimento: string | null;
   Biografia: string | null;
+  Sexo: string | null;
+  TiposLivros: string | null;
   TotalObras: number;
 }
 
@@ -28,6 +30,8 @@ export function CadastrarAutor() {
   const [nacionalidade, setNacionalidade] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [biografia, setBiografia] = useState('');
+  const [sexo, setSexo] = useState('');
+  const [tiposLivros, setTiposLivros] = useState('');
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -35,7 +39,6 @@ export function CadastrarAutor() {
   const [loading, setLoading] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
 
-  // ============ VERIFICAÇÃO DE PERMISSÕES ============
   const podeCriar = temPermissao('autores_criar');
   const podeEditar = temPermissao('autores_editar');
   const podeApagar = temPermissao('autores_apagar');
@@ -43,7 +46,6 @@ export function CadastrarAutor() {
   const isEditing = !!editandoId;
   const podeSubmeter = isEditing ? podeEditar : podeCriar;
 
-  // Verifica se o campo está bloqueado
   const campoBloqueado = (chaveCampo: string) => {
     return !temPermissao(chaveCampo) || !podeSubmeter;
   };
@@ -75,6 +77,8 @@ export function CadastrarAutor() {
     setNacionalidade('');
     setDataNascimento('');
     setBiografia('');
+    setSexo('');
+    setTiposLivros('');
     setEditandoId(null);
   };
 
@@ -105,6 +109,8 @@ export function CadastrarAutor() {
       Nacionalidade: nacionalidade.trim() || null,
       DataNascimento: dataParaEnviar,
       Biografia: biografia.trim() || null,
+      Sexo: sexo.trim() || null,
+      TiposLivros: tiposLivros.trim() || null,
     };
 
     try {
@@ -147,6 +153,8 @@ export function CadastrarAutor() {
       setDataNascimento('');
     }
     setBiografia(autor.Biografia || '');
+    setSexo(autor.Sexo || '');
+    setTiposLivros(autor.TiposLivros || '');
     setEditandoId(autor.Id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -196,9 +204,7 @@ export function CadastrarAutor() {
                 {editandoId ? 'Editar Autor' : 'Cadastrar Novo Autor'}
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                {editandoId
-                  ? 'Altera os dados e guarda as mudanças'
-                  : 'Preenche os dados do autor abaixo'}
+                {editandoId ? 'Altera os dados e guarda as mudanças' : 'Preenche os dados do autor abaixo'}
               </p>
             </div>
           </div>
@@ -219,10 +225,7 @@ export function CadastrarAutor() {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
-                  type="text"
-                  required
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
+                  type="text" required value={nome} onChange={(e) => setNome(e.target.value)}
                   disabled={campoBloqueado('autores_campo_nome')}
                   className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nome') ? disabledClass : enabledClass}`}
                   placeholder="Ex: Yuran Maurício"
@@ -238,9 +241,7 @@ export function CadastrarAutor() {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
-                  type="text"
-                  value={sobrenome}
-                  onChange={(e) => setSobrenome(e.target.value)}
+                  type="text" value={sobrenome} onChange={(e) => setSobrenome(e.target.value)}
                   disabled={campoBloqueado('autores_campo_sobrenome')}
                   className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_sobrenome') ? disabledClass : enabledClass}`}
                   placeholder="Ex: Guambe"
@@ -249,7 +250,7 @@ export function CadastrarAutor() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
                 <span>Nacionalidade</span>
@@ -258,9 +259,7 @@ export function CadastrarAutor() {
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
-                  type="text"
-                  value={nacionalidade}
-                  onChange={(e) => setNacionalidade(e.target.value)}
+                  type="text" value={nacionalidade} onChange={(e) => setNacionalidade(e.target.value)}
                   disabled={campoBloqueado('autores_campo_nacionalidade')}
                   className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nacionalidade') ? disabledClass : enabledClass}`}
                   placeholder="Ex: Moçambicana"
@@ -276,13 +275,46 @@ export function CadastrarAutor() {
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
-                  type="date"
-                  value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
+                  type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)}
                   disabled={campoBloqueado('autores_campo_datanascimento')}
                   className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_datanascimento') ? disabledClass : enabledClass}`}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Sexo</span>
+                {!temPermissao('autores_campo_sexo') && <Lock size={12} className="text-red-400" />}
+              </label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <select
+                  value={sexo} onChange={(e) => setSexo(e.target.value)}
+                  disabled={campoBloqueado('autores_campo_sexo')}
+                  className={`w-full pl-10 p-3 border rounded-md transition-colors appearance-none ${campoBloqueado('autores_campo_sexo') ? disabledClass : enabledClass}`}
+                >
+                  <option value="">Selecionar...</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Feminino">Feminino</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>Tipos de Livros</span>
+              {!temPermissao('autores_campo_tiposlivros') && <Lock size={12} className="text-red-400" />}
+            </label>
+            <div className="relative">
+              <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text" value={tiposLivros} onChange={(e) => setTiposLivros(e.target.value)}
+                disabled={campoBloqueado('autores_campo_tiposlivros')}
+                className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_tiposlivros') ? disabledClass : enabledClass}`}
+                placeholder="Ex: Ficção, Romance, Direito..."
+              />
             </div>
           </div>
 
@@ -294,8 +326,7 @@ export function CadastrarAutor() {
             <div className="relative">
               <FileText className="absolute left-3 top-4 text-gray-400" size={18} />
               <textarea
-                value={biografia}
-                onChange={(e) => setBiografia(e.target.value)}
+                value={biografia} onChange={(e) => setBiografia(e.target.value)}
                 disabled={campoBloqueado('autores_campo_biografia')}
                 rows={4}
                 className={`w-full pl-10 p-3 border rounded-md transition-colors resize-none ${campoBloqueado('autores_campo_biografia') ? disabledClass : enabledClass}`}
@@ -306,8 +337,7 @@ export function CadastrarAutor() {
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
             <button
-              type="submit"
-              disabled={salvando || !podeSubmeter}
+              type="submit" disabled={salvando || !podeSubmeter}
               className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {salvando ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
@@ -315,61 +345,31 @@ export function CadastrarAutor() {
             </button>
 
             {editandoId ? (
-              <button
-                type="button"
-                onClick={limparFormulario}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors flex items-center gap-2"
-              >
-                <X size={18} />
-                Cancelar Edição
-              </button>
+              <button type="button" onClick={limparFormulario} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors flex items-center gap-2"><X size={18} /> Cancelar Edição</button>
             ) : (
-              <button
-                type="button"
-                onClick={limparFormulario}
-                disabled={!podeCriar}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Limpar
-              </button>
+              <button type="button" onClick={limparFormulario} disabled={!podeCriar} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Limpar</button>
             )}
           </div>
         </form>
       </div>
 
-      {/* ============ LISTA DE AUTORES ============ */}
+      {/* LISTA DE AUTORES */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center">
-                <Users className="text-purple-600" size={22} />
-              </div>
+              <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center"><Users className="text-purple-600" size={22} /></div>
               <div>
                 <h3 className="text-lg font-bold text-at-blue">Lista de Autores</h3>
-                <p className="text-xs text-gray-400">
-                  {autores.length} autor{autores.length !== 1 ? 'es' : ''} cadastrado{autores.length !== 1 ? 's' : ''}
-                </p>
+                <p className="text-xs text-gray-400">{autores.length} autor{autores.length !== 1 ? 'es' : ''} cadastrado{autores.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>
 
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input
-              type="text"
-              value={pesquisa}
-              onChange={(e) => setPesquisa(e.target.value)}
-              placeholder="Pesquisar por nome, sobrenome ou nacionalidade..."
-              className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
-            />
+            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por nome, sobrenome ou nacionalidade..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm" />
           </div>
-
-          {pesquisa && (
-            <p className="text-xs text-gray-500 mt-2">
-              {autoresFiltrados.length} resultado{autoresFiltrados.length !== 1 ? 's' : ''} encontrado{autoresFiltrados.length !== 1 ? 's' : ''}
-            </p>
-          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -378,17 +378,7 @@ export function CadastrarAutor() {
           ) : autoresFiltrados.length === 0 ? (
             <div className="p-12 text-center">
               <Users size={56} className="mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-500 font-semibold">
-                {pesquisa ? 'Nenhum autor corresponde à pesquisa.' : 'Ainda não há autores cadastrados.'}
-              </p>
-              {pesquisa && (
-                <button
-                  onClick={() => setPesquisa('')}
-                  className="mt-4 text-at-blue font-semibold hover:underline text-sm"
-                >
-                  Limpar pesquisa
-                </button>
-              )}
+              <p className="text-gray-500 font-semibold">{pesquisa ? 'Nenhum autor corresponde à pesquisa.' : 'Ainda não há autores cadastrados.'}</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse">
@@ -410,55 +400,25 @@ export function CadastrarAutor() {
                     <tr key={autor.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {iniciais}
-                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{iniciais}</div>
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-800 truncate">{nomeCompleto}</p>
-                            {autor.Biografia && (
-                              <p className="text-xs text-gray-400 truncate max-w-xs">
-                                {autor.Biografia.substring(0, 50)}...
-                              </p>
-                            )}
+                            {autor.Biografia && <p className="text-xs text-gray-400 truncate max-w-xs">{autor.Biografia.substring(0, 50)}...</p>}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {autor.Nacionalidade || <span className="text-gray-300 italic">—</span>}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {autor.DataNascimento || <span className="text-gray-300 italic">—</span>}
-                      </td>
+                      <td className="px-6 py-4 text-gray-600">{autor.Nacionalidade || <span className="text-gray-300 italic">—</span>}</td>
+                      <td className="px-6 py-4 text-gray-600">{autor.DataNascimento || <span className="text-gray-300 italic">—</span>}</td>
                       <td className="px-6 py-4 text-center">
                         {autor.TotalObras > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-blue-200">
-                            <BookOpen size={12} />
-                            {autor.TotalObras}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300 text-xs">—</span>
-                        )}
+                          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-blue-200"><BookOpen size={12} />{autor.TotalObras}</span>
+                        ) : <span className="text-gray-300 text-xs">—</span>}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleEditar(autor)}
-                            disabled={!podeEditar}
-                            className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={podeEditar ? "Editar autor" : "Sem permissão para editar"}
-                          >
-                            <Edit3 size={14} />
-                          </button>
-                          
+                          <button onClick={() => handleEditar(autor)} disabled={!podeEditar} className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Editar"><Edit3 size={14} /></button>
                           {(user?.role === 'Admin' || podeApagar) && (
-                            <button
-                              onClick={() => handleEliminar(autor)}
-                              disabled={!podeApagar}
-                              className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              title={podeApagar ? "Eliminar autor" : "Sem permissão para apagar"}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <button onClick={() => handleEliminar(autor)} disabled={!podeApagar} className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Eliminar"><Trash2 size={14} /></button>
                           )}
                         </div>
                       </td>
