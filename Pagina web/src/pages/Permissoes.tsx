@@ -6,20 +6,11 @@ import {
   Shield, ShieldCheck, ShieldOff, Mail, Save, 
   BookOpen, UserPlus, Users, Building2, BookMarked, 
   Bookmark, History, Library, BarChart3, FileText,
-  Crown, RefreshCw
+  Crown, RefreshCw, CheckSquare, Edit3
 } from 'lucide-react';
 
 interface Permissoes {
-  obras?: boolean;
-  autores?: boolean;
-  clientes?: boolean;
-  editoras?: boolean;
-  emprestimos?: boolean;
-  reservas?: boolean;
-  historico?: boolean;
-  acervo?: boolean;
-  relatorios?: boolean;
-  manual?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 interface Utilizador {
@@ -30,25 +21,34 @@ interface Utilizador {
   permissoes: Permissoes;
 }
 
-interface Funcionalidade {
-  chave: keyof Permissoes;
-  nome: string;
-  descricao: string;
-  icone: React.ReactNode;
-  cor: string;
-}
+// Módulos Principais (Acesso à página)
+const MODULOS = [
+  { chave: 'obras', nome: 'Obras', descricao: 'Acesso ao módulo de obras', icone: <BookOpen size={18} /> },
+  { chave: 'autores', nome: 'Autores', descricao: 'Acesso ao módulo de autores', icone: <UserPlus size={18} /> },
+  { chave: 'clientes', nome: 'Clientes', descricao: 'Acesso ao módulo de clientes', icone: <Users size={18} /> },
+  { chave: 'editoras', nome: 'Editoras', descricao: 'Acesso ao módulo de editoras', icone: <Building2 size={18} /> },
+  { chave: 'emprestimos', nome: 'Empréstimos', descricao: 'Acesso a empréstimos', icone: <BookMarked size={18} /> },
+  { chave: 'reservas', nome: 'Reservas', descricao: 'Acesso a reservas', icone: <Bookmark size={18} /> },
+  { chave: 'historico', nome: 'Histórico', descricao: 'Acesso ao histórico', icone: <History size={18} /> },
+  { chave: 'acervo', nome: 'Acervo', descricao: 'Acesso ao acervo', icone: <Library size={18} /> },
+  { chave: 'relatorios', nome: 'Relatórios', descricao: 'Acesso a relatórios', icone: <BarChart3 size={18} /> },
+  { chave: 'manual', nome: 'Manual', descricao: 'Acesso ao manual', icone: <FileText size={18} /> },
+];
 
-const FUNCIONALIDADES: Funcionalidade[] = [
-  { chave: 'obras', nome: 'Obras', descricao: 'Cadastrar, editar e eliminar obras', icone: <BookOpen size={18} />, cor: 'blue' },
-  { chave: 'autores', nome: 'Autores', descricao: 'Gerir autores do acervo', icone: <UserPlus size={18} />, cor: 'purple' },
-  { chave: 'clientes', nome: 'Clientes', descricao: 'Gerir leitores da biblioteca', icone: <Users size={18} />, cor: 'pink' },
-  { chave: 'editoras', nome: 'Editoras', descricao: 'Gerir editoras e contactos', icone: <Building2 size={18} />, cor: 'orange' },
-  { chave: 'emprestimos', nome: 'Empréstimos', descricao: 'Registar empréstimos e devoluções', icone: <BookMarked size={18} />, cor: 'red' },
-  { chave: 'reservas', nome: 'Reservas', descricao: 'Gerir fila de reservas', icone: <Bookmark size={18} />, cor: 'yellow' },
-  { chave: 'historico', nome: 'Histórico', descricao: 'Consultar histórico completo', icone: <History size={18} />, cor: 'cyan' },
-  { chave: 'acervo', nome: 'Acervo', descricao: 'Consultar inventário completo', icone: <Library size={18} />, cor: 'indigo' },
-  { chave: 'relatorios', nome: 'Relatórios', descricao: 'Gerar e imprimir relatórios', icone: <BarChart3 size={18} />, cor: 'teal' },
-  { chave: 'manual', nome: 'Manual', descricao: 'Aceder ao manual do utilizador', icone: <FileText size={18} />, cor: 'gray' },
+// Ações Granulares para Autores
+const ACOES_AUTOR = [
+  { chave: 'autores_criar', nome: 'Criar' },
+  { chave: 'autores_editar', nome: 'Editar' },
+  { chave: 'autores_apagar', nome: 'Apagar' },
+];
+
+// Campos do Formulário de Autores
+const CAMPOS_AUTOR = [
+  { chave: 'autores_campo_nome', nome: 'Nome' },
+  { chave: 'autores_campo_sobrenome', nome: 'Sobrenome' },
+  { chave: 'autores_campo_nacionalidade', nome: 'Nacionalidade' },
+  { chave: 'autores_campo_datanascimento', nome: 'Data de Nascimento' },
+  { chave: 'autores_campo_biografia', nome: 'Biografia' },
 ];
 
 export function Permissoes() {
@@ -69,7 +69,7 @@ export function Permissoes() {
 
   useEffect(() => { carregarUtilizadores(); }, []);
 
-  const togglePermissao = (userId: number, chave: keyof Permissoes) => {
+  const togglePermissao = (userId: number, chave: string) => {
     setUtilizadores((prev) =>
       prev.map((u) => {
         if (u.Id !== userId) return u;
@@ -86,7 +86,10 @@ export function Permissoes() {
 
   const ativarTodas = (userId: number) => {
     const todas: Permissoes = {};
-    FUNCIONALIDADES.forEach((f) => { todas[f.chave] = true; });
+    MODULOS.forEach((f) => { todas[f.chave] = true; });
+    ACOES_AUTOR.forEach((a) => { todas[a.chave] = true; });
+    CAMPOS_AUTOR.forEach((c) => { todas[c.chave] = true; });
+    
     setUtilizadores((prev) =>
       prev.map((u) => (u.Id === userId ? { ...u, permissoes: todas } : u))
     );
@@ -120,7 +123,16 @@ export function Permissoes() {
   };
 
   const contPermissoesAtivas = (permissoes: Permissoes) => {
-    return FUNCIONALIDADES.filter((f) => permissoes[f.chave] === true).length;
+    const totalModulos = MODULOS.length;
+    const totalAutor = ACOES_AUTOR.length + CAMPOS_AUTOR.length;
+    const total = totalModulos + totalAutor;
+
+    let ativas = 0;
+    MODULOS.forEach(m => { if (permissoes[m.chave]) ativas++; });
+    ACOES_AUTOR.forEach(a => { if (permissoes[a.chave]) ativas++; });
+    CAMPOS_AUTOR.forEach(c => { if (permissoes[c.chave]) ativas++; });
+
+    return { ativas, total };
   };
 
   const admins = utilizadores.filter((u) => u.Role === 'Admin');
@@ -148,13 +160,9 @@ export function Permissoes() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Gestão de Permissões</h2>
-                <p className="text-purple-100 text-sm">Controla o que cada utilizador pode acessar</p>
+                <p className="text-purple-100 text-sm">Controla acessos, ações e campos</p>
               </div>
             </div>
-            <p className="text-purple-100 text-sm max-w-2xl mt-3">
-              Ativa ou desativa funcionalidades para cada utilizador. 
-              Os administradores têm sempre acesso total e não podem ser restringidos.
-            </p>
           </div>
         </div>
       </div>
@@ -162,8 +170,7 @@ export function Permissoes() {
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md mb-6 flex items-start gap-3">
         <ShieldCheck className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
         <div className="text-sm text-blue-900">
-          <strong>Como funciona:</strong> Os links do menu e as ações rápidas só aparecem para 
-          utilizadores com permissão. Se tentarem aceder pelo URL direto, são redirecionados.
+          <strong>Como funciona:</strong> Os Administradores têm acesso total. Para os Bibliotecários, podes ativar/desativar o acesso ao módulo, as ações (Criar/Editar/Apagar) e até mesmo quais campos do formulário o utilizador pode ver e preencher.
         </div>
       </div>
 
@@ -206,18 +213,15 @@ export function Permissoes() {
           <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
             <ShieldOff size={56} className="mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500 font-semibold">Sem bibliotecários registados</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Cria um utilizador em "Utilizadores" primeiro
-            </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {bibliotecarios.map((utilizador) => {
-              const ativas = contPermissoesAtivas(utilizador.permissoes);
-              const total = FUNCIONALIDADES.length;
+              const { ativas, total } = contPermissoesAtivas(utilizador.permissoes);
 
               return (
-                <div key={utilizador.Id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div key={utilizador.Id} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+                  {/* Cabeçalho do Utilizador */}
                   <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
                     <div className="flex items-center gap-3 flex-1 min-w-[250px]">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold">
@@ -239,77 +243,106 @@ export function Permissoes() {
                           ? 'bg-red-100 text-red-700' 
                           : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {ativas} / {total} acessos
+                        {ativas} / {total} permissões
                       </span>
-
-                      <button
-                        onClick={() => ativarTodas(utilizador.Id)}
-                        className="text-xs font-semibold text-green-600 hover:text-green-700 px-2 py-1 hover:bg-green-50 rounded transition-colors"
-                      >
-                        Tudo ON
-                      </button>
-                      <button
-                        onClick={() => desativarTodas(utilizador.Id)}
-                        className="text-xs font-semibold text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors"
-                      >
-                        Tudo OFF
-                      </button>
+                      <button onClick={() => ativarTodas(utilizador.Id)} className="text-xs font-semibold text-green-600 hover:text-green-700 px-2 py-1 hover:bg-green-50 rounded transition-colors">Tudo ON</button>
+                      <button onClick={() => desativarTodas(utilizador.Id)} className="text-xs font-semibold text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors">Tudo OFF</button>
                     </div>
                   </div>
 
-                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {FUNCIONALIDADES.map((func) => {
-                      const ativo = utilizador.permissoes[func.chave] === true;
+                  <div className="p-6 space-y-8">
+                    {/* SECÇÃO 1: MÓDULOS PRINCIPAIS */}
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <ShieldCheck size={16} /> Acesso aos Módulos
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {MODULOS.map((mod) => {
+                          const ativo = utilizador.permissoes[mod.chave] === true;
+                          return (
+                            <button
+                              key={mod.chave}
+                              onClick={() => togglePermissao(utilizador.Id, mod.chave)}
+                              className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                                ativo ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50 opacity-70'
+                              }`}
+                            >
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ativo ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                                {mod.icone}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-bold truncate ${ativo ? 'text-gray-800' : 'text-gray-500'}`}>{mod.nome}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                      return (
-                        <button
-                          key={func.chave}
-                          onClick={() => togglePermissao(utilizador.Id, func.chave)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                            ativo
-                              ? 'border-green-300 bg-green-50 hover:bg-green-100'
-                              : 'border-gray-200 bg-gray-50 hover:bg-gray-100 opacity-70'
-                          }`}
-                        >
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
-                            ativo ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
-                          }`}>
-                            {func.icone}
+                    {/* SECÇÃO 2: DETALHES DO MÓDULO DE AUTORES */}
+                    <div className="border-t border-gray-100 pt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <UserPlus size={18} className="text-at-blue" />
+                        <h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Autores</h4>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Ações */}
+                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                          <p className="text-xs font-bold text-blue-800 mb-3 flex items-center gap-2">
+                            <Edit3 size={14} /> Ações Permitidas
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            {ACOES_AUTOR.map((acao) => {
+                              const ativo = utilizador.permissoes[acao.chave] === true;
+                              return (
+                                <label key={acao.chave} className="flex items-center gap-3 cursor-pointer group">
+                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${ativo ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 group-hover:border-blue-400'}`}>
+                                    {ativo && <CheckSquare size={14} />}
+                                  </div>
+                                  <span className={`text-sm ${ativo ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>{acao.nome} Autor</span>
+                                  <input type="checkbox" className="hidden" checked={ativo} onChange={() => togglePermissao(utilizador.Id, acao.chave)} />
+                                </label>
+                              );
+                            })}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-bold truncate ${ativo ? 'text-gray-800' : 'text-gray-500'}`}>
-                              {func.nome}
-                            </p>
-                            <p className="text-[11px] text-gray-500 truncate">
-                              {func.descricao}
-                            </p>
+                        </div>
+
+                        {/* Campos */}
+                        <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                          <p className="text-xs font-bold text-purple-800 mb-3 flex items-center gap-2">
+                            <FileText size={14} /> Campos Editáveis no Formulário
+                          </p>
+                          <div className="grid grid-cols-1 gap-2">
+                            {CAMPOS_AUTOR.map((campo) => {
+                              const ativo = utilizador.permissoes[campo.chave] === true;
+                              return (
+                                <label key={campo.chave} className="flex items-center gap-3 cursor-pointer group">
+                                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${ativo ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-300 group-hover:border-purple-400'}`}>
+                                    {ativo && <CheckSquare size={14} />}
+                                  </div>
+                                  <span className={`text-sm ${ativo ? 'text-gray-800 font-semibold' : 'text-gray-500'}`}>{campo.nome}</span>
+                                  <input type="checkbox" className="hidden" checked={ativo} onChange={() => togglePermissao(utilizador.Id, campo.chave)} />
+                                </label>
+                              );
+                            })}
                           </div>
-                          <div className={`w-10 h-6 rounded-full transition-colors flex-shrink-0 relative ${
-                            ativo ? 'bg-green-500' : 'bg-gray-300'
-                          }`}>
-                            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all shadow-sm ${
-                              ativo ? 'left-4.5 translate-x-[18px]' : 'left-0.5'
-                            }`}></div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
+                  {/* Rodapé */}
                   <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
                     <button
                       onClick={() => guardarPermissoes(utilizador)}
                       disabled={salvando === utilizador.Id}
-                      className="bg-at-blue text-white px-5 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400"
+                      className="bg-at-blue text-white px-6 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400"
                     >
                       {salvando === utilizador.Id ? (
-                        <>
-                          <RefreshCw size={14} className="animate-spin" /> A guardar...
-                        </>
+                        <><RefreshCw size={14} className="animate-spin" /> A guardar...</>
                       ) : (
-                        <>
-                          <Save size={14} /> Guardar Permissões
-                        </>
+                        <><Save size={14} /> Guardar Permissões</>
                       )}
                     </button>
                   </div>

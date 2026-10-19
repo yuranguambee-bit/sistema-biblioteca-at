@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface Permissoes {
+  // ============ MÓDULOS BASE (Para acesso à página e menu) ============
   obras?: boolean;
   autores?: boolean;
   clientes?: boolean;
@@ -11,6 +12,20 @@ interface Permissoes {
   acervo?: boolean;
   relatorios?: boolean;
   manual?: boolean;
+
+  // ============ AÇÕES DO MÓDULO AUTORES ============
+  autores_criar?: boolean;
+  autores_editar?: boolean;
+  autores_apagar?: boolean;
+  
+  // ============ CAMPOS DO FORMULÁRIO DE AUTORES ============
+  autores_campo_nome?: boolean;
+  autores_campo_sobrenome?: boolean;
+  autores_campo_nacionalidade?: boolean;
+  autores_campo_datanascimento?: boolean;
+  autores_campo_biografia?: boolean;
+
+  // Permite chaves futuras sem dar erro no TypeScript
   [key: string]: boolean | undefined;
 }
 
@@ -54,11 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('@biblioteca:token');
   };
 
-  // Verifica se o utilizador tem permissão para uma chave
+  // Verifica se o utilizador tem permissão para uma chave específica
   // Admin tem SEMPRE acesso a tudo
   const temPermissao = useCallback((chave: string): boolean => {
     if (!user) return false;
     if (user.role === 'Admin') return true;
+    
+    // Verifica se a chave existe e está a true
     return user.permissoes?.[chave] === true;
   }, [user]);
 

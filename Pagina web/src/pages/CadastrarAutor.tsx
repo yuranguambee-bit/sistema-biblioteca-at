@@ -5,7 +5,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   User, Users, Search, Edit3, Trash2, Save, X, 
-  Calendar, Globe, BookOpen, FileText, UserPlus
+  Calendar, Globe, BookOpen, FileText, UserPlus, Lock, RefreshCw
 } from 'lucide-react';
 
 interface Autor {
@@ -21,7 +21,7 @@ interface Autor {
 export function CadastrarAutor() {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
-  const { user } = useAuth();
+  const { user, temPermissao } = useAuth();
 
   const [nome, setNome] = useState('');
   const [sobrenome, setSobrenome] = useState('');
@@ -34,6 +34,19 @@ export function CadastrarAutor() {
   const [autores, setAutores] = useState<Autor[]>([]);
   const [loading, setLoading] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
+
+  // ============ VERIFICAÇÃO DE PERMISSÕES ============
+  const podeCriar = temPermissao('autores_criar');
+  const podeEditar = temPermissao('autores_editar');
+  const podeApagar = temPermissao('autores_apagar');
+
+  const isEditing = !!editandoId;
+  const podeSubmeter = isEditing ? podeEditar : podeCriar;
+
+  // Verifica se o campo está bloqueado
+  const campoBloqueado = (chaveCampo: string) => {
+    return !temPermissao(chaveCampo) || !podeSubmeter;
+  };
 
   const carregarAutores = async () => {
     try {
@@ -67,6 +80,11 @@ export function CadastrarAutor() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!podeSubmeter) {
+      showToast('Não tens permissão para guardar este autor.', 'error');
+      return;
+    }
 
     if (!nome.trim()) {
       showToast('Preenche o nome do autor.', 'error');
@@ -117,6 +135,8 @@ export function CadastrarAutor() {
   };
 
   const handleEditar = (autor: Autor) => {
+    if (!podeEditar) return showToast('Não tens permissão para editar autores.', 'error');
+    
     setNome(autor.Nome);
     setSobrenome(autor.Sobrenome || '');
     setNacionalidade(autor.Nacionalidade || '');
@@ -132,6 +152,8 @@ export function CadastrarAutor() {
   };
 
   const handleEliminar = async (autor: Autor) => {
+    if (!podeApagar) return showToast('Não tens permissão para apagar autores.', 'error');
+
     const nomeCompleto = `${autor.Nome} ${autor.Sobrenome || ''}`.trim();
 
     const ok = await confirm({
@@ -158,30 +180,41 @@ export function CadastrarAutor() {
     }
   };
 
+  const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
+  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+
   return (
     <main className="max-w-6xl mx-auto p-6 mt-6">
       <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
-            {editandoId ? <Edit3 size={24} /> : <UserPlus size={24} />}
+        <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
+              {editandoId ? <Edit3 size={24} /> : <UserPlus size={24} />}
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-at-blue">
+                {editandoId ? 'Editar Autor' : 'Cadastrar Novo Autor'}
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {editandoId
+                  ? 'Altera os dados e guarda as mudanças'
+                  : 'Preenche os dados do autor abaixo'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-at-blue">
-              {editandoId ? 'Editar Autor' : 'Cadastrar Novo Autor'}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {editandoId
-                ? 'Altera os dados e guarda as mudanças'
-                : 'Preenche os dados do autor abaixo'}
-            </p>
-          </div>
+          {!podeSubmeter && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
+              <Lock size={16} /> Modo de Leitura
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nome
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Nome</span>
+                {!temPermissao('autores_campo_nome') && <Lock size={12} className="text-red-400" />}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -190,15 +223,17 @@ export function CadastrarAutor() {
                   required
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
+                  disabled={campoBloqueado('autores_campo_nome')}
+                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nome') ? disabledClass : enabledClass}`}
                   placeholder="Ex: Yuran Maurício"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Sobrenome
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Sobrenome</span>
+                {!temPermissao('autores_campo_sobrenome') && <Lock size={12} className="text-red-400" />}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -206,7 +241,8 @@ export function CadastrarAutor() {
                   type="text"
                   value={sobrenome}
                   onChange={(e) => setSobrenome(e.target.value)}
-                  className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
+                  disabled={campoBloqueado('autores_campo_sobrenome')}
+                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_sobrenome') ? disabledClass : enabledClass}`}
                   placeholder="Ex: Guambe"
                 />
               </div>
@@ -215,8 +251,9 @@ export function CadastrarAutor() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nacionalidade
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Nacionalidade</span>
+                {!temPermissao('autores_campo_nacionalidade') && <Lock size={12} className="text-red-400" />}
               </label>
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -224,15 +261,17 @@ export function CadastrarAutor() {
                   type="text"
                   value={nacionalidade}
                   onChange={(e) => setNacionalidade(e.target.value)}
-                  className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
+                  disabled={campoBloqueado('autores_campo_nacionalidade')}
+                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nacionalidade') ? disabledClass : enabledClass}`}
                   placeholder="Ex: Moçambicana"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Data de Nascimento
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Data de Nascimento</span>
+                {!temPermissao('autores_campo_datanascimento') && <Lock size={12} className="text-red-400" />}
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -240,23 +279,26 @@ export function CadastrarAutor() {
                   type="date"
                   value={dataNascimento}
                   onChange={(e) => setDataNascimento(e.target.value)}
-                  className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
+                  disabled={campoBloqueado('autores_campo_datanascimento')}
+                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_datanascimento') ? disabledClass : enabledClass}`}
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Biografia <span className="text-gray-400 font-normal">(opcional)</span>
+            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>Biografia <span className="text-gray-400 font-normal">(opcional)</span></span>
+              {!temPermissao('autores_campo_biografia') && <Lock size={12} className="text-red-400" />}
             </label>
             <div className="relative">
               <FileText className="absolute left-3 top-4 text-gray-400" size={18} />
               <textarea
                 value={biografia}
                 onChange={(e) => setBiografia(e.target.value)}
+                disabled={campoBloqueado('autores_campo_biografia')}
                 rows={4}
-                className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue resize-none"
+                className={`w-full pl-10 p-3 border rounded-md transition-colors resize-none ${campoBloqueado('autores_campo_biografia') ? disabledClass : enabledClass}`}
                 placeholder="Breve descrição da vida e obra do autor..."
               />
             </div>
@@ -265,10 +307,10 @@ export function CadastrarAutor() {
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
             <button
               type="submit"
-              disabled={salvando}
+              disabled={salvando || !podeSubmeter}
               className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <Save size={18} />
+              {salvando ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
               {salvando ? 'A guardar...' : editandoId ? 'Guardar Alterações' : 'Guardar Autor'}
             </button>
 
@@ -285,7 +327,8 @@ export function CadastrarAutor() {
               <button
                 type="button"
                 onClick={limparFormulario}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors"
+                disabled={!podeCriar}
+                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Limpar
               </button>
@@ -294,6 +337,7 @@ export function CadastrarAutor() {
         </form>
       </div>
 
+      {/* ============ LISTA DE AUTORES ============ */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -399,16 +443,19 @@ export function CadastrarAutor() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleEditar(autor)}
-                            className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors"
-                            title="Editar autor"
+                            disabled={!podeEditar}
+                            className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={podeEditar ? "Editar autor" : "Sem permissão para editar"}
                           >
                             <Edit3 size={14} />
                           </button>
-                          {user?.role === 'Admin' && (
+                          
+                          {(user?.role === 'Admin' || podeApagar) && (
                             <button
                               onClick={() => handleEliminar(autor)}
-                              className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-colors"
-                              title="Eliminar autor"
+                              disabled={!podeApagar}
+                              className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              title={podeApagar ? "Eliminar autor" : "Sem permissão para apagar"}
                             >
                               <Trash2 size={14} />
                             </button>
