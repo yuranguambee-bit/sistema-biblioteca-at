@@ -204,7 +204,7 @@ export function Emprestimos() {
   const totalMultas = emprestimos.reduce((acc, e) => acc + (e.ValorMulta || 0), 0);
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       {totalAtrasados > 0 && (
         <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 shadow-md">
@@ -237,14 +237,8 @@ export function Emprestimos() {
               </div>
             )}
             {user?.role === 'Admin' && (
-              <button
-                type="button"
-                onClick={abrirModalConfig}
-                className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors"
-                title="Configurações do sistema"
-              >
-                <Settings size={16} />
-                Configurar
+              <button type="button" onClick={abrirModalConfig} className="flex items-center gap-2 bg-gray-100 text-gray-700 hover:bg-gray-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors" title="Configurações do sistema">
+                <Settings size={16} /> Configurar
               </button>
             )}
           </div>
@@ -259,67 +253,27 @@ export function Emprestimos() {
 
         <form onSubmit={handleEmprestar} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Autocomplete
-              label="Obra a Emprestar"
-              options={opcoesObras}
-              value={obraId}
-              onChange={setObraId}
-              placeholder="Escreve para pesquisar a obra..."
-              icon={<BookOpen size={18} />}
-              disabled={!podeCriar}
-            />
-            <Autocomplete
-              label="Cliente / Leitor"
-              options={opcoesClientes}
-              value={clienteId}
-              onChange={setClienteId}
-              placeholder="Escreve para pesquisar o cliente..."
-              icon={<User size={18} />}
-              disabled={!podeCriar}
-            />
+            <Autocomplete label="Obra a Emprestar" options={opcoesObras} value={obraId} onChange={setObraId} placeholder="Escreve para pesquisar a obra..." icon={<BookOpen size={18} />} disabled={!podeCriar} />
+            <Autocomplete label="Cliente / Leitor" options={opcoesClientes} value={clienteId} onChange={setClienteId} placeholder="Escreve para pesquisar o cliente..." icon={<User size={18} />} disabled={!podeCriar} />
           </div>
 
           {obraId && clienteId && (
             <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Calendar size={14} /> Pré-visualização
-              </p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2"><Calendar size={14} /> Pré-visualização</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold">Data do Empréstimo</p>
-                  <p className="font-bold text-gray-800">{new Date().toLocaleDateString('pt-PT')}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold">Devolução Prevista</p>
-                  <p className="font-bold text-red-600">
-                    {new Date(Date.now() + diasEmprestimo * 24 * 60 * 60 * 1000).toLocaleDateString('pt-PT')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-semibold">Multa por Atraso</p>
-                  <p className="font-bold text-orange-600">{valorMultaDia} MT / dia</p>
-                </div>
+                <div><p className="text-xs text-gray-500 font-semibold">Data do Empréstimo</p><p className="font-bold text-gray-800">{new Date().toLocaleDateString('pt-PT')}</p></div>
+                <div><p className="text-xs text-gray-500 font-semibold">Devolução Prevista</p><p className="font-bold text-red-600">{new Date(Date.now() + diasEmprestimo * 24 * 60 * 60 * 1000).toLocaleDateString('pt-PT')}</p></div>
+                <div><p className="text-xs text-gray-500 font-semibold">Multa por Atraso</p><p className="font-bold text-orange-600">{valorMultaDia} MT / dia</p></div>
               </div>
             </div>
           )}
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
-            <button
-              type="submit"
-              disabled={processando || obras.length === 0 || clientes.length === 0 || !podeCriar}
-              className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-            >
+            <button type="submit" disabled={processando || obras.length === 0 || clientes.length === 0 || !podeCriar} className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
               {processando ? <RefreshCw size={18} className="animate-spin" /> : <CheckCircle size={18} />}
               {processando ? 'A processar...' : 'Registar Empréstimo'}
             </button>
-            <button
-              type="button"
-              onClick={() => { setObraId(''); setClienteId(''); }}
-              disabled={!podeCriar}
-              className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Limpar
-            </button>
+            <button type="button" onClick={() => { setObraId(''); setClienteId(''); }} disabled={!podeCriar} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-md font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Limpar</button>
           </div>
         </form>
       </div>
@@ -328,20 +282,10 @@ export function Emprestimos() {
         <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-bold text-at-blue">
             Empréstimos Ativos ({emprestimos.length})
-            {totalAtrasados > 0 && (
-              <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">
-                {totalAtrasados} em atraso
-              </span>
-            )}
+            {totalAtrasados > 0 && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">{totalAtrasados} em atraso</span>}
           </h3>
-          <button
-            onClick={() => setFiltroAtraso(!filtroAtraso)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-              filtroAtraso ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Filter size={14} />
-            {filtroAtraso ? 'A mostrar só atrasados' : 'Mostrar só atrasados'}
+          <button onClick={() => setFiltroAtraso(!filtroAtraso)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors ${filtroAtraso ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+            <Filter size={14} /> {filtroAtraso ? 'A mostrar só atrasados' : 'Mostrar só atrasados'}
           </button>
         </div>
         <div className="overflow-x-auto">
@@ -362,14 +306,11 @@ export function Emprestimos() {
               </thead>
               <tbody className="text-sm text-gray-700">
                 {emprestimosFiltrados.length === 0 ? (
-                  <tr><td colSpan={7} className="p-6 text-center text-gray-500">
-                    {filtroAtraso ? 'Nenhum empréstimo em atraso. 🎉' : 'Nenhum empréstimo ativo.'}
-                  </td></tr>
+                  <tr><td colSpan={7} className="p-6 text-center text-gray-500">{filtroAtraso ? 'Nenhum empréstimo em atraso. 🎉' : 'Nenhum empréstimo ativo.'}</td></tr>
                 ) : (
                   emprestimosFiltrados.map((emp) => {
                     const atrasado = emp.DiasAtraso > 0;
                     const urgencia = nivelUrgencia(emp.DiasAtraso, emp.DataPrevistaDevolucao);
-
                     return (
                       <tr key={emp.Id} className={`border-b border-gray-100 transition-colors ${atrasado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-gray-50'}`}>
                         <td className="p-4 font-medium">{emp.Obra}</td>
@@ -377,43 +318,18 @@ export function Emprestimos() {
                         <td className="p-4">{emp.DataEmprestimo}</td>
                         <td className={`p-4 font-semibold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>{emp.DataPrevistaDevolucao}</td>
                         <td className="p-4 text-center">
-                          {urgencia === 'atrasado' && (
-                            <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-red-200"><AlertTriangle size={12} /> Atrasado {emp.DiasAtraso}d</span>
-                          )}
-                          {urgencia === 'urgente' && (
-                            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-amber-200"><Clock size={12} /> Vence em breve</span>
-                          )}
-                          {urgencia === 'ok' && (
-                            <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-green-200"><Clock size={12} /> Em dia</span>
-                          )}
+                          {urgencia === 'atrasado' && <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-red-200"><AlertTriangle size={12} /> Atrasado {emp.DiasAtraso}d</span>}
+                          {urgencia === 'urgente' && <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-amber-200"><Clock size={12} /> Vence em breve</span>}
+                          {urgencia === 'ok' && <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-green-200"><Clock size={12} /> Em dia</span>}
                         </td>
                         <td className="p-4 text-right">
                           {emp.ValorMulta > 0 ? <span className="font-bold text-red-600">{emp.ValorMulta.toLocaleString('pt-MZ')} MT</span> : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="p-4 text-center">
                           <div className="flex flex-wrap items-center justify-center gap-2">
-                            <button 
-                              onClick={() => navigate(`/comprovativo/${emp.Id}`)}
-                              className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1"
-                              title="Ver comprovativo">
-                              <Printer size={12} /> Comprovativo
-                            </button>
-                            <button 
-                              onClick={() => handleRenovar(emp.Id)}
-                              disabled={!podeRenovar}
-                              className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              title={podeRenovar ? "Renovar" : "Sem permissão"}
-                            >
-                              +{diasEmprestimo}d
-                            </button>
-                            <button 
-                              onClick={() => handleDevolver(emp.Id, emp.Obra)}
-                              disabled={!podeDevolver}
-                              className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              title={podeDevolver ? "Devolver" : "Sem permissão"}
-                            >
-                              Devolver
-                            </button>
+                            <button onClick={() => navigate(`/comprovativo/${emp.Id}`)} className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1" title="Ver comprovativo"><Printer size={12} /> Comprovativo</button>
+                            <button onClick={() => handleRenovar(emp.Id)} disabled={!podeRenovar} className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeRenovar ? "Renovar" : "Sem permissão"}>+{diasEmprestimo}d</button>
+                            <button onClick={() => handleDevolver(emp.Id, emp.Obra)} disabled={!podeDevolver} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeDevolver ? "Devolver" : "Sem permissão"}>Devolver</button>
                           </div>
                         </td>
                       </tr>
@@ -432,10 +348,7 @@ export function Emprestimos() {
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg"><Settings size={20} /></div>
-                <div>
-                  <h3 className="text-lg font-bold text-at-blue">Configurações do Sistema</h3>
-                  <p className="text-xs text-gray-500">Definições dos empréstimos</p>
-                </div>
+                <div><h3 className="text-lg font-bold text-at-blue">Configurações do Sistema</h3><p className="text-xs text-gray-500">Definições dos empréstimos</p></div>
               </div>
               <button type="button" onClick={() => setModalConfigAberto(false)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={20} /></button>
             </div>
@@ -445,11 +358,7 @@ export function Emprestimos() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">📅 Dias de Empréstimo</label>
                 <p className="text-xs text-gray-500 mb-2">Prazo padrão para devolução das obras</p>
                 <input type="number" min={1} max={365} value={configTemporaria.dias} onChange={(e) => setConfigTemporaria({ ...configTemporaria, dias: Number(e.target.value) || 1 })} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-center font-bold text-lg" />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {[3, 7, 15, 30].map((d) => (
-                    <button key={d} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, dias: d })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.dias === d ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{d} dias</button>
-                  ))}
-                </div>
+                <div className="flex flex-wrap gap-2 mt-2">{[3, 7, 15, 30].map((d) => (<button key={d} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, dias: d })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.dias === d ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{d} dias</button>))}</div>
               </div>
 
               <div>
@@ -459,11 +368,7 @@ export function Emprestimos() {
                   <input type="number" min={0} max={100000} value={configTemporaria.multa} onChange={(e) => setConfigTemporaria({ ...configTemporaria, multa: Number(e.target.value) || 0 })} className="w-full p-3 pr-16 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-center font-bold text-lg" />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">MT/dia</span>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {[10, 20, 40, 50, 100].map((v) => (
-                    <button key={v} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, multa: v })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.multa === v ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{v} MT</button>
-                  ))}
-                </div>
+                <div className="flex flex-wrap gap-2 mt-2">{[10, 20, 40, 50, 100].map((v) => (<button key={v} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, multa: v })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.multa === v ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{v} MT</button>))}</div>
               </div>
 
               <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">

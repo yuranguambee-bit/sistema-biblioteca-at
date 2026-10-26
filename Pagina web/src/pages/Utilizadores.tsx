@@ -48,9 +48,7 @@ export function Utilizadores() {
     const ok = await confirm({
       title: 'Eliminar Utilizador',
       message: `Tens a certeza que queres eliminar permanentemente o utilizador "${nomeUser}"? Esta ação não pode ser revertida.`,
-      confirmText: 'Eliminar',
-      cancelText: 'Cancelar',
-      variant: 'danger',
+      confirmText: 'Eliminar', cancelText: 'Cancelar', variant: 'danger',
     });
     if (!ok) return;
 
@@ -65,7 +63,7 @@ export function Utilizadores() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border-l-4 border-at-blue">
         <h2 className="text-2xl font-bold text-at-blue">Gestão de Utilizadores</h2>
         <p className="text-gray-500 text-sm mt-1">Só administradores podem gerir utilizadores do sistema.</p>
@@ -76,34 +74,25 @@ export function Utilizadores() {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Nome</label>
-            <input type="text" required value={nome} onChange={(e) => setNome(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
-              placeholder="Nome completo" />
+            <input type="text" required value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" placeholder="Nome completo" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
-              placeholder="email@at.gov.mz" />
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" placeholder="email@at.gov.mz" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
-              placeholder="••••••••" />
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" placeholder="••••••••" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Perfil</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue">
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue">
               <option value="Bibliotecario">Bibliotecário</option>
               <option value="Admin">Administrador</option>
             </select>
           </div>
           <div className="md:col-span-4">
-            <button type="submit" className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">
-              Criar Utilizador
-            </button>
+            <button type="submit" className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">Criar Utilizador</button>
           </div>
         </form>
       </div>
@@ -128,18 +117,13 @@ export function Utilizadores() {
                   <td className="p-4 font-medium">{u.Nome}</td>
                   <td className="p-4">{u.Email}</td>
                   <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      u.Role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                    }`}>{u.Role}</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${u.Role === 'Admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{u.Role}</span>
                   </td>
                   <td className="p-4 text-center">
                     {u.Id === user?.id ? (
                       <span className="text-xs text-gray-400 italic">(tu)</span>
                     ) : (
-                      <button onClick={() => handleEliminar(u.Id, u.Nome)}
-                        className="bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-red-700 transition-colors">
-                        Eliminar
-                      </button>
+                      <button onClick={() => handleEliminar(u.Id, u.Nome)} className="bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-red-700 transition-colors">Eliminar</button>
                     )}
                   </td>
                 </tr>

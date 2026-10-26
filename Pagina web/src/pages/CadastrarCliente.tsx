@@ -54,7 +54,7 @@ export function CadastrarCliente() {
   const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
 
   return (
-    <main className="max-w-3xl mx-auto p-6 mt-6">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-lg shadow-sm p-8 border-t-4 border-at-blue">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-at-blue flex items-center gap-2"><UserPlus size={24}/> Cadastrar Novo Cliente</h2>

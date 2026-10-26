@@ -161,7 +161,7 @@ export function CadastrarEditora() {
   const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
 
   return (
-    <main className="max-w-6xl mx-auto p-6 mt-6">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -267,7 +267,6 @@ export function CadastrarEditora() {
         </form>
       </div>
 
-      {/* LISTA DE EDITORAS */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">

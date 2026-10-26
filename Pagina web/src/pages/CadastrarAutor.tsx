@@ -192,7 +192,7 @@ export function CadastrarAutor() {
   const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
 
   return (
-    <main className="max-w-6xl mx-auto p-6 mt-6">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -224,12 +224,7 @@ export function CadastrarAutor() {
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text" required value={nome} onChange={(e) => setNome(e.target.value)}
-                  disabled={campoBloqueado('autores_campo_nome')}
-                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nome') ? disabledClass : enabledClass}`}
-                  placeholder="Ex: Yuran Maurício"
-                />
+                <input type="text" required value={nome} onChange={(e) => setNome(e.target.value)} disabled={campoBloqueado('autores_campo_nome')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nome') ? disabledClass : enabledClass}`} placeholder="Ex: Yuran Maurício" />
               </div>
             </div>
 
@@ -240,12 +235,7 @@ export function CadastrarAutor() {
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text" value={sobrenome} onChange={(e) => setSobrenome(e.target.value)}
-                  disabled={campoBloqueado('autores_campo_sobrenome')}
-                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_sobrenome') ? disabledClass : enabledClass}`}
-                  placeholder="Ex: Guambe"
-                />
+                <input type="text" value={sobrenome} onChange={(e) => setSobrenome(e.target.value)} disabled={campoBloqueado('autores_campo_sobrenome')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_sobrenome') ? disabledClass : enabledClass}`} placeholder="Ex: Guambe" />
               </div>
             </div>
           </div>
@@ -258,12 +248,7 @@ export function CadastrarAutor() {
               </label>
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="text" value={nacionalidade} onChange={(e) => setNacionalidade(e.target.value)}
-                  disabled={campoBloqueado('autores_campo_nacionalidade')}
-                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nacionalidade') ? disabledClass : enabledClass}`}
-                  placeholder="Ex: Moçambicana"
-                />
+                <input type="text" value={nacionalidade} onChange={(e) => setNacionalidade(e.target.value)} disabled={campoBloqueado('autores_campo_nacionalidade')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_nacionalidade') ? disabledClass : enabledClass}`} placeholder="Ex: Moçambicana" />
               </div>
             </div>
 
@@ -274,11 +259,7 @@ export function CadastrarAutor() {
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)}
-                  disabled={campoBloqueado('autores_campo_datanascimento')}
-                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_datanascimento') ? disabledClass : enabledClass}`}
-                />
+                <input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} disabled={campoBloqueado('autores_campo_datanascimento')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_datanascimento') ? disabledClass : enabledClass}`} />
               </div>
             </div>
 
@@ -289,11 +270,7 @@ export function CadastrarAutor() {
               </label>
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <select
-                  value={sexo} onChange={(e) => setSexo(e.target.value)}
-                  disabled={campoBloqueado('autores_campo_sexo')}
-                  className={`w-full pl-10 p-3 border rounded-md transition-colors appearance-none ${campoBloqueado('autores_campo_sexo') ? disabledClass : enabledClass}`}
-                >
+                <select value={sexo} onChange={(e) => setSexo(e.target.value)} disabled={campoBloqueado('autores_campo_sexo')} className={`w-full pl-10 p-3 border rounded-md transition-colors appearance-none ${campoBloqueado('autores_campo_sexo') ? disabledClass : enabledClass}`}>
                   <option value="">Selecionar...</option>
                   <option value="Masculino">Masculino</option>
                   <option value="Feminino">Feminino</option>
@@ -309,12 +286,7 @@ export function CadastrarAutor() {
             </label>
             <div className="relative">
               <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text" value={tiposLivros} onChange={(e) => setTiposLivros(e.target.value)}
-                disabled={campoBloqueado('autores_campo_tiposlivros')}
-                className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_tiposlivros') ? disabledClass : enabledClass}`}
-                placeholder="Ex: Ficção, Romance, Direito..."
-              />
+              <input type="text" value={tiposLivros} onChange={(e) => setTiposLivros(e.target.value)} disabled={campoBloqueado('autores_campo_tiposlivros')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('autores_campo_tiposlivros') ? disabledClass : enabledClass}`} placeholder="Ex: Ficção, Romance, Direito..." />
             </div>
           </div>
 
@@ -325,21 +297,12 @@ export function CadastrarAutor() {
             </label>
             <div className="relative">
               <FileText className="absolute left-3 top-4 text-gray-400" size={18} />
-              <textarea
-                value={biografia} onChange={(e) => setBiografia(e.target.value)}
-                disabled={campoBloqueado('autores_campo_biografia')}
-                rows={4}
-                className={`w-full pl-10 p-3 border rounded-md transition-colors resize-none ${campoBloqueado('autores_campo_biografia') ? disabledClass : enabledClass}`}
-                placeholder="Breve descrição da vida e obra do autor..."
-              />
+              <textarea value={biografia} onChange={(e) => setBiografia(e.target.value)} disabled={campoBloqueado('autores_campo_biografia')} rows={4} className={`w-full pl-10 p-3 border rounded-md transition-colors resize-none ${campoBloqueado('autores_campo_biografia') ? disabledClass : enabledClass}`} placeholder="Breve descrição da vida e obra do autor..." />
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
-            <button
-              type="submit" disabled={salvando || !podeSubmeter}
-              className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-            >
+            <button type="submit" disabled={salvando || !podeSubmeter} className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
               {salvando ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
               {salvando ? 'A guardar...' : editandoId ? 'Guardar Alterações' : 'Guardar Autor'}
             </button>
@@ -353,7 +316,6 @@ export function CadastrarAutor() {
         </form>
       </div>
 
-      {/* LISTA DE AUTORES */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">

@@ -90,7 +90,7 @@ export function Acervo() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-at-blue">Acervo da Biblioteca</h2>

@@ -18,7 +18,6 @@ export function CadastrarObra() {
   const { temPermissao } = useAuth();
   const navigate = useNavigate();
 
-  // Estados do Formulário
   const [titulo, setTitulo] = useState('');
   const [ano, setAno] = useState('');
   const [numeroEdicao, setNumeroEdicao] = useState('');
@@ -28,12 +27,10 @@ export function CadastrarObra() {
   const [exemplares, setExemplares] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Estados da Lista
   const [obras, setObras] = useState<Obra[]>([]);
   const [loadingObras, setLoadingObras] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
 
-  // Opções dos Selects
   const [autores, setAutores] = useState<Autor[]>([]);
   const [editoras, setEditoras] = useState<Editora[]>([]);
 
@@ -86,8 +83,6 @@ export function CadastrarObra() {
 
     if (!podeCriar) return showToast('Não tens permissão para cadastrar obras.', 'error');
     if (!autorId) return showToast('Seleciona um autor para a obra.', 'error');
-    
-    // NOVO: Validação obrigatória da Editora
     if (!editoraId) return showToast('Seleciona uma editora para a obra.', 'error');
 
     setLoading(true);
@@ -103,7 +98,7 @@ export function CadastrarObra() {
               NumeroEdicao: numeroEdicao.trim() || null,
               NacionalidadeLivro: nacionalidadeLivro.trim() || null,
               AutorId: Number(autorId),
-              EditoraId: Number(editoraId), // Enviar como Number
+              EditoraId: Number(editoraId),
             }),
           })
         );
@@ -119,7 +114,7 @@ export function CadastrarObra() {
         setNumeroEdicao('');
         setNacionalidadeLivro('');
         setExemplares(1);
-        carregarObras(); // Atualiza a lista imediatamente
+        carregarObras(); 
       } else {
         showToast('Erro ao cadastrar. Verifica os dados.', 'error');
       }
@@ -134,7 +129,7 @@ export function CadastrarObra() {
   const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
 
   return (
-    <main className="max-w-6xl mx-auto p-6 mt-6">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -218,8 +213,6 @@ export function CadastrarObra() {
           </div>
 
           <Autocomplete label="Autor" options={opcoesAutores} value={autorId} onChange={setAutorId} placeholder="Escreve para pesquisar..." icon={<User size={18} />} disabled={campoBloqueado('obras_campo_autor')} required />
-          
-          {/* NOVO: Editora obrigatória */}
           <Autocomplete label="Editora" options={opcoesEditoras} value={editoraId} onChange={setEditoraId} placeholder="Escreve para pesquisar..." icon={<Building2 size={18} />} disabled={campoBloqueado('obras_campo_editora')} required />
 
           {autores.length === 0 && (
@@ -235,7 +228,6 @@ export function CadastrarObra() {
         </form>
       </div>
 
-      {/* NOVO: LISTA DE OBRAS CADASTRADAS */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">

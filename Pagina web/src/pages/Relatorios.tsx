@@ -82,8 +82,6 @@ export function Relatorios() {
         .sort((a, b) => (b.TotalEmprestimos || 0) - (a.TotalEmprestimos || 0))
         .filter((c) => (c.TotalEmprestimos || 0) > 0);
     }
-    
-    // NOVO: Filtrar apenas as obras que têm TotalEmprestimos === 0
     if (tipo === 'nuncaEmprestadas') {
       return dadosFiltrados.filter((o: any) => Number(o.TotalEmprestimos) === 0);
     }
@@ -95,7 +93,7 @@ export function Relatorios() {
   const corBotaoInativo = 'bg-gray-100 text-gray-700 hover:bg-gray-200';
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border-l-4 border-at-blue flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-at-blue">Relatórios</h2>

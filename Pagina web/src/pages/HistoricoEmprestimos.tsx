@@ -95,7 +95,7 @@ export function HistoricoEmprestimos() {
   const totalDevolvidos = emprestimos.filter(e => e.Status === 'DEVOLVIDO').length;
 
   return (
-    <main className="max-w-7xl mx-auto p-6 mt-6">
+    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -164,9 +164,7 @@ export function HistoricoEmprestimos() {
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              🔍 Pesquisar
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">🔍 Pesquisar</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
@@ -180,9 +178,7 @@ export function HistoricoEmprestimos() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              📊 Estado
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">📊 Estado</label>
             <select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value as any)}
@@ -195,9 +191,7 @@ export function HistoricoEmprestimos() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              📅 Período
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">📅 Período</label>
             <select
               value={filtroData}
               onChange={(e) => setFiltroData(e.target.value as any)}
