@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Obra } from '../types';
 import { apiFetch } from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -9,7 +8,7 @@ import {
   BookOpen, CheckCircle, BookMarked, BarChart3, PieChart, 
   ArrowRight, Clock, Bookmark, AlertTriangle, 
   UserPlus, Building2, Users, TrendingUp, Award,
-  Sparkles, Calendar, Library, Bell
+  Sparkles, Calendar, Bell
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -69,7 +68,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function Dashboard() {
   const { user } = useAuth();
-  const [obras, setObras] = useState<Obra[]>([]);
   const [stats, setStats] = useState<Estatisticas>({ 
     totalObras: 0, disponiveis: 0, emprestimosAtivos: 0, reservasPendentes: 0, emprestimosAtrasados: 0 
   });
@@ -77,20 +75,17 @@ export function Dashboard() {
   const [topObras, setTopObras] = useState<TopObra[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
-  const [loading, setLoading] = useState(true);
   const [horaAtual, setHoraAtual] = useState(new Date());
 
   useEffect(() => {
     // Carregar dados em paralelo
     Promise.all([
-      apiFetch('/api/obras').then(r => r.json()),
       apiFetch('/api/estatisticas').then(r => r.json()),
       apiFetch('/api/estatisticas/graficos').then(r => r.json()),
       apiFetch('/api/dashboard/top-obras').then(r => r.json()),
       apiFetch('/api/reservas').then(r => r.json()),
       apiFetch('/api/notificacoes').then(r => r.json())
-    ]).then(([dObras, dStats, dGraficos, dTop, dReservas, dNotif]) => {
-      setObras(Array.isArray(dObras) ? dObras : []);
+    ]).then(([dStats, dGraficos, dTop, dReservas, dNotif]) => {
       setStats(dStats || {});
       setGraficos({
         emprestimosPorMes: dGraficos?.emprestimosPorMes || [],
@@ -99,10 +94,8 @@ export function Dashboard() {
       setTopObras(Array.isArray(dTop) ? dTop : []);
       setReservas(Array.isArray(dReservas) ? dReservas : []);
       setNotificacoes(Array.isArray(dNotif) ? dNotif.slice(0, 4) : []); // Top 4 notificações
-      setLoading(false);
     }).catch(e => {
       console.error(e);
-      setLoading(false);
     });
 
     const timer = setInterval(() => setHoraAtual(new Date()), 60000);
@@ -421,7 +414,7 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Reservas Pendentes (NOVO) */}
+        {/* Reservas Pendentes */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-pink-50 flex items-center justify-center"><Bookmark className="text-pink-600" size={18} /></div>
@@ -453,7 +446,7 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Atividade Recente (NOVO) */}
+        {/* Atividade Recente */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><Bell className="text-at-blue" size={18} /></div>
@@ -481,8 +474,6 @@ export function Dashboard() {
         </div>
 
       </div>
-
-      {/* Lista de Últimas Obras Ocultada para dar espaço, mas podes voltar a colocá-la se quiseres */}
     </main>
   );
 }
