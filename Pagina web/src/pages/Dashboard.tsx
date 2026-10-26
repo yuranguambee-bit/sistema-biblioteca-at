@@ -149,7 +149,7 @@ export function Dashboard() {
 
           <div className="bg-white/10 backdrop-blur-md rounded-2xl px-6 py-5 border border-white/20 shadow-lg">
             <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="text-yellow-300" size={18} />
+              {/* Emoji removido daqui como pedido */}
               <p className="text-xs text-blue-100 font-medium uppercase tracking-wider">Taxa de Disponibilidade</p>
             </div>
             <p className="text-5xl font-bold">{percentualDisponivel}%</p>
