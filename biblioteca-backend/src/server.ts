@@ -361,7 +361,13 @@ app.delete('/api/usuarios/:id', verificarToken, apenasAdmin, async (req, res) =>
 app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const result = await pool.request().query(`SELECT O.Id, O.Titulo, A.Nome as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.Status FROM Obras O LEFT JOIN Autores A ON O.AutorId = A.Id LEFT JOIN Editoras E ON O.EditoraId = E.Id`);
+        const result = await pool.request().query(`
+            SELECT O.Id, O.Titulo, A.Nome as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.Status,
+                   (SELECT COUNT(*) FROM Emprestimos WHERE ObraId = O.Id) as TotalEmprestimos
+            FROM Obras O 
+            LEFT JOIN Autores A ON O.AutorId = A.Id 
+            LEFT JOIN Editoras E ON O.EditoraId = E.Id
+        `);
         res.json(result.recordset);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -410,6 +416,9 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
     const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro } = req.body;
+    
+    if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
+
     try {
         const pool = await sql.connect(dbConfig);
         await pool.request()
@@ -643,13 +652,25 @@ app.get('/api/reservas', verificarToken, async (req, res) => {
 
 app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), async (req, res) => {
     const { ObraId, ClienteId } = req.body;
+    
+    if (!ObraId || !ClienteId) return res.status(400).json({ error: 'Obra e Cliente são obrigatórios.' });
+
     try {
         const pool = await sql.connect(dbConfig);
+        const checkObra = await pool.request().input('Id', sql.Int, ObraId).query('SELECT Status FROM Obras WHERE Id = @Id');
+        if (checkObra.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        if (checkObra.recordset[0].Status === 'DISPONIVEL') return res.status(400).json({ error: 'Esta obra está disponível. Pode requisitá-la diretamente.' });
+
         const check = await pool.request().input('ObraId', sql.Int, ObraId).input('ClienteId', sql.Int, ClienteId).query(`SELECT COUNT(*) as total FROM Reservas WHERE ObraId = @ObraId AND ClienteId = @ClienteId AND Status = 'PENDENTE'`);
         if (check.recordset[0].total > 0) return res.status(400).json({ error: 'Já tens uma reserva pendente para esta obra.' });
+        
         await pool.request().input('ObraId', sql.Int, ObraId).input('ClienteId', sql.Int, ClienteId).query(`INSERT INTO Reservas (ObraId, ClienteId, DataReserva, Status) VALUES (@ObraId, @ClienteId, GETDATE(), 'PENDENTE')`);
         const info = await pool.request().input('ObraId', sql.Int, ObraId).input('ClienteId', sql.Int, ClienteId).query(`SELECT O.Titulo as Obra, C.Nome as Cliente FROM Obras O, Clientes C WHERE O.Id = @ObraId AND C.Id = @ClienteId`);
-        if (info.recordset.length > 0) await criarNotificacao('📌 Nova Reserva', `${info.recordset[0].Cliente} reservou "${info.recordset[0].Obra}".`, 'RESERVA', '/reservas');
+        
+        if (info.recordset.length > 0) {
+            await criarNotificacao('📌 Nova Reserva', `${info.recordset[0].Cliente} reservou "${info.recordset[0].Obra}".`, 'RESERVA', '/reservas');
+        }
+        
         res.status(201).json({ message: 'Reserva criada com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

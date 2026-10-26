@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   ArrowLeft, BookOpen, User, Building2, CheckCircle, XCircle, 
   Clock, Mail, Phone, History, Bookmark, Plus,
-  Award, Users, BookMarked, Lock, RefreshCw
+  Award, Users, BookMarked, Lock, RefreshCw, AlertTriangle
 } from 'lucide-react';
 
 interface ObraDetalhe {
@@ -74,10 +74,12 @@ export function DetalhesObra() {
         apiFetch(`/api/obras/${id}/reservas`).then((r) => r.json()),
         apiFetch('/api/clientes').then((r) => r.json()),
       ]);
+      
       setObra(dObra);
       setHistorico(Array.isArray(dHistorico) ? dHistorico : []);
       setReservas(Array.isArray(dReservas) ? dReservas : []);
       setClientes(Array.isArray(dClientes) ? dClientes : []);
+      
       if (Array.isArray(dClientes) && dClientes.length > 0) {
         setClienteSelecionado(dClientes[0].Id.toString());
       }
@@ -94,7 +96,7 @@ export function DetalhesObra() {
   const handleCriarReserva = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!podeReservar) return showToast('Não tens permissão para criar reservas.', 'error');
-    if (!clienteSelecionado) return;
+    if (!clienteSelecionado) return showToast('Seleciona um cliente.', 'error');
     
     setProcessando(true);
     try {
@@ -107,12 +109,15 @@ export function DetalhesObra() {
       if (response.ok) {
         showToast('Reserva criada com sucesso!', 'success');
         setMostrarFormReserva(false);
-        carregarTudo();
+        await carregarTudo(); // Recarrega a lista de reservas
       } else {
         showToast(data.error || 'Erro ao criar reserva.', 'error');
       }
-    } catch (error) { showToast('Erro de ligação ao servidor.', 'error'); }
-    finally { setProcessando(false); }
+    } catch (error) { 
+      showToast('Erro de ligação ao servidor.', 'error'); 
+    } finally { 
+      setProcessando(false); 
+    }
   };
 
   const handleCancelarReserva = async (reservaId: number, cliente: string) => {
@@ -131,7 +136,7 @@ export function DetalhesObra() {
       const response = await apiFetch(`/api/reservas/${reservaId}`, { method: 'DELETE' });
       if (response.ok) {
         showToast('Reserva cancelada.', 'success');
-        carregarTudo();
+        await carregarTudo();
       } else {
         showToast('Erro ao cancelar reserva.', 'error');
       }
@@ -141,9 +146,7 @@ export function DetalhesObra() {
   if (loading) {
     return (
       <main className="max-w-5xl mx-auto p-6 mt-6 animate-fade-up">
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
-          A carregar detalhes...
-        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">A carregar detalhes...</div>
       </main>
     );
   }
@@ -154,10 +157,7 @@ export function DetalhesObra() {
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
           <XCircle size={56} className="mx-auto mb-4 text-red-400" />
           <h2 className="text-xl font-bold text-gray-700 mb-2">Obra não encontrada</h2>
-          <p className="text-gray-500 text-sm mb-6">A obra que procuras não existe ou foi removida.</p>
-          <button onClick={() => navigate('/acervo')} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">
-            Voltar ao Acervo
-          </button>
+          <button onClick={() => navigate('/acervo')} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors mt-4">Voltar ao Acervo</button>
         </div>
       </main>
     );
@@ -225,57 +225,39 @@ export function DetalhesObra() {
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <BookMarked className="text-at-blue" size={18} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><BookMarked className="text-at-blue" size={18} /><p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p></div>
             <p className="text-3xl font-bold text-at-blue">{totalEmprestimos}</p>
-            <p className="text-xs text-gray-400 mt-1">empréstimos</p>
           </div>
         </div>
 
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="text-green-600" size={18} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Devolvidos</p>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><CheckCircle className="text-green-600" size={18} /><p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Devolvidos</p></div>
             <p className="text-3xl font-bold text-green-600">{emprestimosDevolvidos}</p>
-            <p className="text-xs text-gray-400 mt-1">já entregues</p>
           </div>
         </div>
 
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-orange-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="text-orange-600" size={18} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ativos</p>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><Clock className="text-orange-600" size={18} /><p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ativos</p></div>
             <p className="text-3xl font-bold text-orange-600">{emprestimosAtivos}</p>
-            <p className="text-xs text-gray-400 mt-1">em curso</p>
           </div>
         </div>
 
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-yellow-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="text-yellow-600" size={18} />
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reservas</p>
-            </div>
+            <div className="flex items-center gap-2 mb-2"><Users className="text-yellow-600" size={18} /><p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reservas</p></div>
             <p className="text-3xl font-bold text-yellow-600">{reservas.length}</p>
-            <p className="text-xs text-gray-400 mt-1">na fila</p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-            <User className="text-purple-600" size={24} />
-          </div>
+          <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center flex-shrink-0"><User className="text-purple-600" size={24} /></div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Autor</p>
             <p className="text-base font-bold text-gray-800 truncate">{obra.Autor || 'Sem autor'}</p>
@@ -284,9 +266,7 @@ export function DetalhesObra() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-            <Building2 className="text-blue-600" size={24} />
-          </div>
+          <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0"><Building2 className="text-blue-600" size={24} /></div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Editora</p>
             <p className="text-base font-bold text-gray-800 truncate">{obra.Editora || 'Sem editora'}</p>
@@ -297,26 +277,16 @@ export function DetalhesObra() {
 
       {mostrarFormReserva && !isDisponivel && podeReservar && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-2xl p-6 mb-6 animate-fade-in">
-          <h3 className="text-base font-bold text-yellow-800 mb-4 flex items-center gap-2">
-            <Plus size={18} /> Adicionar Cliente à Fila de Reserva
-          </h3>
+          <h3 className="text-base font-bold text-yellow-800 mb-4 flex items-center gap-2"><Plus size={18} /> Adicionar Cliente à Fila de Reserva</h3>
           <form onSubmit={handleCriarReserva} className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[250px]">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Cliente</label>
-              <select 
-                value={clienteSelecionado} 
-                onChange={(e) => setClienteSelecionado(e.target.value)} 
-                required
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white"
-              >
+              <select value={clienteSelecionado} onChange={(e) => setClienteSelecionado(e.target.value)} required className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white">
+                <option value="" disabled>Seleciona um cliente...</option>
                 {clientes.map((c) => <option key={c.Id} value={c.Id}>{c.Nome}</option>)}
               </select>
             </div>
-            <button 
-              type="submit" 
-              disabled={processando}
-              className="bg-yellow-500 text-white px-6 py-3 rounded-md font-semibold hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2 disabled:opacity-70"
-            >
+            <button type="submit" disabled={processando} className="bg-yellow-500 text-white px-6 py-3 rounded-md font-semibold hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2 disabled:opacity-70">
               {processando ? <RefreshCw size={16} className="animate-spin" /> : <CheckCircle size={16} />}
               {processando ? 'A guardar...' : 'Confirmar Reserva'}
             </button>
@@ -327,14 +297,10 @@ export function DetalhesObra() {
       {!isDisponivel && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center">
-              <Bookmark className="text-yellow-600" size={20} />
-            </div>
+            <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center"><Bookmark className="text-yellow-600" size={20} /></div>
             <div className="flex-1">
               <h3 className="text-base font-bold text-at-blue">Fila de Reservas</h3>
-              <p className="text-xs text-gray-400">
-                {reservas.length === 0 ? 'Ninguém à espera' : `${reservas.length} pessoa(s) à espera`}
-              </p>
+              <p className="text-xs text-gray-400">{reservas.length === 0 ? 'Ninguém à espera' : `${reservas.length} pessoa(s) à espera`}</p>
             </div>
           </div>
 
@@ -364,15 +330,8 @@ export function DetalhesObra() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                      <Clock size={12} /> {reserva.DataReserva}
-                    </span>
-                    <button 
-                      onClick={() => handleCancelarReserva(reserva.Id, reserva.Cliente)}
-                      disabled={!podeCancelarReserva}
-                      className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                      title={podeCancelarReserva ? "Cancelar" : "Sem permissão"}
-                    >
+                    <span className="text-xs text-gray-500 font-medium flex items-center gap-1"><Clock size={12} /> {reserva.DataReserva}</span>
+                    <button onClick={() => handleCancelarReserva(reserva.Id, reserva.Cliente)} disabled={!podeCancelarReserva} className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
                       {podeCancelarReserva ? 'Cancelar' : <><Lock size={10} /> Bloqueado</>}
                     </button>
                   </div>
@@ -385,18 +344,12 @@ export function DetalhesObra() {
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <History className="text-at-blue" size={20} />
-          </div>
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><History className="text-at-blue" size={20} /></div>
           <div className="flex-1">
             <h3 className="text-base font-bold text-at-blue">Histórico de Empréstimos</h3>
             <p className="text-xs text-gray-400">Todos os empréstimos desta obra</p>
           </div>
-          {totalEmprestimos > 0 && (
-            <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
-              {totalEmprestimos} registo(s)
-            </span>
-          )}
+          {totalEmprestimos > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">{totalEmprestimos} registo(s)</span>}
         </div>
 
         <div className="overflow-x-auto">
@@ -430,9 +383,7 @@ export function DetalhesObra() {
                     </td>
                     <td className="px-6 py-4 text-gray-600 font-medium">{emp.DataEmprestimo}</td>
                     <td className="px-6 py-4 text-red-600 font-semibold">{emp.DataPrevistaDevolucao}</td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {emp.DataDevolucao || <span className="text-gray-300 italic">Pendente</span>}
-                    </td>
+                    <td className="px-6 py-4 text-gray-600">{emp.DataDevolucao || <span className="text-gray-300 italic">Pendente</span>}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${emp.Status === 'ATIVO' ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-green-50 text-green-700 ring-1 ring-green-200'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${emp.Status === 'ATIVO' ? 'bg-red-500' : 'bg-green-500'}`}></span>
