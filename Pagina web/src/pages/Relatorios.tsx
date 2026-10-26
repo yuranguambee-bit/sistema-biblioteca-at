@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../services/api';
 import { 
   FileText, Printer, Users, BookX, 
-  Calendar, Filter, BookOpen, Award, X
+  Calendar, Filter, BookOpen, Award
 } from 'lucide-react';
 
 type TipoRelatorio = 'inventario' | 'emprestimos' | 'clientes' | 'topLeitores' | 'nuncaEmprestadas';

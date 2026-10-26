@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   ArrowLeft, BookOpen, User, Building2, CheckCircle, XCircle, 
   Clock, Mail, Phone, History, Bookmark, Plus,
-  Award, Users, BookMarked, Lock, RefreshCw, AlertTriangle
+  Award, Users, BookMarked, Lock, RefreshCw
 } from 'lucide-react';
 
 interface ObraDetalhe {
