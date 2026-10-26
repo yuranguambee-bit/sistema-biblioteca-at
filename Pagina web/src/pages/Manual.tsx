@@ -4,7 +4,7 @@ import {
   BookOpen, Search, User, BookMarked, Bookmark, Users, 
   BarChart3, Settings, Shield, Mail, ChevronDown, ChevronUp,
   CheckCircle, AlertTriangle, Info, Printer, FileText, Lock,
-  Award, Clock, Hash, Sparkles, ArrowRight
+  Hash, Sparkles, ArrowRight
 } from 'lucide-react';
 
 interface Seccao {
