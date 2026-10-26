@@ -9,7 +9,7 @@ import {
   BookOpen, CheckCircle, BookMarked, BarChart3, PieChart, 
   ArrowRight, Clock, Bookmark, AlertTriangle, 
   UserPlus, Building2, Users, TrendingUp, Award,
-  Sparkles, Calendar, Library
+  Sparkles, Calendar, Library, Bell
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +30,20 @@ interface TopObra {
   Titulo: string;
   Autor: string | null;
   TotalEmprestimos: number;
+}
+interface Reserva {
+  Id: number;
+  Obra: string;
+  Cliente: string;
+  DataReserva: string;
+}
+interface Notificacao {
+  Id: number;
+  Titulo: string;
+  Mensagem: string;
+  Tipo: string;
+  Data: string;
+  Hora: string;
 }
 
 const CORES_STATUS: { [key: string]: string } = {
@@ -61,26 +75,35 @@ export function Dashboard() {
   });
   const [graficos, setGraficos] = useState<Graficos>({ emprestimosPorMes: [], obrasPorStatus: [] });
   const [topObras, setTopObras] = useState<TopObra[]>([]);
+  const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [horaAtual, setHoraAtual] = useState(new Date());
 
   useEffect(() => {
-    apiFetch('/api/obras').then((r) => r.json())
-      .then((data) => { setObras(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch((e) => { console.error(e); setLoading(false); });
-
-    apiFetch('/api/estatisticas').then((r) => r.json())
-      .then((data) => setStats(data)).catch((e) => console.error(e));
-
-    apiFetch('/api/estatisticas/graficos').then((r) => r.json())
-      .then((data) => setGraficos({
-        emprestimosPorMes: data.emprestimosPorMes || [],
-        obrasPorStatus: data.obrasPorStatus || []
-      })).catch((e) => console.error(e));
-
-    apiFetch('/api/dashboard/top-obras').then((r) => r.json())
-      .then((data) => setTopObras(Array.isArray(data) ? data : []))
-      .catch((e) => console.error(e));
+    // Carregar dados em paralelo
+    Promise.all([
+      apiFetch('/api/obras').then(r => r.json()),
+      apiFetch('/api/estatisticas').then(r => r.json()),
+      apiFetch('/api/estatisticas/graficos').then(r => r.json()),
+      apiFetch('/api/dashboard/top-obras').then(r => r.json()),
+      apiFetch('/api/reservas').then(r => r.json()),
+      apiFetch('/api/notificacoes').then(r => r.json())
+    ]).then(([dObras, dStats, dGraficos, dTop, dReservas, dNotif]) => {
+      setObras(Array.isArray(dObras) ? dObras : []);
+      setStats(dStats || {});
+      setGraficos({
+        emprestimosPorMes: dGraficos?.emprestimosPorMes || [],
+        obrasPorStatus: dGraficos?.obrasPorStatus || []
+      });
+      setTopObras(Array.isArray(dTop) ? dTop : []);
+      setReservas(Array.isArray(dReservas) ? dReservas : []);
+      setNotificacoes(Array.isArray(dNotif) ? dNotif.slice(0, 4) : []); // Top 4 notificações
+      setLoading(false);
+    }).catch(e => {
+      console.error(e);
+      setLoading(false);
+    });
 
     const timer = setInterval(() => setHoraAtual(new Date()), 60000);
     return () => clearInterval(timer);
@@ -117,7 +140,8 @@ export function Dashboard() {
   const atrasados = stats.emprestimosAtrasados || 0;
 
   return (
-      <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
+      <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
+        {/* BANNER DE BOAS-VINDAS */}
         <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-8 text-white animate-fade-down">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
@@ -149,7 +173,6 @@ export function Dashboard() {
 
           <div className="bg-white/10 backdrop-blur-md rounded-2xl px-6 py-5 border border-white/20 shadow-lg">
             <div className="flex items-center gap-3 mb-2">
-              {/* Emoji removido daqui como pedido */}
               <p className="text-xs text-blue-100 font-medium uppercase tracking-wider">Taxa de Disponibilidade</p>
             </div>
             <p className="text-5xl font-bold">{percentualDisponivel}%</p>
@@ -160,6 +183,7 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* ALERTA DE ATRASOS */}
       {atrasados > 0 && (
         <Link 
           to="/emprestimos"
@@ -182,6 +206,7 @@ export function Dashboard() {
         </Link>
       )}
 
+      {/* CARTÕES DE ESTATÍSTICA */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
@@ -242,61 +267,40 @@ export function Dashboard() {
         </Link>
       </div>
 
+      {/* AÇÕES RÁPIDAS */}
       <div className="mb-8">
         <h3 className="text-lg font-bold text-at-blue mb-4 flex items-center gap-2">
           <Sparkles size={20} /> Ações Rápidas
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Link to="/cadastrar-obra"
-            className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <BookOpen className="text-at-blue" size={22} />
-            </div>
+          <Link to="/cadastrar-obra" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><BookOpen className="text-at-blue" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Nova Obra</p>
           </Link>
-
-          <Link to="/cadastrar-autor"
-            className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <UserPlus className="text-purple-600" size={22} />
-            </div>
+          <Link to="/cadastrar-autor" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><UserPlus className="text-purple-600" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Novo Autor</p>
           </Link>
-
-          <Link to="/cadastrar-editora"
-            className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <Building2 className="text-orange-600" size={22} />
-            </div>
+          <Link to="/cadastrar-editora" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><Building2 className="text-orange-600" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Nova Editora</p>
           </Link>
-
-          <Link to="/cadastrar-cliente"
-            className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <Users className="text-pink-600" size={22} />
-            </div>
+          <Link to="/cadastrar-cliente" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><Users className="text-pink-600" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Novo Cliente</p>
           </Link>
-
-          <Link to="/emprestimos"
-            className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <BookMarked className="text-red-600" size={22} />
-            </div>
+          <Link to="/emprestimos" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><BookMarked className="text-red-600" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Empréstimo</p>
           </Link>
-
-          <Link to="/relatorios"
-            className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <BarChart3 className="text-cyan-600" size={22} />
-            </div>
+          <Link to="/relatorios" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><BarChart3 className="text-cyan-600" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Relatórios</p>
           </Link>
         </div>
       </div>
 
+      {/* ANÁLISE VISUAL (GRÁFICOS) */}
       <h3 className="text-lg font-bold text-at-blue mb-4 flex items-center gap-2">
         <TrendingUp size={20} /> Análise Visual
       </h3>
@@ -304,9 +308,7 @@ export function Dashboard() {
         <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-                <BarChart3 className="text-at-blue" size={18} />
-              </div>
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><BarChart3 className="text-at-blue" size={18} /></div>
               <div>
                 <h4 className="text-base font-bold text-at-blue">Empréstimos por Mês</h4>
                 <p className="text-xs text-gray-400">Últimos 6 meses</p>
@@ -320,10 +322,7 @@ export function Dashboard() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart 
-                data={graficos.emprestimosPorMes.map(d => ({ ...d, Mes: formatarMes(d.Mes) }))}
-                margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
-              >
+              <BarChart data={graficos.emprestimosPorMes.map(d => ({ ...d, Mes: formatarMes(d.Mes) }))} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradBar" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#003366" stopOpacity={1} />
@@ -342,9 +341,7 @@ export function Dashboard() {
 
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center">
-              <PieChart className="text-purple-600" size={18} />
-            </div>
+            <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center"><PieChart className="text-purple-600" size={18} /></div>
             <div>
               <h4 className="text-base font-bold text-at-blue">Estado das Obras</h4>
               <p className="text-xs text-gray-400">Distribuição atual</p>
@@ -384,52 +381,39 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* NOVAS SECÇÕES: Listas Lado a Lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Top 5 Livros */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center">
-              <Award className="text-yellow-600" size={18} />
-            </div>
+          <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center"><Award className="text-yellow-600" size={18} /></div>
             <div>
-              <h3 className="text-base font-bold text-at-blue">Top 5 Livros Mais Emprestados</h3>
-              <p className="text-xs text-gray-400">Obras favoritas dos leitores</p>
+              <h3 className="text-base font-bold text-at-blue">Top 5 Livros</h3>
+              <p className="text-xs text-gray-400">Mais emprestados</p>
             </div>
           </div>
           {topObras.length === 0 ? (
-            <div className="p-12 text-center text-gray-400">
-              <Award size={48} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium text-sm">Sem dados de empréstimos ainda</p>
+            <div className="p-10 text-center text-gray-400">
+              <Award size={36} className="mx-auto mb-2 opacity-30" />
+              <p className="text-xs font-medium">Sem dados ainda</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
               {topObras.map((obra, index) => {
                 const medalha = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
                 return (
-                  <Link 
-                    key={obra.Id} 
-                    to={`/obras/${obra.Id}`}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-yellow-50/30 transition-colors group"
-                  >
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                      index === 0 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300' :
-                      index === 1 ? 'bg-gray-100 text-gray-600 ring-2 ring-gray-300' :
-                      index === 2 ? 'bg-orange-100 text-orange-700 ring-2 ring-orange-300' :
-                      'bg-gray-50 text-gray-500'
-                    }`}>
-                      {medalha}
-                    </div>
+                  <Link key={obra.Id} to={`/obras/${obra.Id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-yellow-50/30 transition-colors group">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                      index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                      index === 1 ? 'bg-gray-100 text-gray-600' :
+                      index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-500'
+                    }`}>{medalha}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 truncate group-hover:text-at-blue transition-colors">
-                        {obra.Titulo}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {obra.Autor || 'Autor desconhecido'}
-                      </p>
+                      <p className="font-semibold text-gray-800 text-sm truncate group-hover:text-at-blue">{obra.Titulo}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{obra.Autor || 'Autor desconhecido'}</p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-lg font-bold text-at-blue">{obra.TotalEmprestimos}</p>
-                      <p className="text-xs text-gray-400">empréstimos</p>
-                    </div>
+                    <div className="text-right"><p className="text-sm font-bold text-at-blue">{obra.TotalEmprestimos}</p></div>
                   </Link>
                 );
               })}
@@ -437,65 +421,68 @@ export function Dashboard() {
           )}
         </div>
 
+        {/* Reservas Pendentes (NOVO) */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Library className="text-at-blue" size={18} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-at-blue">Últimas Obras Cadastradas</h3>
-                <p className="text-xs text-gray-400">As 5 mais recentes</p>
+          <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-pink-50 flex items-center justify-center"><Bookmark className="text-pink-600" size={18} /></div>
+            <div>
+              <h3 className="text-base font-bold text-at-blue">Fila de Reservas</h3>
+              <p className="text-xs text-gray-400">À espera de disponibilidade</p>
+            </div>
+          </div>
+          {reservas.length === 0 ? (
+            <div className="p-10 text-center text-gray-400">
+              <Bookmark size={36} className="mx-auto mb-2 opacity-30" />
+              <p className="text-xs font-medium">Nenhuma reserva ativa</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {reservas.slice(0, 5).map((res) => (
+                <div key={res.Id} className="px-5 py-3 hover:bg-pink-50/30 transition-colors">
+                  <p className="font-semibold text-gray-800 text-sm truncate">{res.Obra}</p>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-[11px] text-gray-500 truncate">👤 {res.Cliente}</p>
+                    <p className="text-[10px] text-gray-400">🕒 {res.DataReserva}</p>
+                  </div>
+                </div>
+              ))}
+              <div className="p-3 bg-gray-50 text-center">
+                <Link to="/reservas" className="text-xs font-semibold text-at-blue hover:underline">Ver todas as reservas</Link>
               </div>
             </div>
-            <Link to="/acervo" className="text-xs font-semibold text-at-blue hover:underline flex items-center gap-1">
-              Ver todas <ArrowRight size={12} />
-            </Link>
-          </div>
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="p-8 text-center text-gray-500 text-sm">A carregar...</div>
-            ) : obras.length === 0 ? (
-              <div className="p-12 text-center text-gray-400">
-                <BookOpen size={48} className="mx-auto mb-3 opacity-30" />
-                <p className="font-medium text-sm">Sem obras cadastradas</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {obras.slice(0, 5).map((obra) => (
-                  <Link
-                    key={obra.Id}
-                    to={`/obras/${obra.Id}`}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-blue-50/30 transition-colors group"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white flex-shrink-0">
-                      <BookOpen size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 truncate group-hover:text-at-blue transition-colors">
-                        {obra.Titulo}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {obra.Autor} {obra.Ano && `· ${obra.Ano}`}
-                      </p>
-                    </div>
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
-                      obra.Status === 'DISPONIVEL' 
-                        ? 'bg-green-50 text-green-700 ring-1 ring-green-200' 
-                        : 'bg-red-50 text-red-700 ring-1 ring-red-200'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        obra.Status === 'DISPONIVEL' ? 'bg-green-500' : 'bg-red-500'
-                      }`}></span>
-                      {obra.Status}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
+
+        {/* Atividade Recente (NOVO) */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><Bell className="text-at-blue" size={18} /></div>
+            <div>
+              <h3 className="text-base font-bold text-at-blue">Atividade Recente</h3>
+              <p className="text-xs text-gray-400">Últimos eventos no sistema</p>
+            </div>
+          </div>
+          {notificacoes.length === 0 ? (
+            <div className="p-10 text-center text-gray-400">
+              <Bell size={36} className="mx-auto mb-2 opacity-30" />
+              <p className="text-xs font-medium">Sem atividade recente</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {notificacoes.map((notif) => (
+                <div key={notif.Id} className="px-5 py-3 hover:bg-gray-50 transition-colors">
+                  <p className="font-semibold text-gray-800 text-xs truncate">{notif.Titulo}</p>
+                  <p className="text-[11px] text-gray-600 line-clamp-2 mt-1">{notif.Mensagem}</p>
+                  <p className="text-[10px] text-gray-400 mt-1 text-right">{notif.Data} às {notif.Hora}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
+
+      {/* Lista de Últimas Obras Ocultada para dar espaço, mas podes voltar a colocá-la se quiseres */}
     </main>
   );
 }
