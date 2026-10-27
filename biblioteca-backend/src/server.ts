@@ -108,7 +108,6 @@ cron.schedule('0 8 * * *', async () => {
     try {
         const pool = await sql.connect(dbConfig);
 
-        // 1. Lembretes (faltam 2 dias)
         const lembretes = await pool.request().query(`
             SELECT E.Id, C.Nome as ClienteNome, C.Email as ClienteEmail, O.Titulo as ObraTitulo, 
                    CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevista
@@ -129,7 +128,6 @@ cron.schedule('0 8 * * *', async () => {
             }
         }
 
-        // 2. Avisos de Atraso (faz 1 dia que o prazo passou)
         const atrasados = await pool.request().query(`
             SELECT E.Id, C.Nome as ClienteNome, C.Email as ClienteEmail, O.Titulo as ObraTitulo, 
                    CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevista, 
@@ -465,6 +463,30 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
         `);
         res.json(result.recordset);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ NOVA ROTA: BUSCAR ISBN (Via Backend) ============
+app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
+    const { isbn } = req.params;
+    try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const data = await response.json();
+
+        if (data.totalItems === 0) {
+            return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN.' });
+        }
+
+        const book = data.items[0].volumeInfo;
+        res.json({
+            titulo: book.title || '',
+            ano: book.publishedDate ? book.publishedDate.substring(0, 4) : '',
+            autor: book.authors ? book.authors[0] : '',
+            editora: book.publisher || ''
+        });
+    } catch (error: any) {
+        console.error('Erro ao procurar ISBN no Google Books:', error);
+        res.status(500).json({ error: 'Erro ao ligar ao Google Books. Tenta novamente.' });
+    }
 });
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
@@ -869,7 +891,6 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
 
-        // Notificar o próximo da fila de reserva, se existir
         const reserva = await pool.request().input('ObraId', sql.Int, obraId).query(`
             SELECT TOP 1 C.Nome as ClienteNome, C.Email as ClienteEmail
             FROM Reservas R

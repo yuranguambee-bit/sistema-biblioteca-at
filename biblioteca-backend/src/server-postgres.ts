@@ -175,7 +175,7 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.EditoraId !== undefined && !p['obras_campo_editora']) proibidos.push('Editora');
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
-    if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN'); // <- NOVO
+    if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN');
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -386,6 +386,30 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
         const result = await pool.query(`SELECT E.id as "Id", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao", E.status as "Status" FROM Emprestimos E INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.obraid = $1 ORDER BY E.dataemprestimo DESC`, [req.params.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ NOVA ROTA: BUSCAR ISBN (Via Backend) ============
+app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
+    const { isbn } = req.params;
+    try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const data = await response.json();
+
+        if (data.totalItems === 0) {
+            return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN.' });
+        }
+
+        const book = data.items[0].volumeInfo;
+        res.json({
+            titulo: book.title || '',
+            ano: book.publishedDate ? book.publishedDate.substring(0, 4) : '',
+            autor: book.authors ? book.authors[0] : '',
+            editora: book.publisher || ''
+        });
+    } catch (error: any) {
+        console.error('Erro ao procurar ISBN no Google Books:', error);
+        res.status(500).json({ error: 'Erro ao ligar ao Google Books. Tenta novamente.' });
+    }
 });
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {

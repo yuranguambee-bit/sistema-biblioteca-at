@@ -81,7 +81,7 @@ export function CadastrarObra() {
   const opcoesAutores = autores.map((a) => ({ id: a.Id, label: a.Nome, sublabel: a.Nacionalidade || undefined }));
   const opcoesEditoras = editoras.map((e) => ({ id: e.Id, label: e.Nome, sublabel: e.Contacto || undefined }));
 
-  // ============ INTEGRAÇÃO GOOGLE BOOKS ============
+  // ============ INTEGRAÇÃO GOOGLE BOOKS (Via Backend) ============
   const handleBuscarISBN = async () => {
     if (!isbn.trim()) {
       showToast('Digita um ISBN para pesquisar.', 'error');
@@ -90,29 +90,24 @@ export function CadastrarObra() {
 
     setLoadingIsbn(true);
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-      const data = await response.json();
-
-      if (data.totalItems === 0) {
-        showToast('Nenhum livro encontrado com este ISBN.', 'error');
-        setLoadingIsbn(false);
-        return;
+      const response = await apiFetch(`/api/obras/buscar-isbn/${isbn}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao procurar o ISBN.');
       }
 
-      const book = data.items[0].volumeInfo;
+      const data = await response.json();
       
       // 1. Preencher Título
-      if (book.title) setTitulo(book.title);
+      if (data.titulo) setTitulo(data.titulo);
       
       // 2. Preencher Ano
-      if (book.publishedDate) {
-        const anoStr = book.publishedDate.substring(0, 4);
-        setAno(anoStr);
-      }
+      if (data.ano) setAno(data.ano);
 
       // 3. Tentar encontrar o Autor na lista
-      if (book.authors && book.authors.length > 0) {
-        const autorNome = book.authors[0];
+      if (data.autor) {
+        const autorNome = data.autor;
         const autorEncontrado = autores.find(a => 
           a.Nome.toLowerCase().includes(autorNome.toLowerCase()) || 
           autorNome.toLowerCase().includes(a.Nome.toLowerCase())
@@ -126,8 +121,8 @@ export function CadastrarObra() {
       }
 
       // 4. Tentar encontrar a Editora na lista
-      if (book.publisher) {
-        const editoraNome = book.publisher;
+      if (data.editora) {
+        const editoraNome = data.editora;
         const editoraEncontrada = editoras.find(e => 
           e.Nome.toLowerCase().includes(editoraNome.toLowerCase()) ||
           editoraNome.toLowerCase().includes(e.Nome.toLowerCase())
@@ -142,9 +137,9 @@ export function CadastrarObra() {
 
       showToast('Dados preenchidos automaticamente!', 'success');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      showToast('Erro ao ligar ao Google Books. Tenta novamente.', 'error');
+      showToast(error.message || 'Erro ao ligar ao Google Books. Tenta novamente.', 'error');
     } finally {
       setLoadingIsbn(false);
     }
@@ -167,7 +162,7 @@ export function CadastrarObra() {
             body: JSON.stringify({
               Titulo: titulo,
               Ano: Number(ano),
-              ISBN: isbn.trim() || null, // Enviar ISBN para o backend
+              ISBN: isbn.trim() || null,
               NumeroEdicao: numeroEdicao.trim() || null,
               NacionalidadeLivro: nacionalidadeLivro.trim() || null,
               AutorId: Number(autorId),
@@ -223,7 +218,7 @@ export function CadastrarObra() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* NOVO: CAMPO ISBN */}
+          {/* CAMPO ISBN */}
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
             <label className="text-sm font-bold text-blue-900 mb-2 flex items-center justify-between">
               <span className="flex items-center gap-2"><Barcode size={16}/> Pesquisa Automática por ISBN</span>
