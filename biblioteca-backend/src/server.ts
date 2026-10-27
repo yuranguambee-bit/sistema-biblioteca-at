@@ -17,6 +17,9 @@ dotenv.config();
 
 const app = express();
 
+// Confiar no proxy do Render
+app.set('trust proxy', 1);
+
 const allowedOrigins = [
     'https://sistema-biblioteca-at.vercel.app',
     'http://localhost:5173',
@@ -465,15 +468,17 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ NOVA ROTA: BUSCAR ISBN (Via Backend) ============
+// ============ ROTA: BUSCAR ISBN ============
 app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     const { isbn } = req.params;
     try {
         const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
-        const data = await response.json();
+        const data: any = await response.json();
 
-        if (data.totalItems === 0) {
-            return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN.' });
+        console.log('Resposta Google Books:', JSON.stringify(data));
+
+        if (!data.items || data.items.length === 0) {
+            return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN ou limite do Google excedido.' });
         }
 
         const book = data.items[0].volumeInfo;
@@ -484,7 +489,7 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
             editora: book.publisher || ''
         });
     } catch (error: any) {
-        console.error('Erro ao procurar ISBN no Google Books:', error);
+        console.error('Erro fatal ao procurar ISBN:', error.message);
         res.status(500).json({ error: 'Erro ao ligar ao Google Books. Tenta novamente.' });
     }
 });
