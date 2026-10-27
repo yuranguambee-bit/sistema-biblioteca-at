@@ -5,7 +5,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import { enviarEmailEmprestimo, enviarEmailBackup } from './utils/email';
+import cron from 'node-cron';
+import { 
+    enviarEmailEmprestimo, 
+    enviarEmailBackup, 
+    enviarEmailLembrete, 
+    enviarEmailAtraso, 
+    enviarEmailReservaDisponivel 
+} from './utils/email';
 
 dotenv.config();
 
@@ -41,7 +48,12 @@ if (!JWT_SECRET) { console.error('❌ ERRO CRÍTICO: JWT_SECRET não definido!')
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
 
-pool.query('SELECT NOW()').then(() => { console.log('✅ Ligação à Base de Dados PostgreSQL (Neon) bem-sucedida!'); seedAdmin(); }).catch((err) => { console.error('❌ FALHA NA LIGAÇÃO:', err.message); });
+pool.query('SELECT NOW()').then(() => { 
+    console.log('✅ Ligação à Base de Dados PostgreSQL (Neon) bem-sucedida!'); 
+    seedAdmin(); 
+}).catch((err) => { 
+    console.error('❌ FALHA NA LIGAÇÃO:', err.message); 
+});
 
 function parsePermissoes(valor: any): any {
     if (!valor) return {};
@@ -71,6 +83,65 @@ async function seedAdmin() {
         }
     } catch (error) { console.error('Erro ao criar admin:', error); }
 }
+
+// ============ CRON JOB: NOTIFICAÇÕES AUTOMÁTICAS ============
+// Corre todos os dias às 08:00 da manhã
+cron.schedule('0 8 * * *', async () => {
+    console.log('⏰ A executar rotina de notificações automáticas...');
+    const valorMulta = await obterConfig('ValorMultaDia', 40);
+
+    try {
+        // 1. Lembretes (faltam 2 dias)
+        const lembretes = await pool.query(`
+            SELECT E.id, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevista"
+            FROM Emprestimos E
+            INNER JOIN Clientes C ON E.clienteid = C.id
+            INNER JOIN Obras O ON E.obraid = O.id
+            WHERE E.status = 'ATIVO' AND E.dataprevistadevolucao::date = CURRENT_DATE + 2
+        `);
+
+        for (const row of lembretes.rows) {
+            if (row.ClienteEmail) {
+                await enviarEmailLembrete({
+                    clienteNome: row.ClienteNome,
+                    clienteEmail: row.ClienteEmail,
+                    obraTitulo: row.ObraTitulo,
+                    dataPrevista: row.DataPrevista
+                });
+            }
+        }
+
+        // 2. Avisos de Atraso (faz 1 dia que o prazo passou)
+        const atrasados = await pool.query(`
+            SELECT E.id, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevista",
+                   (CURRENT_DATE - E.dataprevistadevolucao::date) as "DiasAtraso"
+            FROM Emprestimos E
+            INNER JOIN Clientes C ON E.clienteid = C.id
+            INNER JOIN Obras O ON E.obraid = O.id
+            WHERE E.status = 'ATIVO' AND E.dataprevistadevolucao::date = CURRENT_DATE - 1
+        `);
+
+        for (const row of atrasados.rows) {
+            if (row.ClienteEmail) {
+                await enviarEmailAtraso({
+                    clienteNome: row.ClienteNome,
+                    clienteEmail: row.ClienteEmail,
+                    obraTitulo: row.ObraTitulo,
+                    dataPrevista: row.DataPrevista,
+                    diasAtraso: row.DiasAtraso,
+                    multa: row.DiasAtraso * valorMulta
+                });
+            }
+        }
+        
+        console.log('✅ Rotina de notificações concluída.');
+    } catch (error) {
+        console.error('❌ Erro na rotina de notificações:', error);
+    }
+});
+
 
 function verificarToken(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
@@ -625,7 +696,27 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         await client.query("UPDATE Emprestimos SET status = 'DEVOLVIDO', datadevolucao = NOW() WHERE id = $1", [req.params.id]);
         await client.query("UPDATE Obras SET status = 'DISPONIVEL' WHERE id = $1", [obraId]);
         await client.query('COMMIT');
+        
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
+        
+        // NOVO: Notificar o próximo da fila de reserva, se existir
+        const reserva = await pool.query(`
+            SELECT C.nome as "ClienteNome", C.email as "ClienteEmail"
+            FROM Reservas R
+            INNER JOIN Clientes C ON R.clienteid = C.id
+            WHERE R.obraid = $1 AND R.status = 'PENDENTE'
+            ORDER BY R.datareserva ASC LIMIT 1
+        `, [obraId]);
+
+        if (reserva.rows.length > 0 && reserva.rows[0].ClienteEmail) {
+            await enviarEmailReservaDisponivel({
+                clienteNome: reserva.rows[0].ClienteNome,
+                clienteEmail: reserva.rows[0].ClienteEmail,
+                obraTitulo: obraTitulo
+            });
+            await criarNotificacao('🎉 Reserva Disponível', `A obra "${obraTitulo}" está disponível para ${reserva.rows[0].ClienteNome}.`, 'RESERVA', '/reservas');
+        }
+
         res.json({ message: 'Devolução realizada!' });
     } catch (error: any) {
         await client.query('ROLLBACK');

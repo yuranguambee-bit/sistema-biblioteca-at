@@ -136,8 +136,7 @@ export async function enviarEmailEmprestimo(dados: DadosEmprestimo): Promise<boo
   }
 }
 
-// ============ BACKUP AUTOMÁTICO POR EMAIL ============
-
+// ============ BACKUP ============
 interface DadosBackup {
   destinatario: string;
   dataBackup: string;
@@ -145,117 +144,92 @@ interface DadosBackup {
 }
 
 export async function enviarEmailBackup({ destinatario, dataBackup, conteudo }: DadosBackup): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY) {
-    console.log('⚠️  Resend API Key não configurada. A saltar envio do backup.');
-    return false;
-  }
+  if (!process.env.RESEND_API_KEY) return false;
+  if (!destinatario) return false;
 
-  if (!destinatario) {
-    console.log('⚠️  Email destinatário do backup não configurado.');
-    return false;
-  }
-
-  // Serializa o JSON com indentação legível
   const json = JSON.stringify(conteudo, null, 2);
   const buffer = Buffer.from(json, 'utf-8');
   const tamanhoKB = (buffer.length / 1024).toFixed(2);
-
   const nomeFicheiro = `backup_biblioteca_at_${new Date().toISOString().slice(0, 10)}.json`;
-
-  const contagens = conteudo?.tabelas
-    ? Object.entries(conteudo.tabelas)
-        .map(([nome, dados]: [string, any]) => `<li><strong>${nome}:</strong> ${Array.isArray(dados) ? dados.length : 0} registo(s)</li>`)
-        .join('')
-    : '';
-
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f3f4f6; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .header { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #fff; padding: 32px 24px; text-align: center; }
-        .header h1 { margin: 0; font-size: 22px; }
-        .header p { margin: 6px 0 0 0; font-size: 13px; color: #d1fae5; }
-        .content { padding: 32px 24px; }
-        .info-box { background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 6px; margin: 20px 0; }
-        .info-box p { margin: 0 0 10px 0; font-size: 14px; color: #065f46; font-weight: bold; }
-        .info-box ul { margin: 0; padding-left: 20px; font-size: 13px; color: #065f46; }
-        .info-box li { margin-bottom: 4px; }
-        .meta { font-size: 13px; color: #6b7280; margin: 16px 0; }
-        .meta strong { color: #374151; }
-        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; border-radius: 6px; margin-top: 20px; font-size: 12px; color: #78350f; }
-        .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>💾 Backup Automático</h1>
-          <p>Sistema de Gestão de Biblioteca — AT Moçambique</p>
-        </div>
-
-        <div class="content">
-          <p style="color:#374151; font-size:15px;">Olá,</p>
-          <p style="color:#4b5563; font-size:14px;">
-            Segue em anexo o backup completo da base de dados do Sistema de Biblioteca da AT Moçambique,
-            gerado automaticamente.
-          </p>
-
-          <div class="meta">
-            <p><strong>📅 Data do backup:</strong> ${dataBackup}</p>
-            <p><strong>📦 Tamanho:</strong> ${tamanhoKB} KB</p>
-            <p><strong>📎 Ficheiro:</strong> ${nomeFicheiro}</p>
-          </div>
-
-          <div class="info-box">
-            <p>📊 Registo por tabela:</p>
-            <ul>
-              ${contagens}
-            </ul>
-          </div>
-
-          <div class="warning">
-            <strong>⚠️ Importante:</strong> Guarda este email num local seguro. 
-            O ficheiro anexo contém todos os dados do sistema (utilizadores, obras, empréstimos, etc.). 
-            Em caso de necessidade, este backup pode ser usado para restaurar a base de dados.
-          </div>
-        </div>
-
-        <div class="footer">
-          <p>Este é um email automático. Por favor, não respondas.</p>
-          <p style="margin-top: 8px;">© ${new Date().getFullYear()} Autoridade Tributária de Moçambique</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
 
   try {
     const result = await resend.emails.send({
       from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
       to: [destinatario],
       subject: `💾 Backup Automático — Biblioteca AT (${dataBackup})`,
-      html,
-      attachments: [
-        {
-          filename: nomeFicheiro,
-          content: buffer,
-        },
-      ],
+      html: `<p>Segue em anexo o backup do sistema gerado em ${dataBackup}.</p>`,
+      attachments: [{ filename: nomeFicheiro, content: buffer }],
     });
-
-    if (result.error) {
-      console.error(`❌ Erro do Resend ao enviar backup:`, result.error.message);
-      return false;
-    }
-
-    console.log(`✅ Backup enviado para ${destinatario} (id: ${result.data?.id}, ${tamanhoKB} KB)`);
-    return true;
-  } catch (error: any) {
-    console.error(`❌ Erro ao enviar backup:`, error.message);
+    return !result.error;
+  } catch (error) {
     return false;
   }
+}
+
+// ============ NOVAS NOTIFICAÇÕES AUTOMÁTICAS ============
+
+export async function enviarEmailLembrete({ clienteNome, clienteEmail, obraTitulo, dataPrevista }: any): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY || !clienteEmail) return false;
+  try {
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: [clienteEmail],
+      subject: `⏰ Lembrete de Devolução — ${obraTitulo}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #003366;">Olá ${clienteNome},</h2>
+          <p style="font-size: 16px; color: #333;">Este é um lembrete amigável de que o prazo de devolução da obra <strong>"${obraTitulo}"</strong> termina em breve.</p>
+          <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 18px; color: #78350f;"><strong>Data de Devolução:</strong> ${dataPrevista}</p>
+          </div>
+          <p style="color: #666;">Por favor, dirige-te à biblioteca para efetuar a devolução e evitar multas por atraso.</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (error) { return false; }
+}
+
+export async function enviarEmailAtraso({ clienteNome, clienteEmail, obraTitulo, dataPrevista, diasAtraso, multa }: any): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY || !clienteEmail) return false;
+  try {
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: [clienteEmail],
+      subject: `🚨 Aviso de Atraso — ${obraTitulo}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #b91c1c;">Olá ${clienteNome},</h2>
+          <p style="font-size: 16px; color: #333;">Verificámos que a obra <strong>"${obraTitulo}"</strong> se encontra em atraso desde o dia <strong>${dataPrevista}</strong>.</p>
+          <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; color: #991b1b;"><strong>Dias em atraso:</strong> ${diasAtraso} dias</p>
+            <p style="margin: 5px 0 0 0; font-size: 16px; color: #991b1b;"><strong>Multa acumulada:</strong> ${multa} MT</p>
+          </div>
+          <p style="color: #666;">Por favor, devolve a obra o mais breve possível para travar o valor da multa.</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (error) { return false; }
+}
+
+export async function enviarEmailReservaDisponivel({ clienteNome, clienteEmail, obraTitulo }: any): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY || !clienteEmail) return false;
+  try {
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: [clienteEmail],
+      subject: `🎉 Boa Notícia! O livro "${obraTitulo}" está disponível`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #10b981;">Olá ${clienteNome},</h2>
+          <p style="font-size: 16px; color: #333;">A obra <strong>"${obraTitulo}"</strong> que reservaste acabou de ser devolvida e já está disponível na biblioteca!</p>
+          <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; color: #065f46;"><strong>Atenção:</strong> A obra está reservada em teu nome. Passa na biblioteca para a requisitar.</p>
+          </div>
+        </div>
+      `,
+    });
+    return true;
+  } catch (error) { return false; }
 }

@@ -5,7 +5,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import { enviarEmailEmprestimo } from './utils/email';
+import cron from 'node-cron';
+import { 
+    enviarEmailEmprestimo, 
+    enviarEmailLembrete, 
+    enviarEmailAtraso, 
+    enviarEmailReservaDisponivel 
+} from './utils/email';
 
 dotenv.config();
 
@@ -93,6 +99,67 @@ async function seedAdmin() {
         }
     } catch (error) { console.error('Erro ao criar admin:', error); }
 }
+
+// ============ CRON JOB: NOTIFICAÇÕES AUTOMÁTICAS ============
+// Corre todos os dias às 08:00 da manhã
+cron.schedule('0 8 * * *', async () => {
+    console.log('⏰ A executar rotina de notificações automáticas...');
+    const valorMulta = await obterConfig('ValorMultaDia', 40);
+
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        // 1. Lembretes (faltam 2 dias)
+        const lembretes = await pool.request().query(`
+            SELECT E.Id, C.Nome as ClienteNome, C.Email as ClienteEmail, O.Titulo as ObraTitulo, 
+                   CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevista
+            FROM Emprestimos E
+            INNER JOIN Clientes C ON E.ClienteId = C.Id
+            INNER JOIN Obras O ON E.ObraId = O.Id
+            WHERE E.Status = 'ATIVO' AND CAST(E.DataPrevistaDevolucao AS DATE) = DATEADD(day, 2, CAST(GETDATE() AS DATE))
+        `);
+
+        for (const row of lembretes.recordset) {
+            if (row.ClienteEmail) {
+                await enviarEmailLembrete({
+                    clienteNome: row.ClienteNome,
+                    clienteEmail: row.ClienteEmail,
+                    obraTitulo: row.ObraTitulo,
+                    dataPrevista: row.DataPrevista
+                });
+            }
+        }
+
+        // 2. Avisos de Atraso (faz 1 dia que o prazo passou)
+        const atrasados = await pool.request().query(`
+            SELECT E.Id, C.Nome as ClienteNome, C.Email as ClienteEmail, O.Titulo as ObraTitulo, 
+                   CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevista, 
+                   DATEDIFF(day, E.DataPrevistaDevolucao, GETDATE()) as DiasAtraso
+            FROM Emprestimos E
+            INNER JOIN Clientes C ON E.ClienteId = C.Id
+            INNER JOIN Obras O ON E.ObraId = O.Id
+            WHERE E.Status = 'ATIVO' AND CAST(E.DataPrevistaDevolucao AS DATE) = DATEADD(day, -1, CAST(GETDATE() AS DATE))
+        `);
+
+        for (const row of atrasados.recordset) {
+            if (row.ClienteEmail) {
+                await enviarEmailAtraso({
+                    clienteNome: row.ClienteNome,
+                    clienteEmail: row.ClienteEmail,
+                    obraTitulo: row.ObraTitulo,
+                    dataPrevista: row.DataPrevista,
+                    diasAtraso: row.DiasAtraso,
+                    multa: row.DiasAtraso * valorMulta
+                });
+            }
+        }
+        
+        console.log('✅ Rotina de notificações concluída.');
+    } catch (error) {
+        console.error('❌ Erro na rotina de notificações:', error);
+    }
+});
+
 
 function verificarToken(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
@@ -802,7 +869,25 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         await transaction.commit();
         
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
-        
+
+        // NOVO: Notificar o próximo da fila de reserva, se existir
+        const reserva = await pool.request().input('ObraId', sql.Int, obraId).query(`
+            SELECT TOP 1 C.Nome as ClienteNome, C.Email as ClienteEmail
+            FROM Reservas R
+            INNER JOIN Clientes C ON R.ClienteId = C.Id
+            WHERE R.ObraId = @ObraId AND R.Status = 'PENDENTE'
+            ORDER BY R.DataReserva ASC
+        `);
+
+        if (reserva.recordset.length > 0 && reserva.recordset[0].ClienteEmail) {
+            await enviarEmailReservaDisponivel({
+                clienteNome: reserva.recordset[0].ClienteNome,
+                clienteEmail: reserva.recordset[0].ClienteEmail,
+                obraTitulo: obraTitulo
+            });
+            await criarNotificacao('🎉 Reserva Disponível', `A obra "${obraTitulo}" está disponível para ${reserva.recordset[0].ClienteNome}.`, 'RESERVA', '/reservas');
+        }
+
         res.json({ message: 'Devolução realizada!' });
     } catch (error: any) {
         await transaction.rollback();
