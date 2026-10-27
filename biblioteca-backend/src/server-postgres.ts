@@ -391,17 +391,41 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ ROTA: BUSCAR ISBN ============
+// ============ ROTA: BUSCAR ISBN (COM FALLBACK) ============
 app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     const { isbn } = req.params;
-    try {
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${process.env.GOOGLE_BOOKS_API_KEY}`);
+    
+    const buscarNoGoogle = async (comChave: boolean) => {
+        const keyParam = comChave && process.env.GOOGLE_BOOKS_API_KEY ? `&key=${process.env.GOOGLE_BOOKS_API_KEY}` : '';
+        const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${keyParam}`;
+        const response = await fetch(url);
         const data: any = await response.json();
+        
+        if (data.error) {
+            console.warn(`Aviso do Google Books (comChave: ${comChave}):`, data.error.message);
+            return { error: data.error.message, totalItems: 0 };
+        }
+        return data;
+    };
 
-        console.log('Resposta Google Books:', JSON.stringify(data));
+    try {
+        // 1ª Tentativa: Com a chave
+        let data = await buscarNoGoogle(true);
+        console.log(`Tentativa com chave. Total Items: ${data.totalItems}`);
+
+        // 2ª Tentativa: Se falhou (0 itens ou erro de quota), tenta sem chave
+        if (!data.items || data.items.length === 0) {
+            console.log('A tentar novamente sem chave...');
+            data = await buscarNoGoogle(false);
+            console.log(`Tentativa sem chave. Total Items: ${data.totalItems}`);
+        }
+
+        if (data.error) {
+            return res.status(429).json({ error: 'Limite de pesquisas do Google Books atingido. Preenche os dados manualmente.' });
+        }
 
         if (!data.items || data.items.length === 0) {
-            return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN ou limite do Google excedido.' });
+            return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN no Google Books.' });
         }
 
         const book = data.items[0].volumeInfo;
