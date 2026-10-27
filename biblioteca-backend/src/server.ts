@@ -472,7 +472,7 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
 app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     const { isbn } = req.params;
     try {
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${process.env.GOOGLE_BOOKS_API_KEY}`);
         const data: any = await response.json();
 
         console.log('Resposta Google Books:', JSON.stringify(data));

@@ -18,7 +18,7 @@ dotenv.config();
 
 const app = express();
 
-// Confiar no proxy do Render (necessário para o rate limit funcionar)
+// Confiar no proxy do Render
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
@@ -395,13 +395,11 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
 app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     const { isbn } = req.params;
     try {
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${process.env.GOOGLE_BOOKS_API_KEY}`);
         const data: any = await response.json();
 
-        // Mostra nos logs o que o Google respondeu
         console.log('Resposta Google Books:', JSON.stringify(data));
 
-        // Se não houver items ou estiver vazio, é porque houve um erro (quota, etc)
         if (!data.items || data.items.length === 0) {
             return res.status(404).json({ error: 'Nenhum livro encontrado com este ISBN ou limite do Google excedido.' });
         }
