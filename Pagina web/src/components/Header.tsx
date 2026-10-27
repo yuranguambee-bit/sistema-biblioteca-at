@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { LogOut, User, BookOpen, ShieldCheck, Home, FileClock } from 'lucide-react';
+import { LogOut, User, BookOpen, ShieldCheck, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useToast } from '../contexts/ToastContext';
@@ -93,7 +93,6 @@ export function Header() {
               <>
                 <Link to="/utilizadores" className={`${linkClasses} text-yellow-200`}>🔐 Utilizadores</Link>
                 <Link to="/permissoes" className={`${linkClasses} text-yellow-200`}><ShieldCheck size={16} /> Permissões</Link>
-                <Link to="/logs" className={`${linkClasses} text-yellow-200`}><FileClock size={16} /> Logs</Link>
               </>
             )}
           </nav>

@@ -23,7 +23,6 @@ import { Permissoes } from './pages/Permissoes';
 import { Perfil } from './pages/Perfil';
 import { Manual } from './pages/Manual';
 import { Login } from './pages/Login';
-import { Logs } from './pages/Logs'; // <- NOVO
 
 function SistemaPrivado() {
   const { isAuthenticated } = useAuth();
@@ -57,7 +56,6 @@ function SistemaPrivado() {
         {/* Rotas exclusivas do Admin */}
         <Route path="/utilizadores" element={<Utilizadores />} />
         <Route path="/permissoes" element={<Permissoes />} />
-        <Route path="/logs" element={<Logs />} /> {/* <- NOVO */}
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

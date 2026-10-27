@@ -72,22 +72,6 @@ async function criarNotificacao(titulo: string, mensagem: string, tipo: string, 
     } catch (error) { console.error('Erro ao criar notificação:', error); }
 }
 
-async function registarLog(usuarioId: number | null, usuarioNome: string, acao: string, entidade: string, entidadeId: number | null, detalhes: string) {
-    try {
-        const pool = await sql.connect(dbConfig);
-        await pool.request()
-            .input('UsuarioId', sql.Int, usuarioId)
-            .input('UsuarioNome', sql.NVarChar, usuarioNome)
-            .input('Acao', sql.NVarChar, acao)
-            .input('Entidade', sql.NVarChar, entidade)
-            .input('EntidadeId', sql.Int, entidadeId)
-            .input('Detalhes', sql.NVarChar, detalhes)
-            .query('INSERT INTO Logs (UsuarioId, UsuarioNome, Acao, Entidade, EntidadeId, Detalhes) VALUES (@UsuarioId, @UsuarioNome, @Acao, @Entidade, @EntidadeId, @Detalhes)');
-    } catch (error) {
-        console.error('Erro ao registar log:', error);
-    }
-}
-
 sql.connect(dbConfig).then(() => {
     console.log('✅ Ligação à Base de Dados SQL Server bem-sucedida!');
     seedAdmin();
@@ -337,7 +321,6 @@ app.post('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
             .input('Nome', sql.NVarChar, Nome).input('Email', sql.NVarChar, Email).input('PasswordHash', sql.NVarChar, hash).input('Role', sql.NVarChar, Role || 'Bibliotecario').input('Permissoes', sql.NVarChar, '{}')
             .query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role, Permissoes) VALUES (@Nome, @Email, @PasswordHash, @Role, @Permissoes)');
         await criarNotificacao('👤 Novo Utilizador', `O utilizador ${Nome} (${Role}) foi criado no sistema.`, 'UTILIZADOR', '/utilizadores');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'UTILIZADOR', null, `Criou o utilizador ${Nome}`);
         res.status(201).json({ message: 'Utilizador criado com sucesso!' });
     } catch (error: any) {
         if (error.message.includes('UNIQUE')) return res.status(400).json({ error: 'Este email já está registado.' });
@@ -370,11 +353,7 @@ app.delete('/api/usuarios/:id', verificarToken, apenasAdmin, async (req, res) =>
     if (Number(req.params.id) === (req as any).user.id) return res.status(400).json({ error: 'Não podes apagar a tua própria conta.' });
     try {
         const pool = await sql.connect(dbConfig);
-        const u = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT Nome FROM Usuarios WHERE Id = @Id');
-        const nomeApagado = u.recordset.length > 0 ? u.recordset[0].Nome : 'Desconhecido';
-
         await pool.request().input('Id', sql.Int, req.params.id).query('DELETE FROM Usuarios WHERE Id = @Id');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'UTILIZADOR', Number(req.params.id), `Apagou o utilizador ${nomeApagado}`);
         res.json({ message: 'Utilizador removido.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -450,7 +429,6 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
         const novaObraId = insertResult.recordset[0].Id;
         
         await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada ao acervo.`, 'OBRA', '/acervo');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'OBRA', novaObraId, `Criou a obra "${Titulo}"`);
         
         res.status(201).json({ message: 'Obra cadastrada!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -459,11 +437,7 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
 app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras_apagar'), async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const o = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT Titulo FROM Obras WHERE Id = @Id');
-        const tituloApagado = o.recordset.length > 0 ? o.recordset[0].Titulo : 'Desconhecida';
-
         await pool.request().input('Id', sql.Int, req.params.id).query('DELETE FROM Obras WHERE Id = @Id');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'OBRA', Number(req.params.id), `Apagou a obra "${tituloApagado}"`);
         res.json({ message: 'Obra removida.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -490,7 +464,6 @@ app.post('/api/autores', verificarToken, verificarPermissao('autores_criar'), ve
             .query(`INSERT INTO Autores (Nome, Sobrenome, Nacionalidade, DataNascimento, Biografia, Sexo, TiposLivros) OUTPUT INSERTED.Id VALUES (@Nome, @Sobrenome, @Nacionalidade, @DataNascimento, @Biografia, @Sexo, @TiposLivros)`);
         
         const novoAutorId = insertResult.recordset[0].Id;
-        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'AUTOR', novoAutorId, `Criou o autor "${Nome}"`);
         res.status(201).json({ message: 'Autor cadastrado!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -517,7 +490,6 @@ app.put('/api/autores/:id', verificarToken, verificarPermissao('autores_editar')
             .input('Biografia', sql.NVarChar, novaBio).input('Sexo', sql.NVarChar, novoSexo).input('TiposLivros', sql.NVarChar, novosTipos)
             .query(`UPDATE Autores SET Nome = @Nome, Sobrenome = @Sobrenome, Nacionalidade = @Nacionalidade, DataNascimento = @DataNascimento, Biografia = @Biografia, Sexo = @Sexo, TiposLivros = @TiposLivros WHERE Id = @Id`);
         
-        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'AUTOR', Number(req.params.id), `Editou o autor "${novoNome}"`);
         res.json({ message: 'Autor atualizado com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -528,11 +500,7 @@ app.delete('/api/autores/:id', verificarToken, verificarPermissao('autores_apaga
         const check = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT COUNT(*) as total FROM Obras WHERE AutorId = @Id');
         if (check.recordset[0].total > 0) return res.status(400).json({ error: `Este autor tem ${check.recordset[0].total} obra(s) associada(s) e não pode ser eliminado.` });
         
-        const a = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT Nome FROM Autores WHERE Id = @Id');
-        const nomeApagado = a.recordset.length > 0 ? a.recordset[0].Nome : 'Desconhecido';
-
         await pool.request().input('Id', sql.Int, req.params.id).query('DELETE FROM Autores WHERE Id = @Id');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'AUTOR', Number(req.params.id), `Apagou o autor "${nomeApagado}"`);
         res.json({ message: 'Autor removido com sucesso.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -556,7 +524,6 @@ app.post('/api/clientes', verificarToken, verificarPermissao('clientes_criar'), 
             .query('INSERT INTO Clientes (Nome, Email, Telefone, PI, NUIT) OUTPUT INSERTED.Id VALUES (@Nome, @Email, @Telefone, @PI, @NUIT)');
         
         const novoClienteId = insertResult.recordset[0].Id;
-        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'CLIENTE', novoClienteId, `Criou o cliente "${Nome}"`);
         res.status(201).json({ message: 'Cliente cadastrado!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -578,7 +545,6 @@ app.put('/api/clientes/:id', verificarToken, verificarPermissao('clientes_editar
         await pool.request().input('Id', sql.Int, req.params.id).input('Nome', sql.NVarChar, novoNome).input('Email', sql.NVarChar, novoEmail).input('Telefone', sql.NVarChar, novoTelefone).input('PI', sql.NVarChar, novoPI).input('NUIT', sql.NVarChar, novoNUIT)
             .query(`UPDATE Clientes SET Nome = @Nome, Email = @Email, Telefone = @Telefone, PI = @PI, NUIT = @NUIT WHERE Id = @Id`);
         
-        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'CLIENTE', Number(req.params.id), `Editou o cliente "${novoNome}"`);
         res.json({ message: 'Cliente atualizado com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -591,11 +557,7 @@ app.delete('/api/clientes/:id', verificarToken, verificarPermissao('clientes_apa
         const checkHistorico = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT COUNT(*) as total FROM Emprestimos WHERE ClienteId = @Id');
         if (checkHistorico.recordset[0].total > 0) return res.status(400).json({ error: `Este cliente tem ${checkHistorico.recordset[0].total} empréstimo(s) no histórico e não pode ser eliminado.` });
         
-        const c = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT Nome FROM Clientes WHERE Id = @Id');
-        const nomeApagado = c.recordset.length > 0 ? c.recordset[0].Nome : 'Desconhecido';
-
         await pool.request().input('Id', sql.Int, req.params.id).query('DELETE FROM Clientes WHERE Id = @Id');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'CLIENTE', Number(req.params.id), `Apagou o cliente "${nomeApagado}"`);
         res.json({ message: 'Cliente removido com sucesso.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -656,7 +618,6 @@ app.post('/api/editoras', verificarToken, verificarPermissao('editoras_criar'), 
             .query(`INSERT INTO Editoras (Nome, Endereco, Telefone, Email, Website, PaisOrigem) OUTPUT INSERTED.Id VALUES (@Nome, @Endereco, @Telefone, @Email, @Website, @PaisOrigem)`);
         
         const novaEditoraId = insertResult.recordset[0].Id;
-        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'EDITORA', novaEditoraId, `Criou a editora "${Nome}"`);
         res.status(201).json({ message: 'Editora cadastrada!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -679,7 +640,6 @@ app.put('/api/editoras/:id', verificarToken, verificarPermissao('editoras_editar
         await pool.request().input('Id', sql.Int, req.params.id).input('Nome', sql.NVarChar, novoNome).input('Endereco', sql.NVarChar, novoEndereco).input('Telefone', sql.NVarChar, novoTelefone).input('Email', sql.NVarChar, novoEmail).input('Website', sql.NVarChar, novoWebsite).input('PaisOrigem', sql.NVarChar, novoPais)
             .query(`UPDATE Editoras SET Nome = @Nome, Endereco = @Endereco, Telefone = @Telefone, Email = @Email, Website = @Website, PaisOrigem = @PaisOrigem WHERE Id = @Id`);
         
-        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'EDITORA', Number(req.params.id), `Editou a editora "${novoNome}"`);
         res.json({ message: 'Editora atualizada com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -690,11 +650,7 @@ app.delete('/api/editoras/:id', verificarToken, verificarPermissao('editoras_apa
         const check = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT COUNT(*) as total FROM Obras WHERE EditoraId = @Id');
         if (check.recordset[0].total > 0) return res.status(400).json({ error: `Esta editora tem ${check.recordset[0].total} obra(s) associada(s) e não pode ser eliminada.` });
         
-        const ed = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT Nome FROM Editoras WHERE Id = @Id');
-        const nomeApagado = ed.recordset.length > 0 ? ed.recordset[0].Nome : 'Desconhecido';
-
         await pool.request().input('Id', sql.Int, req.params.id).query('DELETE FROM Editoras WHERE Id = @Id');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'EDITORA', Number(req.params.id), `Apagou a editora "${nomeApagado}"`);
         res.json({ message: 'Editora removida com sucesso.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -731,7 +687,6 @@ app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), 
         
         if (info.recordset.length > 0) {
             await criarNotificacao('📌 Nova Reserva', `${info.recordset[0].Cliente} reservou "${info.recordset[0].Obra}".`, 'RESERVA', '/reservas');
-            await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'RESERVA', novaReservaId, `Reservou a obra "${checkObra.recordset[0].Titulo}" para ${info.recordset[0].Cliente}`);
         }
         
         res.status(201).json({ message: 'Reserva criada com sucesso!' });
@@ -741,11 +696,7 @@ app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), 
 app.delete('/api/reservas/:id', verificarToken, verificarPermissao('reservas_cancelar'), async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const r = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT R.Id, O.Titulo FROM Reservas R INNER JOIN Obras O ON R.ObraId = O.Id WHERE R.Id = @Id');
-        const tituloObra = r.recordset.length > 0 ? r.recordset[0].Titulo : 'Desconhecida';
-
         await pool.request().input('Id', sql.Int, req.params.id).query(`UPDATE Reservas SET Status = 'CANCELADA' WHERE Id = @Id`);
-        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'RESERVA', Number(req.params.id), `Cancelou a reserva da obra "${tituloObra}"`);
         res.json({ message: 'Reserva cancelada.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -827,7 +778,6 @@ app.post('/api/emprestimos', verificarToken, verificarPermissao('emprestimos_cri
         if (detalhes.recordset.length > 0) {
             const d = detalhes.recordset[0];
             await criarNotificacao('📤 Novo Empréstimo', `${d.ClienteNome} requisitou "${d.ObraTitulo}".`, 'EMPRESTIMO', '/emprestimos');
-            await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'EMPRESTIMO', novoEmprestimoId, `Emprestou "${d.ObraTitulo}" para ${d.ClienteNome}`);
             enviarEmailEmprestimo({ clienteNome: d.ClienteNome, clienteEmail: d.ClienteEmail, obraTitulo: d.ObraTitulo, obraAutor: d.ObraAutor, obraEditora: d.ObraEditora, dataEmprestimo: d.DataEmprestimo, dataPrevistaDevolucao: d.DataPrevistaDevolucao, diasEmprestimo, valorMultaDia }).catch((err) => console.error('Erro ao enviar email:', err));
         }
         res.status(201).json({ message: 'Empréstimo realizado!', emprestimoId: novoEmprestimoId });
@@ -852,7 +802,6 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         await transaction.commit();
         
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
-        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'EMPRESTIMO', Number(req.params.id), `Devolveu "${obraTitulo}" de ${clienteNome}`);
         
         res.json({ message: 'Devolução realizada!' });
     } catch (error: any) {
@@ -866,21 +815,7 @@ app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('empr
     try {
         const pool = await sql.connect(dbConfig);
         await pool.request().input('Id', sql.Int, req.params.id).input('Dias', sql.Int, diasEmprestimo).query(`UPDATE Emprestimos SET DataPrevistaDevolucao = DATEADD(DAY, @Dias, DataPrevistaDevolucao) WHERE Id = @Id AND Status = 'ATIVO'`);
-        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'EMPRESTIMO', Number(req.params.id), `Renovou o empréstimo por mais ${diasEmprestimo} dias`);
         res.json({ message: `Empréstimo renovado por mais ${diasEmprestimo} dias!` });
-    } catch (error: any) { res.status(500).json({ error: error.message }); }
-});
-
-app.get('/api/logs', verificarToken, apenasAdmin, async (req, res) => {
-    try {
-        const pool = await sql.connect(dbConfig);
-        const result = await pool.request().query(`
-            SELECT TOP 200 Id, UsuarioId, UsuarioNome, Acao, Entidade, EntidadeId, Detalhes, 
-                   CONVERT(VARCHAR(10), DataCriacao, 103) + ' ' + CONVERT(VARCHAR(5), DataCriacao, 108) as DataHora 
-            FROM Logs 
-            ORDER BY DataCriacao DESC
-        `);
-        res.json(result.recordset);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
