@@ -47,6 +47,7 @@ const CAMPOS_OBRAS = [
   { chave: 'obras_campo_editora', nome: 'Editora' },
   { chave: 'obras_campo_numeroedicao', nome: 'Número de Edição' },
   { chave: 'obras_campo_nacionalidadelivro', nome: 'Nacionalidade do Livro' },
+  { chave: 'obras_campo_isbn', nome: 'ISBN' }, // <- NOVO
 ];
 
 const ACOES_AUTORES = [
@@ -284,7 +285,6 @@ export function Permissoes() {
                   </div>
 
                   <div className="p-6 space-y-8">
-                    {/* MÓDULOS */}
                     <div>
                       <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2"><ShieldCheck size={16} /> Acesso aos Módulos</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -300,7 +300,6 @@ export function Permissoes() {
                       </div>
                     </div>
 
-                    {/* OBRAS */}
                     <div className="border-t border-gray-100 pt-6">
                       <div className="flex items-center gap-2 mb-4"><BookOpen size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Obras</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -315,7 +314,6 @@ export function Permissoes() {
                       </div>
                     </div>
 
-                    {/* AUTORES */}
                     <div className="border-t border-gray-100 pt-6">
                       <div className="flex items-center gap-2 mb-4"><UserPlus size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Autores</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -330,7 +328,6 @@ export function Permissoes() {
                       </div>
                     </div>
 
-                    {/* EDITORAS */}
                     <div className="border-t border-gray-100 pt-6">
                       <div className="flex items-center gap-2 mb-4"><Building2 size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Editoras</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -345,7 +342,6 @@ export function Permissoes() {
                       </div>
                     </div>
 
-                    {/* CLIENTES */}
                     <div className="border-t border-gray-100 pt-6">
                       <div className="flex items-center gap-2 mb-4"><Users size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Clientes</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -360,7 +356,6 @@ export function Permissoes() {
                       </div>
                     </div>
 
-                    {/* EMPRÉSTIMOS E RESERVAS */}
                     <div className="border-t border-gray-100 pt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
                          <div className="flex items-center gap-2 mb-4"><BookMarked size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Ações: Empréstimos</h4></div>

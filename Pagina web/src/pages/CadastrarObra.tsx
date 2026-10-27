@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Autocomplete } from '../components/Autocomplete';
 import { 
   BookOpen, User, Building2, Calendar, Layers, Lock, 
-  RefreshCw, Hash, Globe, Search, Eye
+  RefreshCw, Hash, Globe, Search, Eye, Barcode
 } from 'lucide-react';
 
 interface Autor { Id: number; Nome: string; Nacionalidade?: string; }
@@ -17,6 +17,9 @@ export function CadastrarObra() {
   const { showToast } = useToast();
   const { temPermissao } = useAuth();
   const navigate = useNavigate();
+
+  const [isbn, setIsbn] = useState('');
+  const [loadingIsbn, setLoadingIsbn] = useState(false);
 
   const [titulo, setTitulo] = useState('');
   const [ano, setAno] = useState('');
@@ -78,6 +81,75 @@ export function CadastrarObra() {
   const opcoesAutores = autores.map((a) => ({ id: a.Id, label: a.Nome, sublabel: a.Nacionalidade || undefined }));
   const opcoesEditoras = editoras.map((e) => ({ id: e.Id, label: e.Nome, sublabel: e.Contacto || undefined }));
 
+  // ============ INTEGRAÇÃO GOOGLE BOOKS ============
+  const handleBuscarISBN = async () => {
+    if (!isbn.trim()) {
+      showToast('Digita um ISBN para pesquisar.', 'error');
+      return;
+    }
+
+    setLoadingIsbn(true);
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+      const data = await response.json();
+
+      if (data.totalItems === 0) {
+        showToast('Nenhum livro encontrado com este ISBN.', 'error');
+        setLoadingIsbn(false);
+        return;
+      }
+
+      const book = data.items[0].volumeInfo;
+      
+      // 1. Preencher Título
+      if (book.title) setTitulo(book.title);
+      
+      // 2. Preencher Ano
+      if (book.publishedDate) {
+        const anoStr = book.publishedDate.substring(0, 4);
+        setAno(anoStr);
+      }
+
+      // 3. Tentar encontrar o Autor na lista
+      if (book.authors && book.authors.length > 0) {
+        const autorNome = book.authors[0];
+        const autorEncontrado = autores.find(a => 
+          a.Nome.toLowerCase().includes(autorNome.toLowerCase()) || 
+          autorNome.toLowerCase().includes(a.Nome.toLowerCase())
+        );
+        
+        if (autorEncontrado) {
+          setAutorId(autorEncontrado.Id.toString());
+        } else {
+          showToast(`Autor "${autorNome}" não está registado. Cadastra-o primeiro.`, 'warning');
+        }
+      }
+
+      // 4. Tentar encontrar a Editora na lista
+      if (book.publisher) {
+        const editoraNome = book.publisher;
+        const editoraEncontrada = editoras.find(e => 
+          e.Nome.toLowerCase().includes(editoraNome.toLowerCase()) ||
+          editoraNome.toLowerCase().includes(e.Nome.toLowerCase())
+        );
+
+        if (editoraEncontrada) {
+          setEditoraId(editoraEncontrada.Id.toString());
+        } else {
+          showToast(`Editora "${editoraNome}" não está registada. Cadastra-a primeiro.`, 'warning');
+        }
+      }
+
+      showToast('Dados preenchidos automaticamente!', 'success');
+
+    } catch (error) {
+      console.error(error);
+      showToast('Erro ao ligar ao Google Books. Tenta novamente.', 'error');
+    } finally {
+      setLoadingIsbn(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -95,6 +167,7 @@ export function CadastrarObra() {
             body: JSON.stringify({
               Titulo: titulo,
               Ano: Number(ano),
+              ISBN: isbn.trim() || null, // Enviar ISBN para o backend
               NumeroEdicao: numeroEdicao.trim() || null,
               NacionalidadeLivro: nacionalidadeLivro.trim() || null,
               AutorId: Number(autorId),
@@ -111,6 +184,7 @@ export function CadastrarObra() {
         showToast(exemplares > 1 ? `${exemplares} exemplares cadastrados!` : 'Obra cadastrada!', 'success');
         setTitulo('');
         setAno('');
+        setIsbn('');
         setNumeroEdicao('');
         setNacionalidadeLivro('');
         setExemplares(1);
@@ -138,7 +212,7 @@ export function CadastrarObra() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-at-blue">Cadastrar Nova Obra</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Preenche os dados da obra abaixo</p>
+              <p className="text-xs text-gray-500 mt-0.5">Pesquisa pelo ISBN para preencher automaticamente</p>
             </div>
           </div>
           {!podeCriar && (
@@ -149,6 +223,37 @@ export function CadastrarObra() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* NOVO: CAMPO ISBN */}
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <label className="text-sm font-bold text-blue-900 mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-2"><Barcode size={16}/> Pesquisa Automática por ISBN</span>
+              {!temPermissao('obras_campo_isbn') && <Lock size={12} className="text-red-400" />}
+            </label>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input 
+                  type="text" 
+                  value={isbn} 
+                  onChange={(e) => setIsbn(e.target.value)} 
+                  disabled={campoBloqueado('obras_campo_isbn')} 
+                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_isbn') ? disabledClass : enabledClass}`} 
+                  placeholder="Ex: 978-989-20-1234-5" 
+                />
+              </div>
+              <button 
+                type="button" 
+                onClick={handleBuscarISBN}
+                disabled={loadingIsbn || !isbn.trim() || campoBloqueado('obras_campo_isbn')}
+                className="bg-blue-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {loadingIsbn ? <RefreshCw size={18} className="animate-spin" /> : <Search size={18} />}
+                {loadingIsbn ? 'A procurar...' : 'Procurar'}
+              </button>
+            </div>
+            <p className="text-xs text-blue-700 mt-2">Dica: O sistema procura no Google Books e preenche o Título, Ano, Autor e Editora.</p>
+          </div>
+
           <div>
             <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
               <span>Título da Obra</span>

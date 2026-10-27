@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface Permissoes {
-  // ============ MÓDULOS BASE ============
   obras?: boolean;
   autores?: boolean;
   clientes?: boolean;
@@ -13,7 +12,6 @@ interface Permissoes {
   relatorios?: boolean;
   manual?: boolean;
 
-  // ============ OBRAS ============
   obras_criar?: boolean;
   obras_editar?: boolean;
   obras_apagar?: boolean;
@@ -24,8 +22,8 @@ interface Permissoes {
   obras_campo_editora?: boolean;
   obras_campo_numeroedicao?: boolean;
   obras_campo_nacionalidadelivro?: boolean;
+  obras_campo_isbn?: boolean; // <- NOVO
 
-  // ============ AUTORES ============
   autores_criar?: boolean;
   autores_editar?: boolean;
   autores_apagar?: boolean;
@@ -37,7 +35,6 @@ interface Permissoes {
   autores_campo_sexo?: boolean;
   autores_campo_tiposlivros?: boolean;
 
-  // ============ EDITORAS ============
   editoras_criar?: boolean;
   editoras_editar?: boolean;
   editoras_apagar?: boolean;
@@ -48,7 +45,6 @@ interface Permissoes {
   editoras_campo_website?: boolean;
   editoras_campo_paisorigem?: boolean;
 
-  // ============ CLIENTES ============
   clientes_criar?: boolean;
   clientes_editar?: boolean;
   clientes_apagar?: boolean;
@@ -58,12 +54,10 @@ interface Permissoes {
   clientes_campo_pi?: boolean;
   clientes_campo_nuit?: boolean;
 
-  // ============ EMPRÉSTIMOS ============
   emprestimos_criar?: boolean;
   emprestimos_renovar?: boolean;
   emprestimos_devolver?: boolean;
 
-  // ============ RESERVAS ============
   reservas_criar?: boolean;
   reservas_cancelar?: boolean;
 

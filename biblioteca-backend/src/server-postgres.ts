@@ -85,13 +85,11 @@ async function seedAdmin() {
 }
 
 // ============ CRON JOB: NOTIFICAÇÕES AUTOMÁTICAS ============
-// Corre todos os dias às 08:00 da manhã
 cron.schedule('0 8 * * *', async () => {
     console.log('⏰ A executar rotina de notificações automáticas...');
     const valorMulta = await obterConfig('ValorMultaDia', 40);
 
     try {
-        // 1. Lembretes (faltam 2 dias)
         const lembretes = await pool.query(`
             SELECT E.id, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevista"
@@ -112,7 +110,6 @@ cron.schedule('0 8 * * *', async () => {
             }
         }
 
-        // 2. Avisos de Atraso (faz 1 dia que o prazo passou)
         const atrasados = await pool.query(`
             SELECT E.id, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevista",
@@ -135,13 +132,11 @@ cron.schedule('0 8 * * *', async () => {
                 });
             }
         }
-        
         console.log('✅ Rotina de notificações concluída.');
     } catch (error) {
         console.error('❌ Erro na rotina de notificações:', error);
     }
 });
-
 
 function verificarToken(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
@@ -180,6 +175,7 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.EditoraId !== undefined && !p['obras_campo_editora']) proibidos.push('Editora');
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
+    if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN'); // <- NOVO
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -361,7 +357,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT O.id as "Id", O.titulo as "Titulo", A.nome as "Autor", E.nome as "Editora", 
-                   O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.status as "Status",
+                   O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status",
                    (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos"
             FROM Obras O 
             LEFT JOIN Autores A ON O.autorid = A.id 
@@ -394,21 +390,21 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro } = req.body;
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN } = req.body;
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
     try {
         const insertResult = await pool.query(
-            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, status) VALUES ($1, $2, $3, $4, $5, $6, 'DISPONIVEL') RETURNING id", 
-            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null]
+            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, status) VALUES ($1, $2, $3, $4, $5, $6, $7, 'DISPONIVEL') RETURNING id", 
+            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null]
         );
         const novaObraId = insertResult.rows[0].id;
         
@@ -699,7 +695,6 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
         
-        // NOVO: Notificar o próximo da fila de reserva, se existir
         const reserva = await pool.query(`
             SELECT C.nome as "ClienteNome", C.email as "ClienteEmail"
             FROM Reservas R

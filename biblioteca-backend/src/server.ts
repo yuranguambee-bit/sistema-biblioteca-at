@@ -101,7 +101,6 @@ async function seedAdmin() {
 }
 
 // ============ CRON JOB: NOTIFICAÇÕES AUTOMÁTICAS ============
-// Corre todos os dias às 08:00 da manhã
 cron.schedule('0 8 * * *', async () => {
     console.log('⏰ A executar rotina de notificações automáticas...');
     const valorMulta = await obterConfig('ValorMultaDia', 40);
@@ -153,13 +152,11 @@ cron.schedule('0 8 * * *', async () => {
                 });
             }
         }
-        
         console.log('✅ Rotina de notificações concluída.');
     } catch (error) {
         console.error('❌ Erro na rotina de notificações:', error);
     }
 });
-
 
 function verificarToken(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
@@ -198,6 +195,7 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.EditoraId !== undefined && !p['obras_campo_editora']) proibidos.push('Editora');
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
+    if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN');
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -429,7 +427,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().query(`
-            SELECT O.Id, O.Titulo, A.Nome as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.Status,
+            SELECT O.Id, O.Titulo, A.Nome as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Status,
                    (SELECT COUNT(*) FROM Emprestimos WHERE ObraId = O.Id) as TotalEmprestimos
             FROM Obras O 
             LEFT JOIN Autores A ON O.AutorId = A.Id 
@@ -473,7 +471,7 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().input('Id', sql.Int, req.params.id).query(`
-            SELECT O.Id, O.Titulo, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.Status, A.Nome as Autor, A.Nacionalidade, E.Nome as Editora, E.Contacto as EditoraContacto
+            SELECT O.Id, O.Titulo, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Status, A.Nome as Autor, A.Nacionalidade, E.Nome as Editora, E.Contacto as EditoraContacto
             FROM Obras O LEFT JOIN Autores A ON O.AutorId = A.Id LEFT JOIN Editoras E ON O.EditoraId = E.Id WHERE O.Id = @Id
         `);
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
@@ -482,7 +480,7 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro } = req.body;
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN } = req.body;
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
@@ -491,7 +489,8 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
         const insertResult = await pool.request()
             .input('Titulo', sql.NVarChar, Titulo).input('Ano', sql.Int, Ano).input('AutorId', sql.Int, AutorId).input('EditoraId', sql.Int, EditoraId)
             .input('NumeroEdicao', sql.NVarChar, NumeroEdicao || null).input('NacionalidadeLivro', sql.NVarChar, NacionalidadeLivro || null)
-            .query(`INSERT INTO Obras (Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, Status) OUTPUT INSERTED.Id VALUES (@Titulo, @Ano, @AutorId, @EditoraId, @NumeroEdicao, @NacionalidadeLivro, 'DISPONIVEL')`);
+            .input('ISBN', sql.NVarChar, ISBN || null)
+            .query(`INSERT INTO Obras (Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Status) OUTPUT INSERTED.Id VALUES (@Titulo, @Ano, @AutorId, @EditoraId, @NumeroEdicao, @NacionalidadeLivro, @ISBN, 'DISPONIVEL')`);
         
         const novaObraId = insertResult.recordset[0].Id;
         
@@ -870,7 +869,7 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
 
-        // NOVO: Notificar o próximo da fila de reserva, se existir
+        // Notificar o próximo da fila de reserva, se existir
         const reserva = await pool.request().input('ObraId', sql.Int, obraId).query(`
             SELECT TOP 1 C.Nome as ClienteNome, C.Email as ClienteEmail
             FROM Reservas R
