@@ -61,6 +61,17 @@ async function criarNotificacao(titulo: string, mensagem: string, tipo: string, 
     try { await pool.query('INSERT INTO Notificacoes (Titulo, Mensagem, Tipo, Link) VALUES ($1, $2, $3, $4)', [titulo, mensagem, tipo, link]); } catch (error) { console.error('Erro ao criar notificação:', error); }
 }
 
+async function registarLog(usuarioId: number | null, usuarioNome: string, acao: string, entidade: string, entidadeId: number | null, detalhes: string) {
+    try {
+        await pool.query(
+            'INSERT INTO Logs (UsuarioId, UsuarioNome, Acao, Entidade, EntidadeId, Detalhes) VALUES ($1, $2, $3, $4, $5, $6)',
+            [usuarioId, usuarioNome, acao, entidade, entidadeId, detalhes]
+        );
+    } catch (error) {
+        console.error('Erro ao registar log:', error);
+    }
+}
+
 async function seedAdmin() {
     try {
         const check = await pool.query('SELECT COUNT(*) as total FROM Usuarios');
@@ -98,7 +109,6 @@ function verificarPermissao(chave: string) {
     };
 }
 
-// Middlewares de Campos
 function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     const user = (req as any).user;
     if (user.role === 'Admin') return next();
@@ -179,7 +189,7 @@ app.post('/api/backup/executar', async (req: Request, res: Response) => {
     if (!secretHeader || secretHeader !== process.env.BACKUP_SECRET) return res.status(401).json({ error: 'Não autorizado.' });
 
     try {
-        const tabelas = ['usuarios', 'autores', 'editoras', 'obras', 'clientes', 'emprestimos', 'reservas', 'notificacoes', 'configuracoes'];
+        const tabelas = ['usuarios', 'autores', 'editoras', 'obras', 'clientes', 'emprestimos', 'reservas', 'notificacoes', 'configuracoes', 'logs'];
         const dadosBackup: any = { dataBackup: new Date().toISOString(), versao: '1.0', sistema: 'Biblioteca AT', tabelas: {} };
         for (const tabela of tabelas) {
             try { const result = await pool.query(`SELECT * FROM ${tabela}`); dadosBackup.tabelas[tabela] = result.rows; } catch (err: any) { dadosBackup.tabelas[tabela] = []; }
@@ -253,6 +263,7 @@ app.post('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
         const hash = await bcrypt.hash(Password, 10);
         await pool.query('INSERT INTO Usuarios (nome, email, passwordhash, role, permissoes) VALUES ($1, $2, $3, $4, $5)', [Nome, Email, hash, Role || 'Bibliotecario', '{}']);
         await criarNotificacao('👤 Novo Utilizador', `O utilizador ${Nome} foi criado.`, 'UTILIZADOR', '/utilizadores');
+        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'UTILIZADOR', null, `Criou o utilizador ${Nome}`);
         res.status(201).json({ message: 'Utilizador criado!' });
     } catch (error: any) {
         if (error.message.includes('duplicate') || error.message.includes('unique')) return res.status(400).json({ error: 'Email já registado.' });
@@ -282,7 +293,11 @@ app.put('/api/usuarios/:id/password', verificarToken, apenasAdmin, async (req, r
 app.delete('/api/usuarios/:id', verificarToken, apenasAdmin, async (req, res) => {
     if (Number(req.params.id) === (req as any).user.id) return res.status(400).json({ error: 'Não podes apagar a tua própria conta.' });
     try {
+        const u = await pool.query('SELECT nome FROM Usuarios WHERE id = $1', [req.params.id]);
+        const nomeApagado = u.rows.length > 0 ? u.rows[0].nome : 'Desconhecido';
+        
         await pool.query('DELETE FROM Usuarios WHERE id = $1', [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'UTILIZADOR', Number(req.params.id), `Apagou o utilizador ${nomeApagado}`);
         res.json({ message: 'Utilizador removido.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -334,18 +349,29 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
     const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro } = req.body;
     
-    if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' }); // Validação obrigatória
+    if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
     try {
-        await pool.query("INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, status) VALUES ($1, $2, $3, $4, $5, $6, 'DISPONIVEL')", [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null]);
+        const insertResult = await pool.query(
+            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, status) VALUES ($1, $2, $3, $4, $5, $6, 'DISPONIVEL') RETURNING id", 
+            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null]
+        );
+        const novaObraId = insertResult.rows[0].id;
+        
         await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada.`, 'OBRA', '/acervo');
+        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'OBRA', novaObraId, `Criou a obra "${Titulo}"`);
+        
         res.status(201).json({ message: 'Obra cadastrada!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras_apagar'), async (req, res) => {
     try {
+        const o = await pool.query('SELECT titulo FROM Obras WHERE id = $1', [req.params.id]);
+        const tituloApagado = o.rows.length > 0 ? o.rows[0].titulo : 'Desconhecida';
+
         await pool.query('DELETE FROM Obras WHERE id = $1', [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'OBRA', Number(req.params.id), `Apagou a obra "${tituloApagado}"`);
         res.json({ message: 'Obra removida.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -361,7 +387,12 @@ app.get('/api/autores', verificarToken, async (req, res) => {
 app.post('/api/autores', verificarToken, verificarPermissao('autores_criar'), verificarCamposAutor, async (req, res) => {
     const { Nome, Sobrenome, Nacionalidade, DataNascimento, Biografia, Sexo, TiposLivros } = req.body;
     try {
-        await pool.query('INSERT INTO Autores (nome, sobrenome, nacionalidade, datanascimento, biografia, sexo, tiposlivros) VALUES ($1, $2, $3, $4, $5, $6, $7)', [Nome, Sobrenome || null, Nacionalidade || null, DataNascimento || null, Biografia || null, Sexo || null, TiposLivros || null]);
+        const insertResult = await pool.query(
+            'INSERT INTO Autores (nome, sobrenome, nacionalidade, datanascimento, biografia, sexo, tiposlivros) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id', 
+            [Nome, Sobrenome || null, Nacionalidade || null, DataNascimento || null, Biografia || null, Sexo || null, TiposLivros || null]
+        );
+        const novoAutorId = insertResult.rows[0].id;
+        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'AUTOR', novoAutorId, `Criou o autor "${Nome}"`);
         res.status(201).json({ message: 'Autor cadastrado!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -382,6 +413,7 @@ app.put('/api/autores/:id', verificarToken, verificarPermissao('autores_editar')
         const novosTipos = TiposLivros !== undefined ? TiposLivros : old.tiposlivros;
 
         await pool.query('UPDATE Autores SET nome = $1, sobrenome = $2, nacionalidade = $3, datanascimento = $4, biografia = $5, sexo = $6, tiposlivros = $7 WHERE id = $8', [novoNome, novoSobrenome, novaNacionalidade, novaData, novaBio, novoSexo, novosTipos, req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'AUTOR', Number(req.params.id), `Editou o autor "${novoNome}"`);
         res.json({ message: 'Autor atualizado!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -390,7 +422,12 @@ app.delete('/api/autores/:id', verificarToken, verificarPermissao('autores_apaga
     try {
         const check = await pool.query('SELECT COUNT(*) as total FROM Obras WHERE autorid = $1', [req.params.id]);
         if (Number(check.rows[0].total) > 0) return res.status(400).json({ error: `O autor tem ${check.rows[0].total} obra(s) e não pode ser eliminado.` });
+        
+        const a = await pool.query('SELECT nome FROM Autores WHERE id = $1', [req.params.id]);
+        const nomeApagado = a.rows.length > 0 ? a.rows[0].nome : 'Desconhecido';
+
         await pool.query('DELETE FROM Autores WHERE id = $1', [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'AUTOR', Number(req.params.id), `Apagou o autor "${nomeApagado}"`);
         res.json({ message: 'Autor removido!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -406,7 +443,9 @@ app.get('/api/clientes', verificarToken, async (req, res) => {
 app.post('/api/clientes', verificarToken, verificarPermissao('clientes_criar'), verificarCamposCliente, async (req, res) => {
     const { Nome, Email, Telefone, PI, NUIT } = req.body;
     try {
-        await pool.query('INSERT INTO Clientes (nome, email, telefone, pi, nuit) VALUES ($1, $2, $3, $4, $5)', [Nome, Email || null, Telefone || null, PI || null, NUIT || null]);
+        const insertResult = await pool.query('INSERT INTO Clientes (nome, email, telefone, pi, nuit) VALUES ($1, $2, $3, $4, $5) RETURNING id', [Nome, Email || null, Telefone || null, PI || null, NUIT || null]);
+        const novoClienteId = insertResult.rows[0].id;
+        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'CLIENTE', novoClienteId, `Criou o cliente "${Nome}"`);
         res.status(201).json({ message: 'Cliente cadastrado!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -424,6 +463,7 @@ app.put('/api/clientes/:id', verificarToken, verificarPermissao('clientes_editar
         const novoNUIT = NUIT !== undefined ? NUIT : old.nuit;
 
         await pool.query('UPDATE Clientes SET nome = $1, email = $2, telefone = $3, pi = $4, nuit = $5 WHERE id = $6', [novoNome, novoEmail, novoTelefone, novoPI, novoNUIT, req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'CLIENTE', Number(req.params.id), `Editou o cliente "${novoNome}"`);
         res.json({ message: 'Cliente atualizado!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -434,7 +474,12 @@ app.delete('/api/clientes/:id', verificarToken, verificarPermissao('clientes_apa
         if (Number(checkAtivos.rows[0].total) > 0) return res.status(400).json({ error: `Cliente tem empréstimo ativo.` });
         const checkHist = await pool.query('SELECT COUNT(*) as total FROM Emprestimos WHERE clienteid = $1', [req.params.id]);
         if (Number(checkHist.rows[0].total) > 0) return res.status(400).json({ error: `Cliente tem histórico.` });
+        
+        const c = await pool.query('SELECT nome FROM Clientes WHERE id = $1', [req.params.id]);
+        const nomeApagado = c.rows.length > 0 ? c.rows[0].nome : 'Desconhecido';
+
         await pool.query('DELETE FROM Clientes WHERE id = $1', [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'CLIENTE', Number(req.params.id), `Apagou o cliente "${nomeApagado}"`);
         res.json({ message: 'Cliente removido.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -476,7 +521,9 @@ app.get('/api/editoras', verificarToken, async (req, res) => {
 app.post('/api/editoras', verificarToken, verificarPermissao('editoras_criar'), verificarCamposEditora, async (req, res) => {
     const { Nome, Endereco, Telefone, Email, Website, PaisOrigem } = req.body;
     try {
-        await pool.query('INSERT INTO Editoras (nome, endereco, telefone, email, website, paisorigem) VALUES ($1, $2, $3, $4, $5, $6)', [Nome, Endereco || null, Telefone || null, Email || null, Website || null, PaisOrigem || null]);
+        const insertResult = await pool.query('INSERT INTO Editoras (nome, endereco, telefone, email, website, paisorigem) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id', [Nome, Endereco || null, Telefone || null, Email || null, Website || null, PaisOrigem || null]);
+        const novaEditoraId = insertResult.rows[0].id;
+        await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'EDITORA', novaEditoraId, `Criou a editora "${Nome}"`);
         res.status(201).json({ message: 'Editora cadastrada!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -495,6 +542,7 @@ app.put('/api/editoras/:id', verificarToken, verificarPermissao('editoras_editar
         const novoPais = PaisOrigem !== undefined ? PaisOrigem : old.paisorigem;
 
         await pool.query('UPDATE Editoras SET nome = $1, endereco = $2, telefone = $3, email = $4, website = $5, paisorigem = $6 WHERE id = $7', [novoNome, novoEndereco, novoTelefone, novoEmail, novoWebsite, novoPais, req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'EDITORA', Number(req.params.id), `Editou a editora "${novoNome}"`);
         res.json({ message: 'Editora atualizada!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -503,7 +551,12 @@ app.delete('/api/editoras/:id', verificarToken, verificarPermissao('editoras_apa
     try {
         const check = await pool.query('SELECT COUNT(*) as total FROM Obras WHERE editoraid = $1', [req.params.id]);
         if (Number(check.rows[0].total) > 0) return res.status(400).json({ error: `Editora tem obra(s) associada(s).` });
+        
+        const ed = await pool.query('SELECT nome FROM Editoras WHERE id = $1', [req.params.id]);
+        const nomeApagado = ed.rows.length > 0 ? ed.rows[0].nome : 'Desconhecido';
+
         await pool.query('DELETE FROM Editoras WHERE id = $1', [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'EDITORA', Number(req.params.id), `Apagou a editora "${nomeApagado}"`);
         res.json({ message: 'Editora removida.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -518,23 +571,24 @@ app.get('/api/reservas', verificarToken, async (req, res) => {
 
 app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), async (req, res) => {
     const { ObraId, ClienteId } = req.body;
-    
-    // Validação extra para o Ponto 4
     if (!ObraId || !ClienteId) return res.status(400).json({ error: 'Obra e Cliente são obrigatórios.' });
 
     try {
-        const checkObra = await pool.query('SELECT status FROM Obras WHERE id = $1', [ObraId]);
+        const checkObra = await pool.query('SELECT titulo, status FROM Obras WHERE id = $1', [ObraId]);
         if (checkObra.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
         if (checkObra.rows[0].status === 'DISPONIVEL') return res.status(400).json({ error: 'Esta obra está disponível. Pode requisitá-la diretamente.' });
 
         const check = await pool.query("SELECT COUNT(*) as total FROM Reservas WHERE obraid = $1 AND clienteid = $2 AND status = 'PENDENTE'", [ObraId, ClienteId]);
         if (Number(check.rows[0].total) > 0) return res.status(400).json({ error: 'Já tens reserva pendente.' });
 
-        await pool.query("INSERT INTO Reservas (obraid, clienteid, datareserva, status) VALUES ($1, $2, NOW(), 'PENDENTE')", [ObraId, ClienteId]);
+        const insertResult = await pool.query("INSERT INTO Reservas (obraid, clienteid, datareserva, status) VALUES ($1, $2, NOW(), 'PENDENTE') RETURNING id", [ObraId, ClienteId]);
+        const novaReservaId = insertResult.rows[0].id;
+        
         const info = await pool.query('SELECT O.titulo as obra, C.nome as cliente FROM Obras O, Clientes C WHERE O.id = $1 AND C.id = $2', [ObraId, ClienteId]);
         
         if (info.rows.length > 0) {
             await criarNotificacao('📌 Nova Reserva', `${info.rows[0].cliente} reservou "${info.rows[0].obra}".`, 'RESERVA', '/reservas');
+            await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'RESERVA', novaReservaId, `Reservou a obra "${checkObra.rows[0].titulo}" para ${info.rows[0].cliente}`);
         }
         
         res.status(201).json({ message: 'Reserva criada!' });
@@ -543,7 +597,11 @@ app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), 
 
 app.delete('/api/reservas/:id', verificarToken, verificarPermissao('reservas_cancelar'), async (req, res) => {
     try {
+        const r = await pool.query('SELECT R.id, O.titulo FROM Reservas R INNER JOIN Obras O ON R.obraid = O.id WHERE R.id = $1', [req.params.id]);
+        const tituloObra = r.rows.length > 0 ? r.rows[0].titulo : 'Desconhecida';
+
         await pool.query("UPDATE Reservas SET status = 'CANCELADA' WHERE id = $1", [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'APAGAR', 'RESERVA', Number(req.params.id), `Cancelou a reserva da obra "${tituloObra}"`);
         res.json({ message: 'Reserva cancelada.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -600,6 +658,7 @@ app.post('/api/emprestimos', verificarToken, verificarPermissao('emprestimos_cri
         if (detalhes.rows.length > 0) {
             const d = detalhes.rows[0];
             await criarNotificacao('📤 Novo Empréstimo', `${d.ClienteNome} requisitou "${d.ObraTitulo}".`, 'EMPRESTIMO', '/emprestimos');
+            await registarLog((req as any).user.id, (req as any).user.nome, 'CRIAR', 'EMPRESTIMO', novoEmprestimoId, `Emprestou "${d.ObraTitulo}" para ${d.ClienteNome}`);
             enviarEmailEmprestimo({ clienteNome: d.ClienteNome, clienteEmail: d.ClienteEmail, obraTitulo: d.ObraTitulo, obraAutor: d.ObraAutor, obraEditora: d.ObraEditora, dataEmprestimo: d.DataEmprestimo, dataPrevistaDevolucao: d.DataPrevistaDevolucao, diasEmprestimo, valorMultaDia }).catch((err) => console.error(err));
         }
         res.status(201).json({ message: 'Empréstimo realizado!', emprestimoId: novoEmprestimoId });
@@ -620,6 +679,7 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         await client.query("UPDATE Obras SET status = 'DISPONIVEL' WHERE id = $1", [obraId]);
         await client.query('COMMIT');
         await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
+        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'EMPRESTIMO', Number(req.params.id), `Devolveu "${obraTitulo}" de ${clienteNome}`);
         res.json({ message: 'Devolução realizada!' });
     } catch (error: any) {
         await client.query('ROLLBACK');
@@ -631,6 +691,7 @@ app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('empr
     const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
     try {
         await pool.query(`UPDATE Emprestimos SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days' WHERE id = $1 AND status = 'ATIVO'`, [req.params.id]);
+        await registarLog((req as any).user.id, (req as any).user.nome, 'EDITAR', 'EMPRESTIMO', Number(req.params.id), `Renovou o empréstimo por mais ${diasEmprestimo} dias`);
         res.json({ message: `Empréstimo renovado por mais ${diasEmprestimo} dias!` });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -661,6 +722,20 @@ app.delete('/api/notificacoes/:id', verificarToken, async (req, res) => {
 
 app.delete('/api/notificacoes', verificarToken, apenasAdmin, async (req, res) => {
     try { await pool.query('DELETE FROM Notificacoes WHERE lida = TRUE'); res.json({ message: 'Removidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/logs', verificarToken, apenasAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id as "Id", usuarioid as "UsuarioId", usuarionome as "UsuarioNome", 
+                   acao as "Acao", entidade as "Entidade", entidadeid as "EntidadeId", 
+                   detalhes as "Detalhes", TO_CHAR(datacriacao, 'DD/MM/YYYY HH24:MI') as "DataHora" 
+            FROM Logs 
+            ORDER BY datacriacao DESC 
+            LIMIT 200
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // --- ESTATÍSTICAS ---

@@ -23,6 +23,7 @@ import { Permissoes } from './pages/Permissoes';
 import { Perfil } from './pages/Perfil';
 import { Manual } from './pages/Manual';
 import { Login } from './pages/Login';
+import { Logs } from './pages/Logs'; // <- NOVO
 
 function SistemaPrivado() {
   const { isAuthenticated } = useAuth();
@@ -41,43 +42,22 @@ function SistemaPrivado() {
         <Route path="/comprovativo/:id" element={<Comprovativo />} />
 
         {/* Rotas protegidas por permissão */}
-        <Route path="/cadastrar-obra" element={
-          <RotaPermissao chave="obras"><CadastrarObra /></RotaPermissao>
-        } />
-        <Route path="/cadastrar-autor" element={
-          <RotaPermissao chave="autores"><CadastrarAutor /></RotaPermissao>
-        } />
-        <Route path="/cadastrar-cliente" element={
-          <RotaPermissao chave="clientes"><CadastrarCliente /></RotaPermissao>
-        } />
-        <Route path="/clientes" element={
-          <RotaPermissao chave="clientes"><ListaClientes /></RotaPermissao>
-        } />
-        <Route path="/cadastrar-editora" element={
-          <RotaPermissao chave="editoras"><CadastrarEditora /></RotaPermissao>
-        } />
-        <Route path="/emprestimos" element={
-          <RotaPermissao chave="emprestimos"><Emprestimos /></RotaPermissao>
-        } />
-        <Route path="/historico" element={
-          <RotaPermissao chave="historico"><HistoricoEmprestimos /></RotaPermissao>
-        } />
-        <Route path="/reservas" element={
-          <RotaPermissao chave="reservas"><Reservas /></RotaPermissao>
-        } />
-        <Route path="/acervo" element={
-          <RotaPermissao chave="acervo"><Acervo /></RotaPermissao>
-        } />
-        <Route path="/relatorios" element={
-          <RotaPermissao chave="relatorios"><Relatorios /></RotaPermissao>
-        } />
-        <Route path="/manual" element={
-          <RotaPermissao chave="manual"><Manual /></RotaPermissao>
-        } />
+        <Route path="/cadastrar-obra" element={<RotaPermissao chave="obras"><CadastrarObra /></RotaPermissao>} />
+        <Route path="/cadastrar-autor" element={<RotaPermissao chave="autores"><CadastrarAutor /></RotaPermissao>} />
+        <Route path="/cadastrar-cliente" element={<RotaPermissao chave="clientes"><CadastrarCliente /></RotaPermissao>} />
+        <Route path="/clientes" element={<RotaPermissao chave="clientes"><ListaClientes /></RotaPermissao>} />
+        <Route path="/cadastrar-editora" element={<RotaPermissao chave="editoras"><CadastrarEditora /></RotaPermissao>} />
+        <Route path="/emprestimos" element={<RotaPermissao chave="emprestimos"><Emprestimos /></RotaPermissao>} />
+        <Route path="/historico" element={<RotaPermissao chave="historico"><HistoricoEmprestimos /></RotaPermissao>} />
+        <Route path="/reservas" element={<RotaPermissao chave="reservas"><Reservas /></RotaPermissao>} />
+        <Route path="/acervo" element={<RotaPermissao chave="acervo"><Acervo /></RotaPermissao>} />
+        <Route path="/relatorios" element={<RotaPermissao chave="relatorios"><Relatorios /></RotaPermissao>} />
+        <Route path="/manual" element={<RotaPermissao chave="manual"><Manual /></RotaPermissao>} />
 
         {/* Rotas exclusivas do Admin */}
         <Route path="/utilizadores" element={<Utilizadores />} />
         <Route path="/permissoes" element={<Permissoes />} />
+        <Route path="/logs" element={<Logs />} /> {/* <- NOVO */}
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
