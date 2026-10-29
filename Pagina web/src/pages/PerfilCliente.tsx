@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../services/api';
 import { useToast } from '../contexts/ToastContext';
-import { useAuth } from '../contexts/AuthContext';
 import { 
   User, Mail, Phone, CreditCard, FileText, 
   Lock, Save, RefreshCw, ShieldCheck
@@ -17,7 +16,6 @@ interface Perfil {
 }
 
 export function PerfilCliente() {
-  const { user } = useAuth();
   const { showToast } = useToast();
   
   const [perfil, setPerfil] = useState<Perfil | null>(null);
