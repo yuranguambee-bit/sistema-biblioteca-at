@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookOpen, Search, User, Building2, Calendar, 
-  BookMarked, RefreshCw, Send, X
+  BookMarked, RefreshCw, Send, X, Clock
 } from 'lucide-react';
 
 interface Obra {
@@ -27,7 +27,7 @@ export function Catalogo() {
   const [pesquisa, setPesquisa] = useState('');
   const [filtroAutor, setFiltroAutor] = useState('');
   const [filtroEditora, setFiltroEditora] = useState('');
-  const [requisitando, setRequisitando] = useState<number | null>(null);
+  const [processando, setProcessando] = useState<number | null>(null);
   const [detalheAberto, setDetalheAberto] = useState<Obra | null>(null);
 
   const carregarObras = async () => {
@@ -35,7 +35,7 @@ export function Catalogo() {
       const res = await apiFetch('/api/obras');
       const data = await res.json();
       const lista = Array.isArray(data) ? data : [];
-      setObras(lista.filter((o: Obra) => o.Status === 'DISPONIVEL'));
+      setObras(lista); // Agora mostra TODAS as obras
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -83,7 +83,7 @@ export function Catalogo() {
     });
     if (!ok) return;
 
-    setRequisitando(obra.Id);
+    setProcessando(obra.Id);
     try {
       const response = await apiFetch('/api/portal/requisitar', {
         method: 'POST',
@@ -100,7 +100,38 @@ export function Catalogo() {
     } catch (error) {
       showToast('Erro de ligação ao servidor.', 'error');
     } finally {
-      setRequisitando(null);
+      setProcessando(null);
+    }
+  };
+
+  const handleReservar = async (obra: Obra) => {
+    const ok = await confirm({
+      title: 'Entrar na Fila de Espera',
+      message: `A obra "${obra.Titulo}" está emprestada. Queres entrar na fila de espera para seres notificado quando for devolvida?`,
+      confirmText: 'Reservar',
+      cancelText: 'Cancelar',
+      variant: 'warning',
+    });
+    if (!ok) return;
+
+    setProcessando(obra.Id);
+    try {
+      const response = await apiFetch('/api/portal/reservar', {
+        method: 'POST',
+        body: JSON.stringify({ ObraId: obra.Id }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast(data.message || 'Entraste na fila de espera!', 'success');
+        setDetalheAberto(null);
+      } else {
+        showToast(data.error || 'Erro ao reservar.', 'error');
+      }
+    } catch (error) {
+      showToast('Erro de ligação ao servidor.', 'error');
+    } finally {
+      setProcessando(null);
     }
   };
 
@@ -125,11 +156,11 @@ export function Catalogo() {
               <h2 className="text-2xl font-bold">Catálogo de Obras</h2>
             </div>
             <p className="text-blue-100 text-sm">
-              Explora as obras disponíveis e faz a tua requisição.
+              Explora todas as obras e faz a tua requisição ou reserva.
             </p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/20">
-            <p className="text-xs text-blue-200 font-medium uppercase tracking-wider">Disponíveis</p>
+            <p className="text-xs text-blue-200 font-medium uppercase tracking-wider">Total de Obras</p>
             <p className="text-3xl font-bold mt-1">{obras.length}</p>
           </div>
         </div>
@@ -204,70 +235,98 @@ export function Catalogo() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {obrasFiltradas.map((obra) => (
-            <div
-              key={obra.Id}
-              className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-gray-100 flex flex-col"
-            >
-              <div className="bg-gradient-to-br from-at-blue to-at-blue-light p-5 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12"></div>
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-3">
-                    <BookOpen size={18} />
+          {obrasFiltradas.map((obra) => {
+            const disponivel = obra.Status === 'DISPONIVEL';
+            return (
+              <div
+                key={obra.Id}
+                className={`group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden border flex flex-col ${
+                  disponivel ? 'border-gray-100' : 'border-orange-200'
+                }`}
+              >
+                <div className={`p-5 text-white relative overflow-hidden ${
+                  disponivel ? 'bg-gradient-to-br from-at-blue to-at-blue-light' : 'bg-gradient-to-br from-orange-500 to-orange-600'
+                }`}>
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12"></div>
+                  <div className="relative">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                        <BookOpen size={18} />
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                        disponivel ? 'bg-green-400 text-green-900' : 'bg-white/20 text-white'
+                      }`}>
+                        {disponivel ? 'DISPONÍVEL' : 'EMPRESTADO'}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-lg leading-tight line-clamp-2 min-h-[3rem]">
+                      {obra.Titulo}
+                    </h3>
                   </div>
-                  <h3 className="font-bold text-lg leading-tight line-clamp-2 min-h-[3rem]">
-                    {obra.Titulo}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="p-5 flex-1 flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User size={14} className="text-gray-400 flex-shrink-0" />
-                  <span className="truncate">{obra.Autor || <span className="text-gray-300 italic">Sem autor</span>}</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Building2 size={14} className="text-gray-400 flex-shrink-0" />
-                  <span className="truncate">{obra.Editora || <span className="text-gray-300 italic">Sem editora</span>}</span>
-                </div>
+                <div className="p-5 flex-1 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <User size={14} className="text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{obra.Autor || <span className="text-gray-300 italic">Sem autor</span>}</span>
+                  </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar size={14} className="text-gray-400 flex-shrink-0" />
-                  <span>{obra.Ano}</span>
-                  {obra.NumeroEdicao && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full ml-auto">
-                      {obra.NumeroEdicao}
-                    </span>
-                  )}
-                </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Building2 size={14} className="text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{obra.Editora || <span className="text-gray-300 italic">Sem editora</span>}</span>
+                  </div>
 
-                {obra.ISBN && (
-                  <p className="text-xs text-gray-400 font-mono mt-1">ISBN: {obra.ISBN}</p>
-                )}
-
-                <div className="mt-auto pt-3 flex gap-2">
-                  <button
-                    onClick={() => setDetalheAberto(obra)}
-                    className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-xs font-semibold hover:bg-gray-200 transition-colors"
-                  >
-                    Ver detalhes
-                  </button>
-                  <button
-                    onClick={() => handleRequisitar(obra)}
-                    disabled={requisitando === obra.Id}
-                    className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                  >
-                    {requisitando === obra.Id ? (
-                      <><RefreshCw size={12} className="animate-spin" /> A enviar...</>
-                    ) : (
-                      <><Send size={12} /> Requisitar</>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Calendar size={14} className="text-gray-400 flex-shrink-0" />
+                    <span>{obra.Ano}</span>
+                    {obra.NumeroEdicao && (
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full ml-auto">
+                        {obra.NumeroEdicao}
+                      </span>
                     )}
-                  </button>
+                  </div>
+
+                  {obra.ISBN && (
+                    <p className="text-xs text-gray-400 font-mono mt-1">ISBN: {obra.ISBN}</p>
+                  )}
+
+                  <div className="mt-auto pt-3 flex gap-2">
+                    <button
+                      onClick={() => setDetalheAberto(obra)}
+                      className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-xs font-semibold hover:bg-gray-200 transition-colors"
+                    >
+                      Ver detalhes
+                    </button>
+                    {disponivel ? (
+                      <button
+                        onClick={() => handleRequisitar(obra)}
+                        disabled={processando === obra.Id}
+                        className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        {processando === obra.Id ? (
+                          <><RefreshCw size={12} className="animate-spin" /> A enviar...</>
+                        ) : (
+                          <><Send size={12} /> Requisitar</>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleReservar(obra)}
+                        disabled={processando === obra.Id}
+                        className="flex-1 bg-orange-500 text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-orange-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        {processando === obra.Id ? (
+                          <><RefreshCw size={12} className="animate-spin" /> A enviar...</>
+                        ) : (
+                          <><Clock size={12} /> Reservar</>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -329,17 +388,31 @@ export function Catalogo() {
               >
                 Fechar
               </button>
-              <button
-                onClick={() => handleRequisitar(detalheAberto)}
-                disabled={requisitando === detalheAberto.Id}
-                className="flex-1 bg-green-600 text-white px-5 py-2.5 rounded-md font-semibold hover:bg-green-700 transition-colors text-sm disabled:bg-gray-400 flex items-center justify-center gap-2"
-              >
-                {requisitando === detalheAberto.Id ? (
-                  <><RefreshCw size={14} className="animate-spin" /> A enviar...</>
-                ) : (
-                  <><BookMarked size={14} /> Requisitar Obra</>
-                )}
-              </button>
+              {detalheAberto.Status === 'DISPONIVEL' ? (
+                <button
+                  onClick={() => handleRequisitar(detalheAberto)}
+                  disabled={processando === detalheAberto.Id}
+                  className="flex-1 bg-green-600 text-white px-5 py-2.5 rounded-md font-semibold hover:bg-green-700 transition-colors text-sm disabled:bg-gray-400 flex items-center justify-center gap-2"
+                >
+                  {processando === detalheAberto.Id ? (
+                    <><RefreshCw size={14} className="animate-spin" /> A enviar...</>
+                  ) : (
+                    <><BookMarked size={14} /> Requisitar Obra</>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleReservar(detalheAberto)}
+                  disabled={processando === detalheAberto.Id}
+                  className="flex-1 bg-orange-500 text-white px-5 py-2.5 rounded-md font-semibold hover:bg-orange-600 transition-colors text-sm disabled:bg-gray-400 flex items-center justify-center gap-2"
+                >
+                  {processando === detalheAberto.Id ? (
+                    <><RefreshCw size={14} className="animate-spin" /> A enviar...</>
+                  ) : (
+                    <><Clock size={14} /> Reservar Obra</>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

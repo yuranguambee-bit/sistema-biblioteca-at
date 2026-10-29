@@ -416,11 +416,11 @@ app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (
             .input('ClienteId', sql.Int, (req as any).user.id)
             .query(`
                 SELECT R.Id, O.Id as ObraId, O.Titulo as Obra, A.Nome as Autor, 
-                       CONVERT(VARCHAR(10), R.DataReserva, 103) as DataReserva
+                       CONVERT(VARCHAR(10), R.DataReserva, 103) as DataReserva, R.Tipo as Tipo
                 FROM Reservas R
                 INNER JOIN Obras O ON R.ObraId = O.Id
                 LEFT JOIN Autores A ON O.AutorId = A.Id
-                WHERE R.ClienteId = @ClienteId AND R.Status = 'PENDENTE' AND R.Tipo = 'LEVANTAMENTO'
+                WHERE R.ClienteId = @ClienteId AND R.Status = 'PENDENTE'
                 ORDER BY R.DataReserva DESC
             `);
         res.json(result.recordset);
@@ -468,7 +468,7 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
             .input('ClienteId', sql.Int, ClienteId)
             .query("SELECT COUNT(*) as total FROM Reservas WHERE ObraId = @ObraId AND ClienteId = @ClienteId AND Status = 'PENDENTE'");
         if (checkPedido.recordset[0].total > 0) {
-            return res.status(400).json({ error: 'Já tens uma requisição pendente para esta obra.' });
+            return res.status(400).json({ error: 'Já tens uma requisição ou reserva pendente para esta obra.' });
         }
 
         const insertResult = await pool.request()
@@ -500,6 +500,65 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
         res.status(201).json({
             message: 'Requisição efetuada! Dirige-te à biblioteca para levantares o livro.',
             reservaId: insertResult.recordset[0].Id
+        });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res) => {
+    const { ObraId } = req.body;
+    const ClienteId = (req as any).user.id;
+
+    if (!ObraId) return res.status(400).json({ error: 'Indica a obra a reservar.' });
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        const checkObra = await pool.request().input('Id', sql.Int, ObraId).query('SELECT Titulo, Status FROM Obras WHERE Id = @Id');
+        if (checkObra.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        if (checkObra.recordset[0].Status === 'DISPONIVEL') {
+            return res.status(400).json({ error: 'Esta obra está disponível. Podes requisitá-la diretamente.' });
+        }
+
+        const checkPedido = await pool.request()
+            .input('ObraId', sql.Int, ObraId)
+            .input('ClienteId', sql.Int, ClienteId)
+            .query("SELECT COUNT(*) as total FROM Reservas WHERE ObraId = @ObraId AND ClienteId = @ClienteId AND Status = 'PENDENTE'");
+        if (checkPedido.recordset[0].total > 0) {
+            return res.status(400).json({ error: 'Já tens uma requisição ou reserva pendente para esta obra.' });
+        }
+
+        const insertResult = await pool.request()
+            .input('ObraId', sql.Int, ObraId)
+            .input('ClienteId', sql.Int, ClienteId)
+            .query("INSERT INTO Reservas (ObraId, ClienteId, DataReserva, Status, Tipo) OUTPUT INSERTED.Id VALUES (@ObraId, @ClienteId, GETDATE(), 'PENDENTE', 'FILA_ESPERA')");
+
+        const queueInfo = await pool.request()
+            .input('ObraId', sql.Int, ObraId)
+            .query("SELECT COUNT(*) as posicao FROM Reservas WHERE ObraId = @ObraId AND Status = 'PENDENTE' AND Tipo = 'FILA_ESPERA'");
+        const posicao = queueInfo.recordset[0].posicao;
+
+        const clienteInfo = await pool.request().input('Id', sql.Int, ClienteId).query('SELECT Nome FROM Clientes WHERE Id = @Id');
+        const nomeCliente = clienteInfo.recordset[0].Nome;
+
+        await criarNotificacao(
+            '📌 Nova Reserva (Fila de Espera)',
+            `O leitor ${nomeCliente} entrou na fila de espera para "${checkObra.recordset[0].Titulo}". Posição: ${posicao}º`,
+            'RESERVA',
+            '/reservas',
+            null
+        );
+        
+        await criarNotificacao(
+            '⏳ Reserva em Fila de Espera',
+            `Entraste na fila de espera para "${checkObra.recordset[0].Titulo}". A tua posição é ${posicao}º.`,
+            'RESERVA',
+            '/meus-emprestimos',
+            ClienteId
+        );
+
+        res.status(201).json({
+            message: `Reserva efetuada! Estás na posição ${posicao}º da fila de espera.`,
+            reservaId: insertResult.recordset[0].Id,
+            posicao
         });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

@@ -331,16 +331,15 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// NOVA ROTA: MINHAS REQUISIÇÕES (PENDENTES)
 app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", A.nome as "Autor", 
-                   TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva"
+                   TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.tipo as "Tipo"
             FROM Reservas R
             INNER JOIN Obras O ON R.obraid = O.id
             LEFT JOIN Autores A ON O.autorid = A.id
-            WHERE R.clienteid = $1 AND R.status = 'PENDENTE' AND R.tipo = 'LEVANTAMENTO'
+            WHERE R.clienteid = $1 AND R.status = 'PENDENTE'
             ORDER BY R.datareserva DESC
         `, [(req as any).user.id]);
         res.json(result.rows);
@@ -381,7 +380,7 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
             [ObraId, ClienteId]
         );
         if (Number(checkPedido.rows[0].total) > 0) {
-            return res.status(400).json({ error: 'Já tens uma requisição pendente para esta obra.' });
+            return res.status(400).json({ error: 'Já tens uma requisição ou reserva pendente para esta obra.' });
         }
 
         const insertResult = await pool.query(
@@ -397,7 +396,7 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
             `O leitor ${nomeCliente} requisitou "${checkObra.rows[0].titulo}" para levantamento.`,
             'RESERVA',
             '/reservas',
-            null // Notificação para o painel do Admin
+            null
         );
         
         await criarNotificacao(
@@ -405,12 +404,73 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
             `A tua requisição de "${checkObra.rows[0].titulo}" foi enviada. Aguarda a confirmação na biblioteca.`,
             'RESERVA',
             '/meus-emprestimos',
-            ClienteId // Notificação para o painel do Cliente
+            ClienteId
         );
 
         res.status(201).json({
             message: 'Requisição efetuada! Dirige-te à biblioteca para levantares o livro.',
             reservaId: insertResult.rows[0].id
+        });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// NOVA ROTA: RESERVAR OBRA EMPRESTADA (FILA DE ESPERA)
+app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res) => {
+    const { ObraId } = req.body;
+    const ClienteId = (req as any).user.id;
+
+    if (!ObraId) return res.status(400).json({ error: 'Indica a obra a reservar.' });
+
+    try {
+        const checkObra = await pool.query('SELECT titulo, status FROM Obras WHERE id = $1', [ObraId]);
+        if (checkObra.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        if (checkObra.rows[0].status === 'DISPONIVEL') {
+            return res.status(400).json({ error: 'Esta obra está disponível. Podes requisitá-la diretamente.' });
+        }
+
+        const checkPedido = await pool.query(
+            "SELECT COUNT(*) as total FROM Reservas WHERE obraid = $1 AND clienteid = $2 AND status = 'PENDENTE'",
+            [ObraId, ClienteId]
+        );
+        if (Number(checkPedido.rows[0].total) > 0) {
+            return res.status(400).json({ error: 'Já tens uma requisição ou reserva pendente para esta obra.' });
+        }
+
+        const insertResult = await pool.query(
+            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'FILA_ESPERA') RETURNING id",
+            [ObraId, ClienteId]
+        );
+
+        // Calcular posição na fila
+        const queueInfo = await pool.query(
+            "SELECT COUNT(*) as posicao FROM Reservas WHERE obraid = $1 AND status = 'PENDENTE' AND tipo = 'FILA_ESPERA'",
+            [ObraId]
+        );
+        const posicao = Number(queueInfo.rows[0].posicao);
+
+        const clienteInfo = await pool.query('SELECT nome FROM Clientes WHERE id = $1', [ClienteId]);
+        const nomeCliente = clienteInfo.rows[0].nome;
+
+        await criarNotificacao(
+            '📌 Nova Reserva (Fila de Espera)',
+            `O leitor ${nomeCliente} entrou na fila de espera para "${checkObra.rows[0].titulo}". Posição: ${posicao}º`,
+            'RESERVA',
+            '/reservas',
+            null
+        );
+        
+        await criarNotificacao(
+            '⏳ Reserva em Fila de Espera',
+            `Entraste na fila de espera para "${checkObra.rows[0].titulo}". A tua posição é ${posicao}º.`,
+            'RESERVA',
+            '/meus-emprestimos',
+            ClienteId
+        );
+
+        res.status(201).json({
+            message: `Reserva efetuada! Estás na posição ${posicao}º da fila de espera.`,
+            reservaId: insertResult.rows[0].id,
+            posicao
         });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

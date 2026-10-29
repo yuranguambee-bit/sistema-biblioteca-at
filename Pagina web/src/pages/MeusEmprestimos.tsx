@@ -21,6 +21,7 @@ interface Requisicao {
   Obra: string;
   Autor: string | null;
   DataReserva: string;
+  Tipo: 'LEVANTAMENTO' | 'FILA_ESPERA';
 }
 
 export function MeusEmprestimos() {
@@ -102,7 +103,7 @@ export function MeusEmprestimos() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* SECÇÃO: REQUISIÇÕES PENDENTES */}
+          {/* SECÇÃO: RESERVAS PENDENTES */}
           {requisicoes.length > 0 && (
             <section>
               <div className="flex items-center gap-3 mb-4">
@@ -110,33 +111,51 @@ export function MeusEmprestimos() {
                   <BellRing className="text-blue-700" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-at-blue">À Espera de Levantamento</h3>
-                  <p className="text-xs text-gray-500">Livros que requisitaste e aguardam confirmação na biblioteca.</p>
+                  <h3 className="text-lg font-bold text-at-blue">Reservas e Requisições</h3>
+                  <p className="text-xs text-gray-500">Livros que aguardam levantamento ou a tua vez na fila.</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {requisicoes.map((req) => (
-                  <div key={req.Id} className="bg-blue-50/50 rounded-2xl shadow-sm border-2 border-blue-200 overflow-hidden">
-                    <div className="p-4 flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <BookOpen className="text-white" size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-gray-800 text-sm line-clamp-2">{req.Obra}</h4>
-                        <p className="text-xs text-gray-500 flex items-center gap-1 truncate mt-0.5">
-                          <User size={10} /> {req.Autor || 'Autor desconhecido'}
-                        </p>
-                        <div className="mt-2 flex items-center gap-1 text-xs text-blue-700 font-semibold">
-                          <Calendar size={12} /> Requisitado em {req.DataReserva}
+                {requisicoes.map((req) => {
+                  const isLevantamento = req.Tipo === 'LEVANTAMENTO';
+                  return (
+                    <div 
+                      key={req.Id} 
+                      className={`rounded-2xl shadow-sm border-2 overflow-hidden ${
+                        isLevantamento ? 'bg-blue-50/50 border-blue-200' : 'bg-orange-50/50 border-orange-200'
+                      }`}
+                    >
+                      <div className="p-4 flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+                          isLevantamento ? 'bg-blue-600' : 'bg-orange-500'
+                        }`}>
+                          <BookOpen className="text-white" size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-gray-800 text-sm line-clamp-2">{req.Obra}</h4>
+                          <p className="text-xs text-gray-500 flex items-center gap-1 truncate mt-0.5">
+                            <User size={10} /> {req.Autor || 'Autor desconhecido'}
+                          </p>
+                          <div className={`mt-2 flex items-center gap-1 text-xs font-semibold ${
+                            isLevantamento ? 'text-blue-700' : 'text-orange-700'
+                          }`}>
+                            <Calendar size={12} /> Requisitado em {req.DataReserva}
+                          </div>
                         </div>
                       </div>
+                      <div className={`px-4 py-2 text-[11px] font-medium border-t ${
+                        isLevantamento 
+                          ? 'bg-blue-100/50 text-blue-800 border-blue-200' 
+                          : 'bg-orange-100/50 text-orange-800 border-orange-200'
+                      }`}>
+                        {isLevantamento 
+                          ? '💡 Dirige-te à biblioteca para levantares esta obra.' 
+                          : '⏳ Aguarda que o livro seja devolvido. Serás notificado por email.'}
+                      </div>
                     </div>
-                    <div className="bg-blue-100/50 px-4 py-2 text-[11px] text-blue-800 font-medium border-t border-blue-200">
-                      💡 Dirige-te à biblioteca para levantares esta obra.
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
