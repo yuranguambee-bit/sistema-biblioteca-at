@@ -363,7 +363,7 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
         }
 
         const insertResult = await pool.query(
-            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, Tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'LEVANTAMENTO') RETURNING id",
+            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'LEVANTAMENTO') RETURNING id",
             [ObraId, ClienteId]
         );
 
@@ -528,7 +528,7 @@ app.get('/api/obras/disponiveis', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id/reservas', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT ROW_NUMBER() OVER (ORDER BY R.datareserva ASC) as "Posicao", R.id as "Id", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.Tipo as "Tipo" FROM Reservas R INNER JOIN Clientes C ON R.clienteid = C.id WHERE R.obraid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva ASC`, [req.params.id]);
+        const result = await pool.query(`SELECT ROW_NUMBER() OVER (ORDER BY R.datareserva ASC) as "Posicao", R.id as "Id", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.tipo as "Tipo" FROM Reservas R INNER JOIN Clientes C ON R.clienteid = C.id WHERE R.obraid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva ASC`, [req.params.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -685,7 +685,6 @@ app.post('/api/clientes', verificarToken, verificarPermissao('clientes_criar'), 
     if (!Nome) return res.status(400).json({ error: 'O nome é obrigatório.' });
 
     try {
-        // Se tem email, verificar duplicado
         if (Email) {
             const checkDup = await pool.query('SELECT COUNT(*) as total FROM Clientes WHERE LOWER(email) = LOWER($1)', [Email]);
             if (Number(checkDup.rows[0].total) > 0) return res.status(400).json({ error: 'Este email já está registado.' });
@@ -759,7 +758,7 @@ app.get('/api/clientes/:id/historico', verificarToken, async (req, res) => {
 
 app.get('/api/clientes/:id/reservas', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.Tipo as "Tipo" FROM Reservas R INNER JOIN Obras O ON R.obraid = O.id WHERE R.clienteid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva DESC`, [req.params.id]);
+        const result = await pool.query(`SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.tipo as "Tipo" FROM Reservas R INNER JOIN Obras O ON R.obraid = O.id WHERE R.clienteid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva DESC`, [req.params.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -827,7 +826,7 @@ app.get('/api/reservas', verificarToken, async (req, res) => {
             SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", 
                    C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", 
                    TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", 
-                   R.status as "Status", R.Tipo as "Tipo"
+                   R.status as "Status", R.tipo as "Tipo"
             FROM Reservas R 
             INNER JOIN Obras O ON R.obraid = O.id 
             INNER JOIN Clientes C ON R.clienteid = C.id 
@@ -851,7 +850,7 @@ app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), 
         if (Number(check.rows[0].total) > 0) return res.status(400).json({ error: 'Já tens reserva pendente.' });
 
         const insertResult = await pool.query(
-            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, Tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'FILA_ESPERA') RETURNING id",
+            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'FILA_ESPERA') RETURNING id",
             [ObraId, ClienteId]
         );
         const novaReservaId = insertResult.rows[0].id;
@@ -918,8 +917,8 @@ app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, ver
         await client.query('BEGIN');
 
         const resInfo = await client.query(
-            "SELECT obraid, clienteid, Tipo FROM Reservas WHERE id = $1 AND status = 'PENDENTE'",
-            [reservaId]
+            'SELECT obraid, clienteid, tipo as "Tipo" FROM Reservas WHERE id = $1 AND status = $2',
+            [reservaId, 'PENDENTE']
         );
         if (resInfo.rows.length === 0) {
             await client.query('ROLLBACK');
@@ -1040,7 +1039,7 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
             SELECT C.nome as "ClienteNome", C.email as "ClienteEmail"
             FROM Reservas R
             INNER JOIN Clientes C ON R.clienteid = C.id
-            WHERE R.obraid = $1 AND R.status = 'PENDENTE' AND R.Tipo = 'FILA_ESPERA'
+            WHERE R.obraid = $1 AND R.status = 'PENDENTE' AND R.tipo = 'FILA_ESPERA'
             ORDER BY R.datareserva ASC LIMIT 1
         `, [obraId]);
 
