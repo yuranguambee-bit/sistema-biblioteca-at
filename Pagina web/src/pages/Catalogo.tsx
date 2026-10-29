@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookOpen, Search, User, Building2, Calendar, 
-  BookMarked, RefreshCw, Send, Filter, X
+  BookMarked, RefreshCw, Send, X
 } from 'lucide-react';
 
 interface Obra {
@@ -35,7 +35,6 @@ export function Catalogo() {
       const res = await apiFetch('/api/obras');
       const data = await res.json();
       const lista = Array.isArray(data) ? data : [];
-      // Apenas disponíveis
       setObras(lista.filter((o: Obra) => o.Status === 'DISPONIVEL'));
       setLoading(false);
     } catch (error) {
@@ -115,7 +114,6 @@ export function Catalogo() {
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      {/* CABEÇALHO */}
       <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -137,7 +135,6 @@ export function Catalogo() {
         </div>
       </div>
 
-      {/* FILTROS */}
       <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="relative md:col-span-1">
@@ -185,7 +182,6 @@ export function Catalogo() {
         )}
       </div>
 
-      {/* GRELHA DE OBRAS */}
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
           <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-at-blue" />
@@ -275,7 +271,6 @@ export function Catalogo() {
         </div>
       )}
 
-      {/* MODAL DE DETALHES */}
       {detalheAberto && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4"
