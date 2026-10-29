@@ -258,13 +258,12 @@ function verificarCamposCliente(req: Request, res: Response, next: NextFunction)
     next();
 }
 
-// ============ LOGIN UNIFICADO (Funcionário OU Cliente) ============
+// ============ LOGIN UNIFICADO ============
 app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) => {
     const { Email, Password } = req.body;
     try {
         const pool = await sql.connect(dbConfig);
 
-        // 1. Tentar como funcionário
         const resultUser = await pool.request()
             .input('Email', sql.NVarChar, Email)
             .query('SELECT Id, Nome, Email, PasswordHash, Role, Permissoes FROM Usuarios WHERE Email = @Email');
@@ -279,7 +278,6 @@ app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) =>
             return res.json({ token, user: { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes } });
         }
 
-        // 2. Tentar como cliente
         const resultCliente = await pool.request()
             .input('Email', sql.NVarChar, Email)
             .query('SELECT Id, Nome, Email, PasswordHash FROM Clientes WHERE Email = @Email');
@@ -406,6 +404,24 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
                 LEFT JOIN Autores A ON O.AutorId = A.Id
                 WHERE E.ClienteId = @ClienteId AND E.Status = 'ATIVO'
                 ORDER BY E.DataEmprestimo DESC
+            `);
+        res.json(result.recordset);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('ClienteId', sql.Int, (req as any).user.id)
+            .query(`
+                SELECT R.Id, O.Id as ObraId, O.Titulo as Obra, A.Nome as Autor, 
+                       CONVERT(VARCHAR(10), R.DataReserva, 103) as DataReserva
+                FROM Reservas R
+                INNER JOIN Obras O ON R.ObraId = O.Id
+                LEFT JOIN Autores A ON O.AutorId = A.Id
+                WHERE R.ClienteId = @ClienteId AND R.Status = 'PENDENTE' AND R.Tipo = 'LEVANTAMENTO'
+                ORDER BY R.DataReserva DESC
             `);
         res.json(result.recordset);
     } catch (error: any) { res.status(500).json({ error: error.message }); }

@@ -104,9 +104,7 @@ cron.schedule('0 8 * * *', async () => {
         `);
 
         for (const row of lembretes.rows) {
-            // Notificação para o Sistema (Admin)
             await criarNotificacao('⏰ Lembrete de Devolução', `A obra "${row.ObraTitulo}" de ${row.ClienteNome} vence em 2 dias.`, 'LEMBRETE', '/emprestimos', null);
-            // Notificação para o Cliente
             await criarNotificacao('⏰ Lembrete de Devolução', `A obra "${row.ObraTitulo}" deve ser devolvida em 2 dias.`, 'LEMBRETE', '/meus-emprestimos', row.clienteid);
 
             if (row.ClienteEmail) {
@@ -244,11 +242,10 @@ function verificarCamposCliente(req: Request, res: Response, next: NextFunction)
     next();
 }
 
-// ============ LOGIN UNIFICADO (Funcionário OU Cliente) ============
+// ============ LOGIN UNIFICADO ============
 app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) => {
     const { Email, Password } = req.body;
     try {
-        // 1. Tentar como funcionário
         const resultUser = await pool.query(
             'SELECT id as "Id", nome as "Nome", email as "Email", passwordhash as "PasswordHash", role as "Role", permissoes as "Permissoes" FROM Usuarios WHERE email = $1',
             [Email]
@@ -264,7 +261,6 @@ app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) =>
             return res.json({ token, user: { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes } });
         }
 
-        // 2. Tentar como cliente
         const resultCliente = await pool.query(
             'SELECT id as "Id", nome as "Nome", email as "Email", passwordhash as "PasswordHash" FROM Clientes WHERE email = $1',
             [Email]
@@ -330,6 +326,22 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
             LEFT JOIN Autores A ON O.autorid = A.id
             WHERE E.clienteid = $1 AND E.status = 'ATIVO'
             ORDER BY E.dataemprestimo DESC
+        `, [(req as any).user.id]);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// NOVA ROTA: MINHAS REQUISIÇÕES (PENDENTES)
+app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", A.nome as "Autor", 
+                   TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva"
+            FROM Reservas R
+            INNER JOIN Obras O ON R.obraid = O.id
+            LEFT JOIN Autores A ON O.autorid = A.id
+            WHERE R.clienteid = $1 AND R.status = 'PENDENTE' AND R.tipo = 'LEVANTAMENTO'
+            ORDER BY R.datareserva DESC
         `, [(req as any).user.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -411,7 +423,6 @@ app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) 
     try {
         const userResult = await pool.query('SELECT passwordhash FROM Clientes WHERE id = $1', [(req as any).user.id]);
         if (!userResult.rows[0].passwordhash) {
-            // Primeira ativação de conta
             const novoHash = await bcrypt.hash(PasswordNova, 10);
             await pool.query('UPDATE Clientes SET passwordhash = $1 WHERE id = $2', [novoHash, (req as any).user.id]);
             return res.json({ message: 'Password definida com sucesso!' });

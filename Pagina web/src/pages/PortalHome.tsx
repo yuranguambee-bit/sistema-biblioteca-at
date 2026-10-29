@@ -4,7 +4,7 @@ import { apiFetch } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   BookOpen, BookMarked, History, ArrowRight, 
-  Sparkles, Clock, AlertTriangle, TrendingUp
+  Sparkles, Clock, AlertTriangle, TrendingUp, BellRing
 } from 'lucide-react';
 
 interface Emprestimo {
@@ -16,9 +16,17 @@ interface Emprestimo {
   DiasAtraso: number;
 }
 
+interface Requisicao {
+  Id: number;
+  Obra: string;
+  Autor: string | null;
+  DataReserva: string;
+}
+
 export function PortalHome() {
   const { user } = useAuth();
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
+  const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [totalHistorico, setTotalHistorico] = useState(0);
   const [totalDisponiveis, setTotalDisponiveis] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -28,11 +36,13 @@ export function PortalHome() {
       apiFetch('/api/portal/meus-emprestimos').then((r) => r.json()),
       apiFetch('/api/portal/meu-historico').then((r) => r.json()),
       apiFetch('/api/obras/disponiveis').then((r) => r.json()),
+      apiFetch('/api/portal/minhas-requisicoes').then((r) => r.json()),
     ])
-      .then(([dEmp, dHist, dDisp]) => {
+      .then(([dEmp, dHist, dDisp, dReq]) => {
         setEmprestimos(Array.isArray(dEmp) ? dEmp : []);
         setTotalHistorico(Array.isArray(dHist) ? dHist.length : 0);
         setTotalDisponiveis(Array.isArray(dDisp) ? dDisp.length : 0);
+        setRequisicoes(Array.isArray(dReq) ? dReq : []);
         setLoading(false);
       })
       .catch((e) => { console.error(e); setLoading(false); });
@@ -63,6 +73,30 @@ export function PortalHome() {
           </p>
         </div>
       </div>
+
+      {/* AVISO DE REQUISIÇÕES PENDENTES */}
+      {requisicoes.length > 0 && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <BellRing className="text-white" size={24} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-blue-800">
+              Tens {requisicoes.length} livro(s) à tua espera na biblioteca!
+            </h3>
+            <p className="text-sm text-blue-700 mt-1">
+              {requisicoes.map(r => `"${r.Obra}"`).join(', ')}. 
+              Por favor, dirige-te à biblioteca para levantares as obras.
+            </p>
+            <Link 
+              to="/meus-emprestimos" 
+              className="inline-flex items-center gap-1 mt-3 text-blue-700 font-semibold text-sm hover:underline"
+            >
+              Ver detalhes <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* AVISO DE ATRASOS */}
       {totalAtrasados > 0 && (

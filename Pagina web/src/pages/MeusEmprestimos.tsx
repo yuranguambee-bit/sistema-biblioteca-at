@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { 
   BookMarked, Clock, AlertTriangle, CheckCircle, 
-  Calendar, ArrowLeft, RefreshCw, BookOpen, User
+  Calendar, ArrowLeft, RefreshCw, BookOpen, User, BellRing
 } from 'lucide-react';
 
 interface Emprestimo {
@@ -15,16 +15,31 @@ interface Emprestimo {
   DiasAtraso: number;
 }
 
+interface Requisicao {
+  Id: number;
+  ObraId: number;
+  Obra: string;
+  Autor: string | null;
+  DataReserva: string;
+}
+
 export function MeusEmprestimos() {
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
+  const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [loading, setLoading] = useState(true);
 
   const carregar = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch('/api/portal/meus-emprestimos');
-      const data = await res.json();
-      setEmprestimos(Array.isArray(data) ? data : []);
+      const [resEmp, resReq] = await Promise.all([
+        apiFetch('/api/portal/meus-emprestimos'),
+        apiFetch('/api/portal/minhas-requisicoes')
+      ]);
+      const dataEmp = await resEmp.json();
+      const dataReq = await resReq.json();
+      
+      setEmprestimos(Array.isArray(dataEmp) ? dataEmp : []);
+      setRequisicoes(Array.isArray(dataReq) ? dataReq : []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -64,7 +79,7 @@ export function MeusEmprestimos() {
         </div>
       </div>
 
-      {/* AVISO */}
+      {/* AVISOS */}
       {totalAtrasados > 0 && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6 flex items-start gap-3">
           <AlertTriangle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
@@ -85,86 +100,142 @@ export function MeusEmprestimos() {
           <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-at-blue" />
           A carregar empréstimos...
         </div>
-      ) : emprestimos.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <BookMarked size={56} className="mx-auto mb-3 text-gray-300" />
-          <h3 className="text-lg font-bold text-gray-700 mb-2">Sem empréstimos ativos</h3>
-          <p className="text-gray-500 text-sm mb-6">
-            De momento não tens livros em teu poder.
-          </p>
-          <Link
-            to="/catalogo"
-            className="inline-flex items-center gap-2 bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm"
-          >
-            <BookOpen size={16} /> Explorar Catálogo
-          </Link>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {emprestimos.map((emp) => {
-            const atrasado = emp.DiasAtraso > 0;
-            return (
-              <div
-                key={emp.Id}
-                className={`bg-white rounded-2xl shadow-sm overflow-hidden border-2 transition-all hover:shadow-md ${
-                  atrasado ? 'border-red-200' : 'border-gray-100'
-                }`}
-              >
-                <div className={`p-4 ${atrasado ? 'bg-red-50' : 'bg-gradient-to-r from-orange-50 to-amber-50'}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        atrasado ? 'bg-red-500' : 'bg-orange-500'
-                      }`}>
-                        <BookOpen className="text-white" size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-bold text-gray-800 text-sm line-clamp-2">{emp.Obra}</h3>
-                        <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
-                          <User size={10} /> {emp.Autor || 'Autor desconhecido'}
-                        </p>
-                      </div>
-                    </div>
-                    {atrasado ? (
-                      <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
-                        <AlertTriangle size={10} /> ATRASO
-                      </span>
-                    ) : (
-                      <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
-                        <CheckCircle size={10} /> EM DIA
-                      </span>
-                    )}
-                  </div>
+        <div className="space-y-8">
+          {/* SECÇÃO: REQUISIÇÕES PENDENTES */}
+          {requisicoes.length > 0 && (
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <BellRing className="text-blue-700" size={20} />
                 </div>
-
-                <div className="p-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500 flex items-center gap-1">
-                      <Calendar size={11} /> Empréstimo
-                    </span>
-                    <span className="font-semibold text-gray-700">{emp.DataEmprestimo}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className={`flex items-center gap-1 ${atrasado ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                      <Clock size={11} /> Devolver até
-                    </span>
-                    <span className={`font-bold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>
-                      {emp.DataPrevistaDevolucao}
-                    </span>
-                  </div>
-
-                  {atrasado && (
-                    <div className="bg-red-50 rounded-lg p-2 text-center mt-2">
-                      <p className="text-xs text-red-700 font-bold">
-                        {emp.DiasAtraso} dia{emp.DiasAtraso !== 1 ? 's' : ''} de atraso
-                      </p>
-                    </div>
-                  )}
+                <div>
+                  <h3 className="text-lg font-bold text-at-blue">À Espera de Levantamento</h3>
+                  <p className="text-xs text-gray-500">Livros que requisitaste e aguardam confirmação na biblioteca.</p>
                 </div>
               </div>
-            );
-          })}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {requisicoes.map((req) => (
+                  <div key={req.Id} className="bg-blue-50/50 rounded-2xl shadow-sm border-2 border-blue-200 overflow-hidden">
+                    <div className="p-4 flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <BookOpen className="text-white" size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-800 text-sm line-clamp-2">{req.Obra}</h4>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 truncate mt-0.5">
+                          <User size={10} /> {req.Autor || 'Autor desconhecido'}
+                        </p>
+                        <div className="mt-2 flex items-center gap-1 text-xs text-blue-700 font-semibold">
+                          <Calendar size={12} /> Requisitado em {req.DataReserva}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-blue-100/50 px-4 py-2 text-[11px] text-blue-800 font-medium border-t border-blue-200">
+                      💡 Dirige-te à biblioteca para levantares esta obra.
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SECÇÃO: EMPRÉSTIMOS ATIVOS */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <BookMarked className="text-orange-700" size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-at-blue">Empréstimos Ativos</h3>
+                <p className="text-xs text-gray-500">Obras que tens em teu poder neste momento.</p>
+              </div>
+            </div>
+
+            {emprestimos.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+                <BookMarked size={56} className="mx-auto mb-3 text-gray-300" />
+                <h3 className="text-lg font-bold text-gray-700 mb-2">Sem empréstimos ativos</h3>
+                <p className="text-gray-500 text-sm mb-6">
+                  De momento não tens livros em teu poder.
+                </p>
+                <Link
+                  to="/catalogo"
+                  className="inline-flex items-center gap-2 bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm"
+                >
+                  <BookOpen size={16} /> Explorar Catálogo
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {emprestimos.map((emp) => {
+                  const atrasado = emp.DiasAtraso > 0;
+                  return (
+                    <div
+                      key={emp.Id}
+                      className={`bg-white rounded-2xl shadow-sm overflow-hidden border-2 transition-all hover:shadow-md ${
+                        atrasado ? 'border-red-200' : 'border-gray-100'
+                      }`}
+                    >
+                      <div className={`p-4 ${atrasado ? 'bg-red-50' : 'bg-gradient-to-r from-orange-50 to-amber-50'}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              atrasado ? 'bg-red-500' : 'bg-orange-500'
+                            }`}>
+                              <BookOpen className="text-white" size={18} />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-gray-800 text-sm line-clamp-2">{emp.Obra}</h3>
+                              <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
+                                <User size={10} /> {emp.Autor || 'Autor desconhecido'}
+                              </p>
+                            </div>
+                          </div>
+                          {atrasado ? (
+                            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
+                              <AlertTriangle size={10} /> ATRASO
+                            </span>
+                          ) : (
+                            <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
+                              <CheckCircle size={10} /> EM DIA
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500 flex items-center gap-1">
+                            <Calendar size={11} /> Empréstimo
+                          </span>
+                          <span className="font-semibold text-gray-700">{emp.DataEmprestimo}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`flex items-center gap-1 ${atrasado ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                            <Clock size={11} /> Devolver até
+                          </span>
+                          <span className={`font-bold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>
+                            {emp.DataPrevistaDevolucao}
+                          </span>
+                        </div>
+
+                        {atrasado && (
+                          <div className="bg-red-50 rounded-lg p-2 text-center mt-2">
+                            <p className="text-xs text-red-700 font-bold">
+                              {emp.DiasAtraso} dia{emp.DiasAtraso !== 1 ? 's' : ''} de atraso
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
       )}
 
