@@ -193,6 +193,11 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
     if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN');
+    // Novos campos
+    if (req.body.Codigo !== undefined && !p['obras_campo_codigo']) proibidos.push('Codigo');
+    if (req.body.AreaConhecimento !== undefined && !p['obras_campo_areaconhecimento']) proibidos.push('AreaConhecimento');
+    if (req.body.Localizacao !== undefined && !p['obras_campo_localizacao']) proibidos.push('Localizacao');
+    if (req.body.OrdemExcel !== undefined && !p['obras_campo_ordem_excel']) proibidos.push('OrdemExcel');
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -600,6 +605,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
         const result = await pool.query(`
             SELECT O.id as "Id", O.titulo as "Titulo", A.nome as "Autor", E.nome as "Editora", 
                    O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status",
+                   O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
                    (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos"
             FROM Obras O 
             LEFT JOIN Autores A ON O.autorid = A.id 
@@ -680,21 +686,31 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
+        const result = await pool.query(`
+            SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status", 
+                   O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
+                   A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" 
+            FROM Obras O 
+            LEFT JOIN Autores A ON O.autorid = A.id 
+            LEFT JOIN Editoras E ON O.editoraid = E.id 
+            WHERE O.id = $1
+        `, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN } = req.body;
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
     try {
         const insertResult = await pool.query(
-            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, status) VALUES ($1, $2, $3, $4, $5, $6, $7, 'DISPONIVEL') RETURNING id", 
-            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null]
+            `INSERT INTO Obras 
+                (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, status, codigo, area_conhecimento, localizacao, ordem_excel) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'DISPONIVEL', $8, $9, $10, $11) RETURNING id`, 
+            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null, Codigo || null, AreaConhecimento || null, Localizacao || null, OrdemExcel || null]
         );
         const novaObraId = insertResult.rows[0].id;
         

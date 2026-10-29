@@ -6,12 +6,22 @@ import { useAuth } from '../contexts/AuthContext';
 import { Autocomplete } from '../components/Autocomplete';
 import { 
   BookOpen, User, Building2, Calendar, Layers, Lock, 
-  RefreshCw, Hash, Globe, Search, Eye, Barcode
+  RefreshCw, Hash, Globe, Search, Eye, Barcode, MapPin, Tags
 } from 'lucide-react';
 
 interface Autor { Id: number; Nome: string; Nacionalidade?: string; }
 interface Editora { Id: number; Nome: string; Contacto?: string; }
-interface Obra { Id: number; Titulo: string; Autor: string; Editora: string; Ano: number; Status: string; }
+interface Obra { 
+  Id: number; 
+  Titulo: string; 
+  Autor: string; 
+  Editora: string; 
+  Ano: number; 
+  Status: string; 
+  Codigo?: string;
+  AreaConhecimento?: string;
+  Localizacao?: string;
+}
 
 export function CadastrarObra() {
   const { showToast } = useToast();
@@ -28,6 +38,12 @@ export function CadastrarObra() {
   const [autorId, setAutorId] = useState('');
   const [editoraId, setEditoraId] = useState('');
   const [exemplares, setExemplares] = useState(1);
+  
+  // Novos campos do Inventário
+  const [codigo, setCodigo] = useState('');
+  const [areaConhecimento, setAreaConhecimento] = useState('');
+  const [localizacao, setLocalizacao] = useState('');
+
   const [loading, setLoading] = useState(false);
 
   const [obras, setObras] = useState<Obra[]>([]);
@@ -74,7 +90,9 @@ export function CadastrarObra() {
     return obras.filter((o) =>
       o.Titulo.toLowerCase().includes(p) ||
       (o.Autor && o.Autor.toLowerCase().includes(p)) ||
-      (o.Editora && o.Editora.toLowerCase().includes(p))
+      (o.Editora && o.Editora.toLowerCase().includes(p)) ||
+      (o.Codigo && o.Codigo.toLowerCase().includes(p)) ||
+      (o.AreaConhecimento && o.AreaConhecimento.toLowerCase().includes(p))
     );
   }, [obras, pesquisa]);
 
@@ -167,6 +185,10 @@ export function CadastrarObra() {
               NacionalidadeLivro: nacionalidadeLivro.trim() || null,
               AutorId: Number(autorId),
               EditoraId: Number(editoraId),
+              // Novos campos
+              Codigo: codigo.trim() || null,
+              AreaConhecimento: areaConhecimento.trim() || null,
+              Localizacao: localizacao.trim() || null,
             }),
           })
         );
@@ -182,6 +204,9 @@ export function CadastrarObra() {
         setIsbn('');
         setNumeroEdicao('');
         setNacionalidadeLivro('');
+        setCodigo('');
+        setAreaConhecimento('');
+        setLocalizacao('');
         setExemplares(1);
         carregarObras(); 
       } else {
@@ -312,6 +337,42 @@ export function CadastrarObra() {
             </div>
           </div>
 
+          {/* NOVOS CAMPOS DO INVENTÁRIO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Código do Livro</span>
+                {!temPermissao('obras_campo_codigo') && <Lock size={12} className="text-red-400" />}
+              </label>
+              <div className="relative">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input type="text" value={codigo} onChange={(e) => setCodigo(e.target.value)} disabled={campoBloqueado('obras_campo_codigo')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_codigo') ? disabledClass : enabledClass}`} placeholder="Ex: 1925" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Localização</span>
+                {!temPermissao('obras_campo_localizacao') && <Lock size={12} className="text-red-400" />}
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input type="text" value={localizacao} onChange={(e) => setLocalizacao(e.target.value)} disabled={campoBloqueado('obras_campo_localizacao')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_localizacao') ? disabledClass : enabledClass}`} placeholder="Ex: E1C1F1" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>Área de Conhecimento</span>
+              {!temPermissao('obras_campo_areaconhecimento') && <Lock size={12} className="text-red-400" />}
+            </label>
+            <div className="relative">
+              <Tags className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input type="text" value={areaConhecimento} onChange={(e) => setAreaConhecimento(e.target.value)} disabled={campoBloqueado('obras_campo_areaconhecimento')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_areaconhecimento') ? disabledClass : enabledClass}`} placeholder="Ex: Metodologia de Investigação" />
+            </div>
+          </div>
+
           <Autocomplete label="Autor" options={opcoesAutores} value={autorId} onChange={setAutorId} placeholder="Escreve para pesquisar..." icon={<User size={18} />} disabled={campoBloqueado('obras_campo_autor')} required />
           <Autocomplete label="Editora" options={opcoesEditoras} value={editoraId} onChange={setEditoraId} placeholder="Escreve para pesquisar..." icon={<Building2 size={18} />} disabled={campoBloqueado('obras_campo_editora')} required />
 
@@ -342,7 +403,7 @@ export function CadastrarObra() {
 
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por título, autor ou editora..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm" />
+            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por título, autor, editora, código..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm" />
           </div>
         </div>
 
@@ -361,6 +422,9 @@ export function CadastrarObra() {
                   <th className="px-6 py-4 font-bold">Título</th>
                   <th className="px-6 py-4 font-bold">Autor</th>
                   <th className="px-6 py-4 font-bold">Editora</th>
+                  <th className="px-6 py-4 font-bold">Código</th>
+                  <th className="px-6 py-4 font-bold">Área</th>
+                  <th className="px-6 py-4 font-bold">Localização</th>
                   <th className="px-6 py-4 font-bold text-center">Ano</th>
                   <th className="px-6 py-4 font-bold">Status</th>
                   <th className="px-6 py-4 font-bold text-center">Ações</th>
@@ -372,6 +436,9 @@ export function CadastrarObra() {
                     <td className="px-6 py-4 font-semibold text-gray-800">{obra.Titulo}</td>
                     <td className="px-6 py-4 text-gray-600">{obra.Autor}</td>
                     <td className="px-6 py-4 text-gray-600">{obra.Editora || <span className="text-gray-300 italic">—</span>}</td>
+                    <td className="px-6 py-4 text-gray-600 font-mono text-xs">{obra.Codigo || <span className="text-gray-300 italic">—</span>}</td>
+                    <td className="px-6 py-4 text-gray-600 truncate max-w-[150px]" title={obra.AreaConhecimento}>{obra.AreaConhecimento || <span className="text-gray-300 italic">—</span>}</td>
+                    <td className="px-6 py-4 text-gray-600">{obra.Localizacao || <span className="text-gray-300 italic">—</span>}</td>
                     <td className="px-6 py-4 text-center text-gray-600 font-medium">{obra.Ano}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${obra.Status === 'DISPONIVEL' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>

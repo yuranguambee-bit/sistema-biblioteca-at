@@ -715,7 +715,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().query(`
-            SELECT O.Id, O.Titulo, A.Nome as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Status,
+            SELECT O.Id, O.Titulo, A.Nome as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Codigo, O.AreaConhecimento, O.Localizacao, O.OrdemExcel, O.Status,
                    (SELECT COUNT(*) FROM Emprestimos WHERE ObraId = O.Id) as TotalEmprestimos
             FROM Obras O 
             LEFT JOIN Autores A ON O.AutorId = A.Id 
@@ -791,7 +791,7 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().input('Id', sql.Int, req.params.id).query(`
-            SELECT O.Id, O.Titulo, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Status, A.Nome as Autor, A.Nacionalidade, E.Nome as Editora, E.Contacto as EditoraContacto
+            SELECT O.Id, O.Titulo, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Codigo, O.AreaConhecimento, O.Localizacao, O.OrdemExcel, O.Status, A.Nome as Autor, A.Nacionalidade, E.Nome as Editora, E.Contacto as EditoraContacto
             FROM Obras O LEFT JOIN Autores A ON O.AutorId = A.Id LEFT JOIN Editoras E ON O.EditoraId = E.Id WHERE O.Id = @Id
         `);
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
@@ -800,7 +800,7 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN } = req.body;
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
 
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
@@ -809,8 +809,10 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
         const insertResult = await pool.request()
             .input('Titulo', sql.NVarChar, Titulo).input('Ano', sql.Int, Ano).input('AutorId', sql.Int, AutorId).input('EditoraId', sql.Int, EditoraId)
             .input('NumeroEdicao', sql.NVarChar, NumeroEdicao || null).input('NacionalidadeLivro', sql.NVarChar, NacionalidadeLivro || null)
-            .input('ISBN', sql.NVarChar, ISBN || null)
-            .query(`INSERT INTO Obras (Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Status) OUTPUT INSERTED.Id VALUES (@Titulo, @Ano, @AutorId, @EditoraId, @NumeroEdicao, @NacionalidadeLivro, @ISBN, 'DISPONIVEL')`);
+            .input('ISBN', sql.NVarChar, ISBN || null).input('Codigo', sql.NVarChar, Codigo || null)
+            .input('AreaConhecimento', sql.NVarChar, AreaConhecimento || null).input('Localizacao', sql.NVarChar, Localizacao || null)
+            .input('OrdemExcel', sql.Int, OrdemExcel || null)
+            .query(`INSERT INTO Obras (Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel, Status) OUTPUT INSERTED.Id VALUES (@Titulo, @Ano, @AutorId, @EditoraId, @NumeroEdicao, @NacionalidadeLivro, @ISBN, @Codigo, @AreaConhecimento, @Localizacao, @OrdemExcel, 'DISPONIVEL')`);
 
         const novaObraId = insertResult.recordset[0].Id;
 
@@ -1080,7 +1082,7 @@ app.delete('/api/editoras/:id', verificarToken, verificarPermissao('editoras_apa
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ RESERVAS (Fila de Espera + Requisições de Levantamento) ============
+// ============ RESERVAS ============
 app.get('/api/reservas', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
