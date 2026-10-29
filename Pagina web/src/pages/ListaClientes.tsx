@@ -6,7 +6,8 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Eye, UserPlus, Search, Users, Edit3, Trash2, Save, X, 
-  User, Mail, Phone, BookOpen, AlertCircle, Lock, RefreshCw, CreditCard, FileText
+  User, Mail, Phone, BookOpen, AlertCircle, Lock, RefreshCw, 
+  CreditCard, FileText, KeyRound, CheckCircle, ShieldOff
 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 
@@ -19,6 +20,7 @@ interface Cliente {
   NUIT: string | null;
   TotalEmprestimos: number;
   EmprestimosAtivos: number;
+  ContaAtiva: boolean | number;
 }
 
 export function ListaClientes() {
@@ -40,9 +42,15 @@ export function ListaClientes() {
   const [formNUIT, setFormNUIT] = useState('');
   const [salvando, setSalvando] = useState(false);
 
+  const [modalPasswordAberto, setModalPasswordAberto] = useState(false);
+  const [clienteReset, setClienteReset] = useState<Cliente | null>(null);
+  const [novaPassword, setNovaPassword] = useState('');
+  const [salvandoPassword, setSalvandoPassword] = useState(false);
+
   const podeCriar = temPermissao('clientes_criar');
   const podeEditar = temPermissao('clientes_editar');
   const podeApagar = temPermissao('clientes_apagar');
+  const isAdmin = user?.role === 'Admin';
 
   const isEditing = !!editando;
   const podeSubmeter = isEditing ? podeEditar : podeCriar;
@@ -98,7 +106,7 @@ export function ListaClientes() {
   const handleGuardarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editando || !podeSubmeter) return;
-    
+
     if (!formNome.trim()) {
       showToast('O nome do cliente é obrigatório.', 'error');
       return;
@@ -159,8 +167,54 @@ export function ListaClientes() {
     }
   };
 
+  const abrirModalPassword = (cliente: Cliente) => {
+    if (!isAdmin) return showToast('Apenas administradores podem redefinir passwords.', 'error');
+    if (!cliente.Email) return showToast('Este cliente não tem email, não pode ter conta de portal.', 'error');
+    setClienteReset(cliente);
+    setNovaPassword('');
+    setModalPasswordAberto(true);
+  };
+
+  const fecharModalPassword = () => {
+    setModalPasswordAberto(false);
+    setClienteReset(null);
+    setNovaPassword('');
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clienteReset) return;
+    if (!novaPassword || novaPassword.length < 6) {
+      showToast('A password deve ter pelo menos 6 caracteres.', 'error');
+      return;
+    }
+
+    setSalvandoPassword(true);
+    try {
+      const response = await apiFetch(`/api/clientes/${clienteReset.Id}/reset-password`, {
+        method: 'PUT',
+        body: JSON.stringify({ NovaPassword: novaPassword }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast('Password redefinida com sucesso!', 'success');
+        fecharModalPassword();
+        carregarClientes();
+      } else {
+        showToast(data.error || 'Erro ao redefinir password.', 'error');
+      }
+    } catch (error) {
+      showToast('Erro de ligação ao servidor.', 'error');
+    } finally {
+      setSalvandoPassword(false);
+    }
+  };
+
   const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
   const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+
+  const contaAtiva = (c: Cliente) => c.ContaAtiva === true || c.ContaAtiva === 1;
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
@@ -201,7 +255,7 @@ export function ListaClientes() {
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
-            <TableSkeleton rows={6} cols={5} />
+            <TableSkeleton rows={6} cols={6} />
           ) : clientesFiltrados.length === 0 ? (
             <div className="p-12 text-center">
               <Users size={56} className="mx-auto mb-3 text-gray-300" />
@@ -219,6 +273,7 @@ export function ListaClientes() {
                   <th className="px-6 py-4 font-bold">Nome</th>
                   <th className="px-6 py-4 font-bold">Contacto</th>
                   <th className="px-6 py-4 font-bold">Documentos</th>
+                  <th className="px-6 py-4 font-bold text-center">Portal</th>
                   <th className="px-6 py-4 font-bold text-center">Empréstimos</th>
                   <th className="px-6 py-4 font-bold text-center">Ações</th>
                 </tr>
@@ -226,6 +281,7 @@ export function ListaClientes() {
               <tbody className="text-sm text-gray-700">
                 {clientesFiltrados.map((cliente) => {
                   const iniciais = cliente.Nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+                  const ativo = contaAtiva(cliente);
                   return (
                     <tr key={cliente.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                       <td className="px-6 py-4">
@@ -249,16 +305,30 @@ export function ListaClientes() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
+                        {ativo ? (
+                          <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-green-200">
+                            <CheckCircle size={11} /> Ativa
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ring-gray-200" title="Cliente ainda não tem conta ativa no portal">
+                            <ShieldOff size={11} /> Inativa
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
                         <div className="flex flex-col items-center gap-1">
                           {cliente.TotalEmprestimos > 0 ? <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-blue-200"><BookOpen size={12} />{cliente.TotalEmprestimos}</span> : <span className="text-gray-300 text-xs">—</span>}
                           {cliente.EmprestimosAtivos > 0 && <span className="text-[10px] text-orange-600 font-bold">{cliente.EmprestimosAtivos} ativo(s)</span>}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button onClick={() => navigate(`/clientes/${cliente.Id}`)} className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors" title="Ver detalhes"><Eye size={14} /></button>
                           <button onClick={() => abrirEdicao(cliente)} disabled={!podeEditar} className="bg-yellow-500 text-white p-2 rounded-md hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Editar"><Edit3 size={14} /></button>
-                          {(user?.role === 'Admin' || podeApagar) && (
+                          {isAdmin && cliente.Email && (
+                            <button onClick={() => abrirModalPassword(cliente)} className="bg-purple-500 text-white p-2 rounded-md hover:bg-purple-600 transition-colors" title="Redefinir password do portal"><KeyRound size={14} /></button>
+                          )}
+                          {(isAdmin || podeApagar) && (
                             <button onClick={() => handleEliminar(cliente)} disabled={!podeApagar} className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Eliminar"><Trash2 size={14} /></button>
                           )}
                         </div>
@@ -272,6 +342,7 @@ export function ListaClientes() {
         </div>
       </div>
 
+      {/* MODAL EDITAR */}
       {modalAberto && editando && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
@@ -354,6 +425,54 @@ export function ListaClientes() {
                 <button type="button" onClick={fecharModal} className="px-5 py-2.5 rounded-md bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
                 <button type="submit" disabled={salvando || !podeSubmeter} className="px-5 py-2.5 rounded-md bg-at-blue text-white font-semibold hover:bg-at-blue-light transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
                   {salvando ? <><RefreshCw size={16} className="animate-spin" /> A guardar...</> : <><Save size={16} /> Guardar Alterações</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL RESET PASSWORD */}
+      {modalPasswordAberto && clienteReset && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg"><KeyRound size={20} /></div>
+                <div>
+                  <h3 className="text-lg font-bold text-at-blue">Redefinir Password do Portal</h3>
+                  <p className="text-xs text-gray-500">Cliente: {clienteReset.Nome}</p>
+                </div>
+              </div>
+              <button type="button" onClick={fecharModalPassword} className="text-gray-400 hover:text-red-500 transition-colors"><X size={20} /></button>
+            </div>
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded text-xs text-blue-900">
+                Vais definir uma nova password para o leitor aceder ao Portal do Leitor. A password antiga deixa de funcionar imediatamente.
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">Nova Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="text"
+                    required
+                    minLength={6}
+                    value={novaPassword}
+                    onChange={(e) => setNovaPassword(e.target.value)}
+                    className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Comunica esta password ao leitor. Ele pode alterá-la depois no portal.</p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={fecharModalPassword} className="px-5 py-2.5 rounded-md bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
+                <button type="submit" disabled={salvandoPassword} className="px-5 py-2.5 rounded-md bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
+                  {salvandoPassword ? <><RefreshCw size={16} className="animate-spin" /> A guardar...</> : <><KeyRound size={16} /> Redefinir Password</>}
                 </button>
               </div>
             </form>

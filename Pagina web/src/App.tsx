@@ -23,17 +23,35 @@ import { Permissoes } from './pages/Permissoes';
 import { Perfil } from './pages/Perfil';
 import { Manual } from './pages/Manual';
 import { Login } from './pages/Login';
+// NOVAS PÁGINAS DO PORTAL DO LEITOR
+import { PortalHome } from './pages/PortalHome';
+import { Catalogo } from './pages/Catalogo';
+import { MeusEmprestimos } from './pages/MeusEmprestimos';
+import { MeuHistorico } from './pages/MeuHistorico';
 
-function SistemaPrivado() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-
+// ============ PORTAL DO LEITOR (role === 'Cliente') ============
+function PortalLeitor() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <Routes>
-        {/* Rotas sempre acessíveis (qualquer utilizador autenticado) */}
+        <Route path="/" element={<PortalHome />} />
+        <Route path="/catalogo" element={<Catalogo />} />
+        <Route path="/meus-emprestimos" element={<MeusEmprestimos />} />
+        <Route path="/meu-historico" element={<MeuHistorico />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
+  );
+}
+
+// ============ SISTEMA STAFF (Admin / Bibliotecário) ============
+function SistemaStaff() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <Routes>
+        {/* Rotas sempre acessíveis (qualquer funcionário autenticado) */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/clientes/:id" element={<DetalhesCliente />} />
@@ -61,6 +79,21 @@ function SistemaPrivado() {
       </Routes>
     </div>
   );
+}
+
+// ============ DECISOR DE ÁREA ============
+function SistemaPrivado() {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  // Cliente → Portal do Leitor
+  if (user?.role === 'Cliente') {
+    return <PortalLeitor />;
+  }
+
+  // Admin / Bibliotecário → Sistema original
+  return <SistemaStaff />;
 }
 
 function App() {

@@ -18,7 +18,6 @@ dotenv.config();
 
 const app = express();
 
-// Confiar no proxy do Render
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
@@ -141,6 +140,7 @@ cron.schedule('0 8 * * *', async () => {
     }
 });
 
+// ============ MIDDLEWARES ============
 function verificarToken(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -156,11 +156,17 @@ function apenasAdmin(req: Request, res: Response, next: NextFunction) {
     next();
 }
 
+function apenasCliente(req: Request, res: Response, next: NextFunction) {
+    if ((req as any).user.role !== 'Cliente') return res.status(403).json({ error: 'Acesso apenas para leitores.' });
+    next();
+}
+
 function verificarPermissao(chave: string) {
     return (req: Request, res: Response, next: NextFunction) => {
         const user = (req as any).user;
         if (!user) return res.status(401).json({ error: 'Não autenticado.' });
         if (user.role === 'Admin') return next();
+        if (user.role === 'Cliente') return res.status(403).json({ error: 'Acesso restrito a funcionários.' });
         const permissoes = parsePermissoes(user.permissoes);
         if (permissoes[chave] === true) return next();
         return res.status(403).json({ error: 'Não tens permissão para esta ação.' });
@@ -228,20 +234,49 @@ function verificarCamposCliente(req: Request, res: Response, next: NextFunction)
     next();
 }
 
+// ============ LOGIN UNIFICADO (Funcionário OU Cliente) ============
 app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) => {
     const { Email, Password } = req.body;
     try {
-        const result = await pool.query('SELECT id as "Id", nome as "Nome", email as "Email", passwordhash as "PasswordHash", role as "Role", permissoes as "Permissoes" FROM Usuarios WHERE email = $1', [Email]);
-        if (result.rows.length === 0) return res.status(401).json({ error: 'Email ou password incorretos.' });
-        const user = result.rows[0];
-        const passwordOk = await bcrypt.compare(Password, user.PasswordHash);
-        if (!passwordOk) return res.status(401).json({ error: 'Email ou password incorretos.' });
-        const permissoes = parsePermissoes(user.Permissoes);
-        const token = jwt.sign({ id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes }, JWT_SECRET, { expiresIn: '8h' });
-        res.json({ token, user: { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes } });
+        // 1. Tentar como funcionário
+        const resultUser = await pool.query(
+            'SELECT id as "Id", nome as "Nome", email as "Email", passwordhash as "PasswordHash", role as "Role", permissoes as "Permissoes" FROM Usuarios WHERE email = $1',
+            [Email]
+        );
+
+        if (resultUser.rows.length > 0) {
+            const user = resultUser.rows[0];
+            const passwordOk = await bcrypt.compare(Password, user.PasswordHash);
+            if (!passwordOk) return res.status(401).json({ error: 'Email ou password incorretos.' });
+
+            const permissoes = parsePermissoes(user.Permissoes);
+            const token = jwt.sign({ id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes }, JWT_SECRET, { expiresIn: '8h' });
+            return res.json({ token, user: { id: user.Id, nome: user.Nome, email: user.Email, role: user.Role, permissoes } });
+        }
+
+        // 2. Tentar como cliente
+        const resultCliente = await pool.query(
+            'SELECT id as "Id", nome as "Nome", email as "Email", passwordhash as "PasswordHash" FROM Clientes WHERE email = $1',
+            [Email]
+        );
+
+        if (resultCliente.rows.length > 0) {
+            const cliente = resultCliente.rows[0];
+            if (!cliente.PasswordHash) {
+                return res.status(401).json({ error: 'Conta de leitor ainda não ativada. Contacta a biblioteca.' });
+            }
+            const passwordOk = await bcrypt.compare(Password, cliente.PasswordHash);
+            if (!passwordOk) return res.status(401).json({ error: 'Email ou password incorretos.' });
+
+            const token = jwt.sign({ id: cliente.Id, nome: cliente.Nome, email: cliente.Email, role: 'Cliente' }, JWT_SECRET, { expiresIn: '8h' });
+            return res.json({ token, user: { id: cliente.Id, nome: cliente.Nome, email: cliente.Email, role: 'Cliente' } });
+        }
+
+        return res.status(401).json({ error: 'Email ou password incorretos.' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ BACKUP ============
 app.post('/api/backup/executar', async (req: Request, res: Response) => {
     const secretHeader = req.headers['x-backup-secret'];
     if (!process.env.BACKUP_SECRET) return res.status(500).json({ error: 'Backup não configurado.' });
@@ -261,6 +296,117 @@ app.post('/api/backup/executar', async (req: Request, res: Response) => {
     } catch (error: any) { res.status(500).json({ error: 'Erro no backup: ' + error.message }); }
 });
 
+// ============ PORTAL DO LEITOR ============
+app.get('/api/portal/perfil', verificarToken, apenasCliente, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id as "Id", nome as "Nome", email as "Email", telefone as "Telefone", pi as "PI", nuit as "NUIT" FROM Clientes WHERE id = $1',
+            [(req as any).user.id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Leitor não encontrado.' });
+        res.json(result.rows[0]);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT E.id as "Id", O.titulo as "Obra", A.nome as "Autor", 
+                   TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
+                   CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso"
+            FROM Emprestimos E
+            INNER JOIN Obras O ON E.obraid = O.id
+            LEFT JOIN Autores A ON O.autorid = A.id
+            WHERE E.clienteid = $1 AND E.status = 'ATIVO'
+            ORDER BY E.dataemprestimo DESC
+        `, [(req as any).user.id]);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT E.id as "Id", O.titulo as "Obra", A.nome as "Autor", 
+                   TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
+                   TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao"
+            FROM Emprestimos E
+            INNER JOIN Obras O ON E.obraid = O.id
+            LEFT JOIN Autores A ON O.autorid = A.id
+            WHERE E.clienteid = $1 AND E.status = 'DEVOLVIDO'
+            ORDER BY E.dataemprestimo DESC
+        `, [(req as any).user.id]);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, res) => {
+    const { ObraId } = req.body;
+    const ClienteId = (req as any).user.id;
+
+    if (!ObraId) return res.status(400).json({ error: 'Indica a obra a requisitar.' });
+
+    try {
+        const checkObra = await pool.query('SELECT titulo, status FROM Obras WHERE id = $1', [ObraId]);
+        if (checkObra.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        if (checkObra.rows[0].status !== 'DISPONIVEL') {
+            return res.status(400).json({ error: 'Obra indisponível para requisição. Já está emprestada.' });
+        }
+
+        const checkPedido = await pool.query(
+            "SELECT COUNT(*) as total FROM Reservas WHERE obraid = $1 AND clienteid = $2 AND status = 'PENDENTE'",
+            [ObraId, ClienteId]
+        );
+        if (Number(checkPedido.rows[0].total) > 0) {
+            return res.status(400).json({ error: 'Já tens uma requisição pendente para esta obra.' });
+        }
+
+        const insertResult = await pool.query(
+            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, Tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'LEVANTAMENTO') RETURNING id",
+            [ObraId, ClienteId]
+        );
+
+        const clienteInfo = await pool.query('SELECT nome FROM Clientes WHERE id = $1', [ClienteId]);
+        const nomeCliente = clienteInfo.rows[0].nome;
+
+        await criarNotificacao(
+            '🔔 Nova Requisição',
+            `O leitor ${nomeCliente} requisitou "${checkObra.rows[0].titulo}" para levantamento.`,
+            'RESERVA',
+            '/reservas'
+        );
+
+        res.status(201).json({
+            message: 'Requisição efetuada! Dirige-te à biblioteca para levantares o livro.',
+            reservaId: insertResult.rows[0].id
+        });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) => {
+    const { PasswordAtual, PasswordNova } = req.body;
+    if (!PasswordAtual || !PasswordNova) return res.status(400).json({ error: 'Preenche todos os campos.' });
+    if (PasswordNova.length < 6) return res.status(400).json({ error: 'A password nova deve ter pelo menos 6 caracteres.' });
+
+    try {
+        const userResult = await pool.query('SELECT passwordhash FROM Clientes WHERE id = $1', [(req as any).user.id]);
+        if (!userResult.rows[0].passwordhash) {
+            // Primeira ativação de conta
+            const novoHash = await bcrypt.hash(PasswordNova, 10);
+            await pool.query('UPDATE Clientes SET passwordhash = $1 WHERE id = $2', [novoHash, (req as any).user.id]);
+            return res.json({ message: 'Password definida com sucesso!' });
+        }
+        if (!await bcrypt.compare(PasswordAtual, userResult.rows[0].passwordhash)) {
+            return res.status(400).json({ error: 'Password atual incorreta.' });
+        }
+        const novoHash = await bcrypt.hash(PasswordNova, 10);
+        await pool.query('UPDATE Clientes SET passwordhash = $1 WHERE id = $2', [novoHash, (req as any).user.id]);
+        res.json({ message: 'Password alterada com sucesso!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ CONFIGURAÇÕES ============
 app.get('/api/configuracoes', verificarToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT chave, valor FROM Configuracoes');
@@ -279,6 +425,7 @@ app.put('/api/configuracoes', verificarToken, apenasAdmin, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ PERFIL ============
 app.get('/api/perfil', verificarToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT id as "Id", nome as "Nome", email as "Email", role as "Role", permissoes as "Permissoes" FROM Usuarios WHERE id = $1', [(req as any).user.id]);
@@ -308,6 +455,7 @@ app.get('/api/perfil/atividade', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ UTILIZADORES ============
 app.get('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
     try {
         const result = await pool.query('SELECT id as "Id", nome as "Nome", email as "Email", role as "Role", permissoes as "Permissoes" FROM Usuarios ORDER BY nome');
@@ -356,6 +504,7 @@ app.delete('/api/usuarios/:id', verificarToken, apenasAdmin, async (req, res) =>
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ OBRAS ============
 app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -379,7 +528,7 @@ app.get('/api/obras/disponiveis', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id/reservas', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT ROW_NUMBER() OVER (ORDER BY R.datareserva ASC) as "Posicao", R.id as "Id", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva" FROM Reservas R INNER JOIN Clientes C ON R.clienteid = C.id WHERE R.obraid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva ASC`, [req.params.id]);
+        const result = await pool.query(`SELECT ROW_NUMBER() OVER (ORDER BY R.datareserva ASC) as "Posicao", R.id as "Id", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.Tipo as "Tipo" FROM Reservas R INNER JOIN Clientes C ON R.clienteid = C.id WHERE R.obraid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva ASC`, [req.params.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -409,11 +558,9 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     };
 
     try {
-        // 1ª Tentativa: Com a chave
         let data = await buscarNoGoogle(true);
         console.log(`Tentativa com chave. Total Items: ${data.totalItems}`);
 
-        // 2ª Tentativa: Se falhou (0 itens ou erro de quota), tenta sem chave
         if (!data.items || data.items.length === 0) {
             console.log('A tentar novamente sem chave...');
             data = await buscarNoGoogle(false);
@@ -474,6 +621,7 @@ app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras_apagar'),
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ AUTORES ============
 app.get('/api/autores', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`SELECT A.id as "Id", A.nome as "Nome", A.sobrenome as "Sobrenome", A.nacionalidade as "Nacionalidade", TO_CHAR(A.datanascimento, 'DD/MM/YYYY') as "DataNascimento", A.biografia as "Biografia", A.sexo as "Sexo", A.tiposlivros as "TiposLivros", (SELECT COUNT(*) FROM Obras WHERE autorid = A.id) as "TotalObras" FROM Autores A ORDER BY A.nome`);
@@ -523,18 +671,43 @@ app.delete('/api/autores/:id', verificarToken, verificarPermissao('autores_apaga
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ CLIENTES ============
 app.get('/api/clientes', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT C.id as "Id", C.nome as "Nome", C.email as "Email", C.telefone as "Telefone", C.pi as "PI", C.nuit as "NUIT", (SELECT COUNT(*) FROM Emprestimos WHERE clienteid = C.id) as "TotalEmprestimos", (SELECT COUNT(*) FROM Emprestimos WHERE clienteid = C.id AND status = 'ATIVO') as "EmprestimosAtivos" FROM Clientes C ORDER BY C.nome`);
+        const result = await pool.query(`SELECT C.id as "Id", C.nome as "Nome", C.email as "Email", C.telefone as "Telefone", C.pi as "PI", C.nuit as "NUIT", (SELECT COUNT(*) FROM Emprestimos WHERE clienteid = C.id) as "TotalEmprestimos", (SELECT COUNT(*) FROM Emprestimos WHERE clienteid = C.id AND status = 'ATIVO') as "EmprestimosAtivos", CASE WHEN C.passwordhash IS NOT NULL THEN TRUE ELSE FALSE END as "ContaAtiva" FROM Clientes C ORDER BY C.nome`);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/clientes', verificarToken, verificarPermissao('clientes_criar'), verificarCamposCliente, async (req, res) => {
-    const { Nome, Email, Telefone, PI, NUIT } = req.body;
+    const { Nome, Email, Telefone, PI, NUIT, Password } = req.body;
+
+    if (!Nome) return res.status(400).json({ error: 'O nome é obrigatório.' });
+
     try {
-        const insertResult = await pool.query('INSERT INTO Clientes (nome, email, telefone, pi, nuit) VALUES ($1, $2, $3, $4, $5) RETURNING id', [Nome, Email || null, Telefone || null, PI || null, NUIT || null]);
-        res.status(201).json({ message: 'Cliente cadastrado!' });
+        // Se tem email, verificar duplicado
+        if (Email) {
+            const checkDup = await pool.query('SELECT COUNT(*) as total FROM Clientes WHERE LOWER(email) = LOWER($1)', [Email]);
+            if (Number(checkDup.rows[0].total) > 0) return res.status(400).json({ error: 'Este email já está registado.' });
+
+            const checkStaff = await pool.query('SELECT COUNT(*) as total FROM Usuarios WHERE LOWER(email) = LOWER($1)', [Email]);
+            if (Number(checkStaff.rows[0].total) > 0) return res.status(400).json({ error: 'Este email já está registado como funcionário.' });
+        }
+
+        const passwordFinal = Password && Password.length >= 6 ? Password : '123456';
+        const hash = Email ? await bcrypt.hash(passwordFinal, 10) : null;
+
+        const insertResult = await pool.query(
+            'INSERT INTO Clientes (nome, email, telefone, pi, nuit, passwordhash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            [Nome, Email || null, Telefone || null, PI || null, NUIT || null, hash]
+        );
+
+        res.status(201). json({
+            message: Email
+                ? `Cliente cadastrado! Password inicial: ${passwordFinal} (o leitor deve alterá-la no portal).`
+                : 'Cliente cadastrado (sem conta de portal porque não tem email).',
+            clienteId: insertResult.rows[0].id
+        });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -552,6 +725,16 @@ app.put('/api/clientes/:id', verificarToken, verificarPermissao('clientes_editar
 
         await pool.query('UPDATE Clientes SET nome = $1, email = $2, telefone = $3, pi = $4, nuit = $5 WHERE id = $6', [novoNome, novoEmail, novoTelefone, novoPI, novoNUIT, req.params.id]);
         res.json({ message: 'Cliente atualizado!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/clientes/:id/reset-password', verificarToken, apenasAdmin, async (req, res) => {
+    const { NovaPassword } = req.body;
+    if (!NovaPassword || NovaPassword.length < 6) return res.status(400).json({ error: 'A password deve ter pelo menos 6 caracteres.' });
+    try {
+        const hash = await bcrypt.hash(NovaPassword, 10);
+        await pool.query('UPDATE Clientes SET passwordhash = $1 WHERE id = $2', [hash, req.params.id]);
+        res.json({ message: 'Password do leitor redefinida com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -576,7 +759,7 @@ app.get('/api/clientes/:id/historico', verificarToken, async (req, res) => {
 
 app.get('/api/clientes/:id/reservas', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva" FROM Reservas R INNER JOIN Obras O ON R.obraid = O.id WHERE R.clienteid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva DESC`, [req.params.id]);
+        const result = await pool.query(`SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.Tipo as "Tipo" FROM Reservas R INNER JOIN Obras O ON R.obraid = O.id WHERE R.clienteid = $1 AND R.status = 'PENDENTE' ORDER BY R.datareserva DESC`, [req.params.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -593,6 +776,7 @@ app.get('/api/clientes/:id', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ EDITORAS ============
 app.get('/api/editoras', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`SELECT E.id as "Id", E.nome as "Nome", E.endereco as "Endereco", E.telefone as "Telefone", E.email as "Email", E.website as "Website", E.paisorigem as "PaisOrigem", (SELECT COUNT(*) FROM Obras WHERE editoraid = E.id) as "TotalObras" FROM Editoras E ORDER BY E.nome`);
@@ -636,9 +820,20 @@ app.delete('/api/editoras/:id', verificarToken, verificarPermissao('editoras_apa
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ RESERVAS (Fila de Espera + Requisições de Levantamento) ============
 app.get('/api/reservas', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.status as "Status" FROM Reservas R INNER JOIN Obras O ON R.obraid = O.id INNER JOIN Clientes C ON R.clienteid = C.id WHERE R.status = 'PENDENTE' ORDER BY R.datareserva ASC`);
+        const result = await pool.query(`
+            SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", O.status as "ObraStatus", 
+                   C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", 
+                   TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", 
+                   R.status as "Status", R.Tipo as "Tipo"
+            FROM Reservas R 
+            INNER JOIN Obras O ON R.obraid = O.id 
+            INNER JOIN Clientes C ON R.clienteid = C.id 
+            WHERE R.status = 'PENDENTE' 
+            ORDER BY R.datareserva ASC
+        `);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -655,7 +850,10 @@ app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), 
         const check = await pool.query("SELECT COUNT(*) as total FROM Reservas WHERE obraid = $1 AND clienteid = $2 AND status = 'PENDENTE'", [ObraId, ClienteId]);
         if (Number(check.rows[0].total) > 0) return res.status(400).json({ error: 'Já tens reserva pendente.' });
 
-        const insertResult = await pool.query("INSERT INTO Reservas (obraid, clienteid, datareserva, status) VALUES ($1, $2, NOW(), 'PENDENTE') RETURNING id", [ObraId, ClienteId]);
+        const insertResult = await pool.query(
+            "INSERT INTO Reservas (obraid, clienteid, datareserva, status, Tipo) VALUES ($1, $2, NOW(), 'PENDENTE', 'FILA_ESPERA') RETURNING id",
+            [ObraId, ClienteId]
+        );
         const novaReservaId = insertResult.rows[0].id;
         
         const info = await pool.query('SELECT O.titulo as obra, C.nome as cliente FROM Obras O, Clientes C WHERE O.id = $1 AND C.id = $2', [ObraId, ClienteId]);
@@ -675,6 +873,7 @@ app.delete('/api/reservas/:id', verificarToken, verificarPermissao('reservas_can
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ EMPRÉSTIMOS ============
 app.get('/api/emprestimos', verificarToken, async (req, res) => {
     try {
         const valorMulta = await obterConfig('ValorMultaDia', 40);
@@ -706,6 +905,95 @@ app.get('/api/emprestimos/:id/comprovativo', verificarToken, async (req, res) =>
         if (result.rows.length === 0) return res.status(404).json({ error: 'Não encontrado.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ CONFIRMAR REQUISIÇÃO DO PORTAL ============
+app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, verificarPermissao('emprestimos_criar'), async (req, res) => {
+    const reservaId = req.params.reservaId;
+    const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
+    const valorMultaDia = await obterConfig('ValorMultaDia', 40);
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const resInfo = await client.query(
+            "SELECT obraid, clienteid, Tipo FROM Reservas WHERE id = $1 AND status = 'PENDENTE'",
+            [reservaId]
+        );
+        if (resInfo.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Requisição não encontrada ou já processada.' });
+        }
+
+        const { obraid: obraId, clienteid: clienteId, Tipo } = resInfo.rows[0];
+
+        if (Tipo !== 'LEVANTAMENTO') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Esta reserva não é uma requisição de levantamento.' });
+        }
+
+        const checkObra = await client.query("SELECT status FROM Obras WHERE id = $1", [obraId]);
+        if (checkObra.rows[0].status !== 'DISPONIVEL') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Obra já não está disponível.' });
+        }
+
+        const insertResult = await client.query(
+            `INSERT INTO Emprestimos (obraid, clienteid, dataemprestimo, dataprevistadevolucao, status) 
+             VALUES ($1, $2, NOW(), NOW() + INTERVAL '${diasEmprestimo} days', 'ATIVO') RETURNING id`,
+            [obraId, clienteId]
+        );
+        const novoEmprestimoId = insertResult.rows[0].id;
+
+        await client.query("UPDATE Obras SET status = 'EMPRESTADO' WHERE id = $1", [obraId]);
+        await client.query("UPDATE Reservas SET status = 'ATENDIDA' WHERE id = $1", [reservaId]);
+
+        await client.query('COMMIT');
+
+        const detalhes = await pool.query(
+            `SELECT C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
+                    A.nome as "ObraAutor", Ed.nome as "ObraEditora", 
+                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
+                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao" 
+             FROM Emprestimos E 
+             INNER JOIN Clientes C ON E.clienteid = C.id 
+             INNER JOIN Obras O ON E.obraid = O.id 
+             LEFT JOIN Autores A ON O.autorid = A.id 
+             LEFT JOIN Editoras Ed ON O.editoraid = Ed.id 
+             WHERE E.id = $1`,
+            [novoEmprestimoId]
+        );
+
+        if (detalhes.rows.length > 0) {
+            const d = detalhes.rows[0];
+            await criarNotificacao(
+                '📤 Empréstimo Confirmado',
+                `${d.ClienteNome} levantou "${d.ObraTitulo}".`,
+                'EMPRESTIMO',
+                '/emprestimos'
+            );
+            enviarEmailEmprestimo({
+                clienteNome: d.ClienteNome,
+                clienteEmail: d.ClienteEmail,
+                obraTitulo: d.ObraTitulo,
+                obraAutor: d.ObraAutor,
+                obraEditora: d.ObraEditora,
+                dataEmprestimo: d.DataEmprestimo,
+                dataPrevistaDevolucao: d.DataPrevistaDevolucao,
+                diasEmprestimo,
+                valorMultaDia
+            }).catch((err) => console.error('Erro ao enviar email:', err));
+        }
+
+        res.status(201).json({ message: 'Empréstimo confirmado!', emprestimoId: novoEmprestimoId });
+    } catch (error: any) {
+        await client.query('ROLLBACK');
+        console.error('Erro ao confirmar requisição:', error);
+        res.status(500).json({ error: 'Erro ao confirmar empréstimo.' });
+    } finally {
+        client.release();
+    }
 });
 
 app.post('/api/emprestimos', verificarToken, verificarPermissao('emprestimos_criar'), async (req, res) => {
@@ -752,7 +1040,7 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
             SELECT C.nome as "ClienteNome", C.email as "ClienteEmail"
             FROM Reservas R
             INNER JOIN Clientes C ON R.clienteid = C.id
-            WHERE R.obraid = $1 AND R.status = 'PENDENTE'
+            WHERE R.obraid = $1 AND R.status = 'PENDENTE' AND R.Tipo = 'FILA_ESPERA'
             ORDER BY R.datareserva ASC LIMIT 1
         `, [obraId]);
 
@@ -780,6 +1068,7 @@ app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('empr
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ NOTIFICAÇÕES ============
 app.get('/api/notificacoes', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`SELECT id as "Id", titulo as "Titulo", mensagem as "Mensagem", tipo as "Tipo", lida as "Lida", link as "Link", TO_CHAR(datacriacao, 'DD/MM/YYYY') as "Data", TO_CHAR(datacriacao, 'HH24:MI') as "Hora" FROM Notificacoes ORDER BY datacriacao DESC LIMIT 30`);
@@ -807,6 +1096,7 @@ app.delete('/api/notificacoes', verificarToken, apenasAdmin, async (req, res) =>
     try { await pool.query('DELETE FROM Notificacoes WHERE lida = TRUE'); res.json({ message: 'Removidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ ESTATÍSTICAS ============
 app.get('/api/estatisticas', verificarToken, async (req, res) => {
     try {
         const totalObras = await pool.query('SELECT COUNT(*) as total FROM Obras');

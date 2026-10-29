@@ -1,6 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { LogOut, User, BookOpen, ShieldCheck, Home } from 'lucide-react';
+import { 
+  LogOut, User, BookOpen, ShieldCheck, Home, 
+  Library, BookMarked, History 
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useToast } from '../contexts/ToastContext';
@@ -15,8 +18,11 @@ export function Header() {
   const [atrasados, setAtrasados] = useState(0);
 
   const isAdmin = user?.role === 'Admin';
+  const isCliente = user?.role === 'Cliente';
 
   useEffect(() => {
+    // Cliente não vê estatísticas de atrasados
+    if (isCliente) return;
     if (!temPermissao('emprestimos')) return;
 
     const carregarAtrasados = () => {
@@ -29,7 +35,7 @@ export function Header() {
     carregarAtrasados();
     const intervalo = setInterval(carregarAtrasados, 30000);
     return () => clearInterval(intervalo);
-  }, [temPermissao]);
+  }, [temPermissao, isCliente]);
 
   const handleLogout = async () => {
     const ok = await confirm({
@@ -49,6 +55,51 @@ export function Header() {
 
   const linkClasses = "px-2.5 py-2 rounded-md hover:bg-white/10 hover:text-yellow-300 transition-colors text-[15px] font-semibold flex items-center gap-1.5 whitespace-nowrap";
 
+  // ============ HEADER DO PORTAL DO LEITOR ============
+  if (isCliente) {
+    return (
+      <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
+        <div className="flex flex-col items-center justify-center py-5 px-4">
+          <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
+            <img src="/logo-at.png" alt="Logotipo da Autoridade Tributária de Moçambique" className="w-full h-full object-contain" />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-wide text-center leading-tight">Autoridade Tributária de Moçambique</h1>
+          <p className="text-sm text-blue-200 font-semibold tracking-[0.15em] uppercase mt-1.5">Portal do Leitor · Biblioteca</p>
+        </div>
+
+        <div className="bg-at-blue-light/70 backdrop-blur-sm border-t border-blue-400/20 px-3">
+          <div className="flex items-center justify-between gap-2 py-1.5 w-full">
+            <nav className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
+              <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
+              <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
+              <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
+              <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
+            </nav>
+
+            <div className="flex items-center gap-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
+              <div className="flex items-center gap-1.5 px-2 py-1" title={user?.nome}>
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow ring-1 ring-white/20">
+                  <User size={12} />
+                </div>
+                <span className="hidden xl:inline font-semibold text-xs text-white whitespace-nowrap">
+                  {user?.nome?.split(' ')[0] || 'Leitor'}
+                </span>
+                <span className="hidden xl:inline px-1.5 rounded text-[9px] font-bold bg-green-400 text-white">
+                  Leitor
+                </span>
+              </div>
+              <div className="w-px h-5 bg-white/20"></div>
+              <button onClick={handleLogout} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/50 px-2.5 py-1 rounded-full transition-colors text-xs font-semibold text-red-100 hover:text-white" title="Terminar sessão">
+                <LogOut size={12} /> <span className="hidden md:inline">Sair</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // ============ HEADER DO SISTEMA STAFF (original) ============
   return (
     <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
       <div className="flex flex-col items-center justify-center py-5 px-4">
