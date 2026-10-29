@@ -71,8 +71,10 @@ async function obterConfig(chave: string, fallback: number): Promise<number> {
     } catch { return fallback; }
 }
 
-async function criarNotificacao(titulo: string, mensagem: string, tipo: string, link: string | null = null) {
-    try { await pool.query('INSERT INTO Notificacoes (Titulo, Mensagem, Tipo, Link) VALUES ($1, $2, $3, $4)', [titulo, mensagem, tipo, link]); } catch (error) { console.error('Erro ao criar notificação:', error); }
+async function criarNotificacao(titulo: string, mensagem: string, tipo: string, link: string | null = null, clienteId: number | null = null) {
+    try { 
+        await pool.query('INSERT INTO Notificacoes (Titulo, Mensagem, Tipo, Link, ClienteId) VALUES ($1, $2, $3, $4, $5)', [titulo, mensagem, tipo, link, clienteId]); 
+    } catch (error) { console.error('Erro ao criar notificação:', error); }
 }
 
 async function seedAdmin() {
@@ -93,7 +95,7 @@ cron.schedule('0 8 * * *', async () => {
 
     try {
         const lembretes = await pool.query(`
-            SELECT E.id, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
+            SELECT E.id, E.clienteid, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevista"
             FROM Emprestimos E
             INNER JOIN Clientes C ON E.clienteid = C.id
@@ -102,6 +104,11 @@ cron.schedule('0 8 * * *', async () => {
         `);
 
         for (const row of lembretes.rows) {
+            // Notificação para o Sistema (Admin)
+            await criarNotificacao('⏰ Lembrete de Devolução', `A obra "${row.ObraTitulo}" de ${row.ClienteNome} vence em 2 dias.`, 'LEMBRETE', '/emprestimos', null);
+            // Notificação para o Cliente
+            await criarNotificacao('⏰ Lembrete de Devolução', `A obra "${row.ObraTitulo}" deve ser devolvida em 2 dias.`, 'LEMBRETE', '/meus-emprestimos', row.clienteid);
+
             if (row.ClienteEmail) {
                 await enviarEmailLembrete({
                     clienteNome: row.ClienteNome,
@@ -113,7 +120,7 @@ cron.schedule('0 8 * * *', async () => {
         }
 
         const atrasados = await pool.query(`
-            SELECT E.id, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
+            SELECT E.id, E.clienteid, C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevista",
                    (CURRENT_DATE - E.dataprevistadevolucao::date) as "DiasAtraso"
             FROM Emprestimos E
@@ -123,6 +130,9 @@ cron.schedule('0 8 * * *', async () => {
         `);
 
         for (const row of atrasados.rows) {
+            await criarNotificacao('🚨 Aviso de Atraso', `A obra "${row.ObraTitulo}" de ${row.ClienteNome} está em atraso.`, 'ATRASO', '/emprestimos', null);
+            await criarNotificacao('🚨 Aviso de Atraso', `A obra "${row.ObraTitulo}" está em atraso (${row.DiasAtraso} dia(s)). Por favor, devolve.`, 'ATRASO', '/meus-emprestimos', row.clienteid);
+
             if (row.ClienteEmail) {
                 await enviarEmailAtraso({
                     clienteNome: row.ClienteNome,
@@ -374,7 +384,16 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
             '🔔 Nova Requisição',
             `O leitor ${nomeCliente} requisitou "${checkObra.rows[0].titulo}" para levantamento.`,
             'RESERVA',
-            '/reservas'
+            '/reservas',
+            null // Notificação para o painel do Admin
+        );
+        
+        await criarNotificacao(
+            '📌 Requisição Efetuada',
+            `A tua requisição de "${checkObra.rows[0].titulo}" foi enviada. Aguarda a confirmação na biblioteca.`,
+            'RESERVA',
+            '/meus-emprestimos',
+            ClienteId // Notificação para o painel do Cliente
         );
 
         res.status(201).json({
@@ -469,7 +488,7 @@ app.post('/api/usuarios', verificarToken, apenasAdmin, async (req, res) => {
     try {
         const hash = await bcrypt.hash(Password, 10);
         await pool.query('INSERT INTO Usuarios (nome, email, passwordhash, role, permissoes) VALUES ($1, $2, $3, $4, $5)', [Nome, Email, hash, Role || 'Bibliotecario', '{}']);
-        await criarNotificacao('👤 Novo Utilizador', `O utilizador ${Nome} foi criado.`, 'UTILIZADOR', '/utilizadores');
+        await criarNotificacao('👤 Novo Utilizador', `O utilizador ${Nome} foi criado.`, 'UTILIZADOR', '/utilizadores', null);
         res.status(201).json({ message: 'Utilizador criado!' });
     } catch (error: any) {
         if (error.message.includes('duplicate') || error.message.includes('unique')) return res.status(400).json({ error: 'Email já registado.' });
@@ -540,7 +559,7 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ ROTA: BUSCAR ISBN (COM FALLBACK) ============
+// ============ ROTA: BUSCAR ISBN ============
 app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     const { isbn } = req.params;
     
@@ -608,7 +627,7 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
         );
         const novaObraId = insertResult.rows[0].id;
         
-        await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada.`, 'OBRA', '/acervo');
+        await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada.`, 'OBRA', '/acervo', null);
         
         res.status(201).json({ message: 'Obra cadastrada!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -819,7 +838,7 @@ app.delete('/api/editoras/:id', verificarToken, verificarPermissao('editoras_apa
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ RESERVAS (Fila de Espera + Requisições de Levantamento) ============
+// ============ RESERVAS ============
 app.get('/api/reservas', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -858,7 +877,7 @@ app.post('/api/reservas', verificarToken, verificarPermissao('reservas_criar'), 
         const info = await pool.query('SELECT O.titulo as obra, C.nome as cliente FROM Obras O, Clientes C WHERE O.id = $1 AND C.id = $2', [ObraId, ClienteId]);
         
         if (info.rows.length > 0) {
-            await criarNotificacao('📌 Nova Reserva', `${info.rows[0].cliente} reservou "${info.rows[0].obra}".`, 'RESERVA', '/reservas');
+            await criarNotificacao('📌 Nova Reserva', `${info.rows[0].cliente} reservou "${info.rows[0].obra}".`, 'RESERVA', '/reservas', null);
         }
         
         res.status(201).json({ message: 'Reserva criada!' });
@@ -970,8 +989,18 @@ app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, ver
                 '📤 Empréstimo Confirmado',
                 `${d.ClienteNome} levantou "${d.ObraTitulo}".`,
                 'EMPRESTIMO',
-                '/emprestimos'
+                '/emprestimos',
+                null // Notificação Admin
             );
+
+            await criarNotificacao(
+                '✅ Empréstimo Confirmado',
+                `O teu empréstimo de "${d.ObraTitulo}" foi confirmado. Devolve até ${d.DataPrevistaDevolucao}.`,
+                'EMPRESTIMO',
+                '/meus-emprestimos',
+                clienteId // Notificação Cliente
+            );
+
             enviarEmailEmprestimo({
                 clienteNome: d.ClienteNome,
                 clienteEmail: d.ClienteEmail,
@@ -1012,7 +1041,7 @@ app.post('/api/emprestimos', verificarToken, verificarPermissao('emprestimos_cri
 
         if (detalhes.rows.length > 0) {
             const d = detalhes.rows[0];
-            await criarNotificacao('📤 Novo Empréstimo', `${d.ClienteNome} requisitou "${d.ObraTitulo}".`, 'EMPRESTIMO', '/emprestimos');
+            await criarNotificacao('📤 Novo Empréstimo', `${d.ClienteNome} requisitou "${d.ObraTitulo}".`, 'EMPRESTIMO', '/emprestimos', null);
             enviarEmailEmprestimo({ clienteNome: d.ClienteNome, clienteEmail: d.ClienteEmail, obraTitulo: d.ObraTitulo, obraAutor: d.ObraAutor, obraEditora: d.ObraEditora, dataEmprestimo: d.DataEmprestimo, dataPrevistaDevolucao: d.DataPrevistaDevolucao, diasEmprestimo, valorMultaDia }).catch((err) => console.error(err));
         }
         res.status(201).json({ message: 'Empréstimo realizado!', emprestimoId: novoEmprestimoId });
@@ -1026,17 +1055,18 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const result = await client.query(`SELECT E.obraid, O.titulo as "Obra", C.nome as "Cliente" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.id = $1`, [req.params.id]);
+        const result = await client.query(`SELECT E.obraid, E.clienteid, O.titulo as "Obra", C.nome as "Cliente" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.id = $1`, [req.params.id]);
         if (result.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Não encontrado.' }); }
-        const { obraid: obraId, Obra: obraTitulo, Cliente: clienteNome } = result.rows[0];
+        const { obraid: obraId, clienteid: clienteId, Obra: obraTitulo, Cliente: clienteNome } = result.rows[0];
         await client.query("UPDATE Emprestimos SET status = 'DEVOLVIDO', datadevolucao = NOW() WHERE id = $1", [req.params.id]);
         await client.query("UPDATE Obras SET status = 'DISPONIVEL' WHERE id = $1", [obraId]);
         await client.query('COMMIT');
         
-        await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico');
+        await criarNotificacao('✅ Devolução', `${clienteNome} devolveu "${obraTitulo}".`, 'DEVOLUCAO', '/historico', null);
+        await criarNotificacao('✅ Devolução Confirmada', `Devolveste a obra "${obraTitulo}".`, 'DEVOLUCAO', '/meu-historico', clienteId);
         
         const reserva = await pool.query(`
-            SELECT C.nome as "ClienteNome", C.email as "ClienteEmail"
+            SELECT C.nome as "ClienteNome", C.email as "ClienteEmail", C.id as "ClienteId"
             FROM Reservas R
             INNER JOIN Clientes C ON R.clienteid = C.id
             WHERE R.obraid = $1 AND R.status = 'PENDENTE' AND R.tipo = 'FILA_ESPERA'
@@ -1044,12 +1074,14 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         `, [obraId]);
 
         if (reserva.rows.length > 0 && reserva.rows[0].ClienteEmail) {
+            const r = reserva.rows[0];
             await enviarEmailReservaDisponivel({
-                clienteNome: reserva.rows[0].ClienteNome,
-                clienteEmail: reserva.rows[0].ClienteEmail,
+                clienteNome: r.ClienteNome,
+                clienteEmail: r.ClienteEmail,
                 obraTitulo: obraTitulo
             });
-            await criarNotificacao('🎉 Reserva Disponível', `A obra "${obraTitulo}" está disponível para ${reserva.rows[0].ClienteNome}.`, 'RESERVA', '/reservas');
+            await criarNotificacao('🎉 Reserva Disponível', `A obra "${obraTitulo}" está disponível para ${r.ClienteNome}.`, 'RESERVA', '/reservas', null);
+            await criarNotificacao('🎉 O Teu Livro Está Disponível', `A obra "${obraTitulo}" que reservaste está disponível. Passa na biblioteca!`, 'RESERVA', '/meu-historico', r.ClienteId);
         }
 
         res.json({ message: 'Devolução realizada!' });
@@ -1070,13 +1102,32 @@ app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('empr
 // ============ NOTIFICAÇÕES ============
 app.get('/api/notificacoes', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT id as "Id", titulo as "Titulo", mensagem as "Mensagem", tipo as "Tipo", lida as "Lida", link as "Link", TO_CHAR(datacriacao, 'DD/MM/YYYY') as "Data", TO_CHAR(datacriacao, 'HH24:MI') as "Hora" FROM Notificacoes ORDER BY datacriacao DESC LIMIT 30`);
+        const user = (req as any).user;
+        const isCliente = user.role === 'Cliente';
+        
+        const query = isCliente
+            ? `SELECT id as "Id", titulo as "Titulo", mensagem as "Mensagem", tipo as "Tipo", lida as "Lida", link as "Link", TO_CHAR(datacriacao, 'DD/MM/YYYY') as "Data", TO_CHAR(datacriacao, 'HH24:MI') as "Hora" FROM Notificacoes WHERE ClienteId = $1 ORDER BY datacriacao DESC LIMIT 30`
+            : `SELECT id as "Id", titulo as "Titulo", mensagem as "Mensagem", tipo as "Tipo", lida as "Lida", link as "Link", TO_CHAR(datacriacao, 'DD/MM/YYYY') as "Data", TO_CHAR(datacriacao, 'HH24:MI') as "Hora" FROM Notificacoes WHERE ClienteId IS NULL ORDER BY datacriacao DESC LIMIT 30`;
+            
+        const params = isCliente ? [user.id] : [];
+        const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.get('/api/notificacoes/contagem', verificarToken, async (req, res) => {
-    try { const result = await pool.query('SELECT COUNT(*) as total FROM Notificacoes WHERE lida = FALSE'); res.json({ naoLidas: Number(result.rows[0].total) }); } catch (error: any) { res.status(500).json({ error: error.message }); }
+    try { 
+        const user = (req as any).user;
+        const isCliente = user.role === 'Cliente';
+        
+        const query = isCliente
+            ? 'SELECT COUNT(*) as total FROM Notificacoes WHERE lida = FALSE AND ClienteId = $1'
+            : 'SELECT COUNT(*) as total FROM Notificacoes WHERE lida = FALSE AND ClienteId IS NULL';
+            
+        const params = isCliente ? [user.id] : [];
+        const result = await pool.query(query, params); 
+        res.json({ naoLidas: Number(result.rows[0].total) }); 
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/notificacoes/:id/ler', verificarToken, async (req, res) => {
@@ -1084,7 +1135,18 @@ app.put('/api/notificacoes/:id/ler', verificarToken, async (req, res) => {
 });
 
 app.put('/api/notificacoes/ler-todas', verificarToken, async (req, res) => {
-    try { await pool.query('UPDATE Notificacoes SET lida = TRUE WHERE lida = FALSE'); res.json({ message: 'Lidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
+    try { 
+        const user = (req as any).user;
+        const isCliente = user.role === 'Cliente';
+        
+        const query = isCliente
+            ? 'UPDATE Notificacoes SET lida = TRUE WHERE lida = FALSE AND ClienteId = $1'
+            : 'UPDATE Notificacoes SET lida = TRUE WHERE lida = FALSE AND ClienteId IS NULL';
+            
+        const params = isCliente ? [user.id] : [];
+        await pool.query(query, params); 
+        res.json({ message: 'Lidas.' }); 
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete('/api/notificacoes/:id', verificarToken, async (req, res) => {
@@ -1092,7 +1154,7 @@ app.delete('/api/notificacoes/:id', verificarToken, async (req, res) => {
 });
 
 app.delete('/api/notificacoes', verificarToken, apenasAdmin, async (req, res) => {
-    try { await pool.query('DELETE FROM Notificacoes WHERE lida = TRUE'); res.json({ message: 'Removidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
+    try { await pool.query('DELETE FROM Notificacoes WHERE lida = TRUE AND ClienteId IS NULL'); res.json({ message: 'Removidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // ============ ESTATÍSTICAS ============

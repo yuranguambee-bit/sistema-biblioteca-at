@@ -21,7 +21,7 @@ export function Header() {
   const isCliente = user?.role === 'Cliente';
 
   useEffect(() => {
-    // Cliente não vê estatísticas de atrasados
+    // Cliente não vê estatísticas de atrasados de toda a biblioteca
     if (isCliente) return;
     if (!temPermissao('emprestimos')) return;
 
@@ -74,10 +74,13 @@ export function Header() {
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
+              <Link to="/perfil" className={linkClasses}><User size={16} /> Perfil</Link>
             </nav>
 
             <div className="flex items-center gap-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
-              <div className="flex items-center gap-1.5 px-2 py-1" title={user?.nome}>
+              <Notificacoes />
+              <div className="w-px h-5 bg-white/20"></div>
+              <div className="flex items-center gap-1.5 px-2 py-1" title={user?.nome || ''}>
                 <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow ring-1 ring-white/20">
                   <User size={12} />
                 </div>

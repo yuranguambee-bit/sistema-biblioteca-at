@@ -28,6 +28,7 @@ import { PortalHome } from './pages/PortalHome';
 import { Catalogo } from './pages/Catalogo';
 import { MeusEmprestimos } from './pages/MeusEmprestimos';
 import { MeuHistorico } from './pages/MeuHistorico';
+import { PerfilCliente } from './pages/PerfilCliente';
 
 // ============ PORTAL DO LEITOR (role === 'Cliente') ============
 function PortalLeitor() {
@@ -39,6 +40,7 @@ function PortalLeitor() {
         <Route path="/catalogo" element={<Catalogo />} />
         <Route path="/meus-emprestimos" element={<MeusEmprestimos />} />
         <Route path="/meu-historico" element={<MeuHistorico />} />
+        <Route path="/perfil" element={<PerfilCliente />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
