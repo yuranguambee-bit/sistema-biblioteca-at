@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookOpen, Heart, User, Building2, Calendar, 
-  RefreshCw, Send, Clock, BookMarked, Trash2
+  RefreshCw, Send, Clock, Trash2
 } from 'lucide-react';
 
 interface Obra {
