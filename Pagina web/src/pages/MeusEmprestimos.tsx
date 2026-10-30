@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookMarked, Clock, AlertTriangle, CheckCircle, 
-  Calendar, ArrowLeft, RefreshCw, BookOpen, User, BellRing, RotateCw
+  Calendar, ArrowLeft, RefreshCw, BookOpen, User, BellRing, RotateCw, Hourglass
 } from 'lucide-react';
 
 interface Emprestimo {
@@ -16,6 +16,7 @@ interface Emprestimo {
   DataEmprestimo: string;
   DataPrevistaDevolucao: string;
   DiasAtraso: number;
+  RenovacaoPendente?: boolean | number;
 }
 
 interface Requisicao {
@@ -25,6 +26,10 @@ interface Requisicao {
   Autor: string | null;
   DataReserva: string;
   Tipo: 'LEVANTAMENTO' | 'FILA_ESPERA';
+}
+
+function isRenovacaoPendente(v: boolean | number | undefined): boolean {
+  return v === true || v === 1;
 }
 
 export function MeusEmprestimos() {
@@ -55,11 +60,11 @@ export function MeusEmprestimos() {
 
   const totalAtrasados = emprestimos.filter((e) => e.DiasAtraso > 0).length;
 
-  const handleRenovar = async (id: number, titulo: string) => {
+  const handleSolicitarRenovacao = async (id: number, titulo: string) => {
     const ok = await confirm({
-      title: 'Renovar Empréstimo',
-      message: `Queres renovar o empréstimo da obra "${titulo}" por mais 15 dias?`,
-      confirmText: 'Renovar',
+      title: 'Solicitar Renovação',
+      message: `Queres pedir a renovação do empréstimo de "${titulo}" por mais 15 dias?\n\nO teu pedido será enviado à biblioteca e aguardará aprovação.`,
+      confirmText: 'Enviar Pedido',
       cancelText: 'Cancelar',
       variant: 'info',
     });
@@ -73,10 +78,10 @@ export function MeusEmprestimos() {
       const data = await response.json();
 
       if (response.ok) {
-        showToast(data.message || 'Empréstimo renovado com sucesso!', 'success');
+        showToast(data.message || 'Pedido de renovação enviado!', 'success');
         carregar();
       } else {
-        showToast(data.error || 'Erro ao renovar.', 'error');
+        showToast(data.error || 'Erro ao pedir renovação.', 'error');
       }
     } catch (error) {
       showToast('Erro de ligação ao servidor.', 'error');
@@ -226,18 +231,19 @@ export function MeusEmprestimos() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {emprestimos.map((emp) => {
                   const atrasado = emp.DiasAtraso > 0;
+                  const renovacaoPendente = isRenovacaoPendente(emp.RenovacaoPendente);
                   return (
                     <div
                       key={emp.Id}
                       className={`bg-white rounded-2xl shadow-sm overflow-hidden border-2 transition-all hover:shadow-md ${
-                        atrasado ? 'border-red-200' : 'border-gray-100'
+                        atrasado ? 'border-red-200' : renovacaoPendente ? 'border-yellow-300' : 'border-gray-100'
                       }`}
                     >
-                      <div className={`p-4 ${atrasado ? 'bg-red-50' : 'bg-gradient-to-r from-orange-50 to-amber-50'}`}>
+                      <div className={`p-4 ${atrasado ? 'bg-red-50' : renovacaoPendente ? 'bg-yellow-50' : 'bg-gradient-to-r from-orange-50 to-amber-50'}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              atrasado ? 'bg-red-500' : 'bg-orange-500'
+                              atrasado ? 'bg-red-500' : renovacaoPendente ? 'bg-yellow-500' : 'bg-orange-500'
                             }`}>
                               <BookOpen className="text-white" size={18} />
                             </div>
@@ -251,6 +257,10 @@ export function MeusEmprestimos() {
                           {atrasado ? (
                             <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
                               <AlertTriangle size={10} /> ATRASO
+                            </span>
+                          ) : renovacaoPendente ? (
+                            <span className="bg-yellow-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
+                              <Hourglass size={10} /> EM ANÁLISE
                             </span>
                           ) : (
                             <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 flex-shrink-0">
@@ -285,19 +295,28 @@ export function MeusEmprestimos() {
                           </div>
                         )}
 
-                        {/* BOTÃO RENOVAR - só se não estiver atrasado */}
-                        {!atrasado && (
+                        {/* BOTÃO SOLICITAR RENOVAÇÃO - só se não atrasado e não pendente */}
+                        {!atrasado && !renovacaoPendente && (
                           <button
-                            onClick={() => handleRenovar(emp.Id, emp.Obra)}
+                            onClick={() => handleSolicitarRenovacao(emp.Id, emp.Obra)}
                             disabled={processando === emp.Id}
                             className="w-full mt-2 bg-blue-600 text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                           >
                             {processando === emp.Id ? (
-                              <><RefreshCw size={12} className="animate-spin" /> A renovar...</>
+                              <><RefreshCw size={12} className="animate-spin" /> A enviar pedido...</>
                             ) : (
-                              <><RotateCw size={12} /> Renovar +15 dias</>
+                              <><RotateCw size={12} /> Solicitar Renovação +15 dias</>
                             )}
                           </button>
+                        )}
+
+                        {/* MENSAGEM SE RENOVAÇÃO ESTÁ PENDENTE */}
+                        {!atrasado && renovacaoPendente && (
+                          <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-center">
+                            <p className="text-xs text-yellow-800 font-semibold flex items-center justify-center gap-1">
+                              <Hourglass size={11} /> Pedido de renovação aguarda aprovação da biblioteca
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -316,7 +335,7 @@ export function MeusEmprestimos() {
             <strong>💡 Nota:</strong> Quando devolveres um livro na biblioteca, ele desaparecerá automaticamente desta lista.
             Podes consultar o histórico em <Link to="/meu-historico" className="font-semibold underline">Meu Histórico</Link>.
             <br />
-            <strong>💡 Renovação:</strong> Só podes renovar empréstimos que não estejam em atraso e que não tenham fila de espera.
+            <strong>💡 Renovação:</strong> O pedido de renovação é enviado à biblioteca para aprovação. Só podes pedir se o empréstimo não estiver em atraso e se não houver fila de espera.
           </p>
         </div>
       )}

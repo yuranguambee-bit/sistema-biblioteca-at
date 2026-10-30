@@ -8,7 +8,8 @@ import { Autocomplete } from '../components/Autocomplete';
 import { TableSkeleton } from '../components/Skeleton';
 import { 
   AlertTriangle, Clock, Filter, Printer, BookOpen, User, 
-  CheckCircle, Calendar, BookMarked, Info, Settings, X, Save, Lock, RefreshCw
+  CheckCircle, Calendar, BookMarked, Info, Settings, X, Save, Lock, RefreshCw,
+  Hourglass, ThumbsUp, ThumbsDown, BellRing
 } from 'lucide-react';
 
 interface Obra { Id: number; Titulo: string; Autor: string; }
@@ -18,6 +19,18 @@ interface Emprestimo {
   DataEmprestimo: string; DataPrevistaDevolucao: string;
   DiasAtraso: number;
   ValorMulta: number;
+  RenovacaoPendente?: boolean | number;
+}
+interface RenovacaoPendente {
+  Id: number;
+  Obra: string;
+  Autor: string | null;
+  Cliente: string;
+  ClienteEmail: string | null;
+  ClienteTelefone: string | null;
+  DataEmprestimo: string;
+  DataPrevistaDevolucao: string;
+  SolicitadoEm: string;
 }
 
 function nivelUrgencia(diasAtraso: number, dataPrevista: string): 'atrasado' | 'urgente' | 'ok' {
@@ -31,6 +44,10 @@ function nivelUrgencia(diasAtraso: number, dataPrevista: string): 'atrasado' | '
   return 'ok';
 }
 
+function isRenovacaoPendente(v: boolean | number | undefined): boolean {
+  return v === true || v === 1;
+}
+
 export function Emprestimos() {
   const navigate = useNavigate();
   const { user, temPermissao } = useAuth();
@@ -40,7 +57,10 @@ export function Emprestimos() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
+  const [renovacoesPendentes, setRenovacoesPendentes] = useState<RenovacaoPendente[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRenovacoes, setLoadingRenovacoes] = useState(true);
+  const [processandoRenovacao, setProcessandoRenovacao] = useState<number | null>(null);
   const [obraId, setObraId] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [filtroAtraso, setFiltroAtraso] = useState(false);
@@ -66,6 +86,16 @@ export function Emprestimos() {
     } catch (e) { console.error(e); }
   };
 
+  const carregarRenovacoes = async () => {
+    setLoadingRenovacoes(true);
+    try {
+      const res = await apiFetch('/api/renovacoes/pendentes');
+      const data = await res.json();
+      setRenovacoesPendentes(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+    finally { setLoadingRenovacoes(false); }
+  };
+
   const carregarDados = async () => {
     try {
       const resObras = await apiFetch('/api/obras/disponiveis');
@@ -83,6 +113,7 @@ export function Emprestimos() {
       setEmprestimos(Array.isArray(dataEmprestimos) ? dataEmprestimos : []);
       setLoading(false);
     } catch (error) { console.error(error); setLoading(false); }
+    carregarRenovacoes();
   };
 
   useEffect(() => {
@@ -178,7 +209,7 @@ export function Emprestimos() {
     } catch (error) { showToast('Erro de ligação ao servidor.', 'error'); }
   };
 
-  const handleRenovar = async (id: number) => {
+  const handleRenovarDireto = async (id: number) => {
     if (!podeRenovar) return showToast('Não tens permissão para renovar empréstimos.', 'error');
 
     const ok = await confirm({
@@ -199,6 +230,60 @@ export function Emprestimos() {
     } catch (error) { showToast('Erro de ligação ao servidor.', 'error'); }
   };
 
+  const handleAprovarRenovacao = async (id: number, obra: string, cliente: string) => {
+    if (!podeRenovar) return showToast('Não tens permissão para aprovar renovações.', 'error');
+
+    const ok = await confirm({
+      title: 'Aprovar Renovação',
+      message: `Aprovar a renovação de "${obra}" para ${cliente} por mais ${diasEmprestimo} dias?`,
+      confirmText: 'Aprovar', cancelText: 'Cancelar', variant: 'info',
+    });
+    if (!ok) return;
+
+    setProcessandoRenovacao(id);
+    try {
+      const response = await apiFetch(`/api/renovacoes/${id}/aprovar`, { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        showToast(data.message || 'Renovação aprovada!', 'success');
+        carregarDados();
+      } else {
+        showToast(data.error || 'Erro ao aprovar.', 'error');
+      }
+    } catch (error) {
+      showToast('Erro de ligação ao servidor.', 'error');
+    } finally {
+      setProcessandoRenovacao(null);
+    }
+  };
+
+  const handleRejeitarRenovacao = async (id: number, obra: string, cliente: string) => {
+    if (!podeRenovar) return showToast('Não tens permissão para rejeitar renovações.', 'error');
+
+    const ok = await confirm({
+      title: 'Rejeitar Renovação',
+      message: `Rejeitar a renovação de "${obra}" para ${cliente}? O prazo original mantém-se.`,
+      confirmText: 'Rejeitar', cancelText: 'Cancelar', variant: 'danger',
+    });
+    if (!ok) return;
+
+    setProcessandoRenovacao(id);
+    try {
+      const response = await apiFetch(`/api/renovacoes/${id}/rejeitar`, { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        showToast(data.message || 'Renovação rejeitada.', 'success');
+        carregarDados();
+      } else {
+        showToast(data.error || 'Erro ao rejeitar.', 'error');
+      }
+    } catch (error) {
+      showToast('Erro de ligação ao servidor.', 'error');
+    } finally {
+      setProcessandoRenovacao(null);
+    }
+  };
+
   const emprestimosFiltrados = filtroAtraso ? emprestimos.filter(e => e.DiasAtraso > 0) : emprestimos;
   const totalAtrasados = emprestimos.filter(e => e.DiasAtraso > 0).length;
   const totalMultas = emprestimos.reduce((acc, e) => acc + (e.ValorMulta || 0), 0);
@@ -215,6 +300,84 @@ export function Emprestimos() {
               {totalAtrasados} empréstimo(s) em atraso · {totalMultas.toLocaleString('pt-MZ')} MT em multas
             </h3>
             <p className="text-sm text-red-600 mt-1">Alguns leitores já ultrapassaram o prazo de devolução.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ============ SECÇÃO RENOVAÇÕES PENDENTES ============ */}
+      {renovacoesPendentes.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-2xl p-5 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500 flex items-center justify-center flex-shrink-0 shadow-md">
+              <BellRing className="text-white animate-pulse" size={22} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-bold text-yellow-900">
+                {renovacoesPendentes.length} pedido(s) de renovação a aguardar aprovação
+              </h3>
+              <p className="text-sm text-yellow-800 mt-0.5">
+                Clientes pediram para estender o prazo de devolução. Aprova ou rejeita abaixo.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {loadingRenovacoes ? (
+              <div className="bg-white/70 rounded-lg p-4 text-center text-sm text-yellow-800">
+                <RefreshCw size={16} className="inline animate-spin mr-2" /> A carregar pedidos...
+              </div>
+            ) : (
+              renovacoesPendentes.map((ren) => (
+                <div key={ren.Id} className="bg-white rounded-xl border border-yellow-200 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                        <Hourglass className="text-yellow-700" size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-gray-800 text-sm line-clamp-2">{ren.Obra}</h4>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                          <User size={10} /> {ren.Cliente}
+                          {ren.ClienteTelefone && <span className="text-gray-400">· {ren.ClienteTelefone}</span>}
+                        </p>
+                        <div className="flex flex-wrap gap-3 text-xs mt-2">
+                          <span className="flex items-center gap-1 text-gray-600">
+                            <Calendar size={11} /> Empréstimo: <strong>{ren.DataEmprestimo}</strong>
+                          </span>
+                          <span className="flex items-center gap-1 text-gray-600">
+                            <Clock size={11} /> Devolver até: <strong className="text-yellow-700">{ren.DataPrevistaDevolucao}</strong>
+                          </span>
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <Hourglass size={11} /> Pedido em: {ren.SolicitadoEm}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleAprovarRenovacao(ren.Id, ren.Obra, ren.Cliente)}
+                        disabled={processandoRenovacao === ren.Id || !podeRenovar}
+                        className="bg-green-600 text-white px-4 py-2 rounded-md text-xs font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        {processandoRenovacao === ren.Id ? (
+                          <><RefreshCw size={12} className="animate-spin" /> A processar...</>
+                        ) : (
+                          <><ThumbsUp size={12} /> Aprovar +{diasEmprestimo}d</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleRejeitarRenovacao(ren.Id, ren.Obra, ren.Cliente)}
+                        disabled={processandoRenovacao === ren.Id || !podeRenovar}
+                        className="bg-red-600 text-white px-4 py-2 rounded-md text-xs font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        <ThumbsDown size={12} /> Rejeitar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -283,6 +446,7 @@ export function Emprestimos() {
           <h3 className="text-lg font-bold text-at-blue">
             Empréstimos Ativos ({emprestimos.length})
             {totalAtrasados > 0 && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">{totalAtrasados} em atraso</span>}
+            {renovacoesPendentes.length > 0 && <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-bold">{renovacoesPendentes.length} renovação(ões) pendente(s)</span>}
           </h3>
           <button onClick={() => setFiltroAtraso(!filtroAtraso)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors ${filtroAtraso ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
             <Filter size={14} /> {filtroAtraso ? 'A mostrar só atrasados' : 'Mostrar só atrasados'}
@@ -311,9 +475,17 @@ export function Emprestimos() {
                   emprestimosFiltrados.map((emp) => {
                     const atrasado = emp.DiasAtraso > 0;
                     const urgencia = nivelUrgencia(emp.DiasAtraso, emp.DataPrevistaDevolucao);
+                    const renovacaoPend = isRenovacaoPendente(emp.RenovacaoPendente);
                     return (
-                      <tr key={emp.Id} className={`border-b border-gray-100 transition-colors ${atrasado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-gray-50'}`}>
-                        <td className="p-4 font-medium">{emp.Obra}</td>
+                      <tr key={emp.Id} className={`border-b border-gray-100 transition-colors ${atrasado ? 'bg-red-50/40 hover:bg-red-50' : renovacaoPend ? 'bg-yellow-50/40 hover:bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                        <td className="p-4 font-medium">
+                          {emp.Obra}
+                          {renovacaoPend && (
+                            <span className="ml-2 inline-flex items-center gap-1 bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                              <Hourglass size={10} /> Renov. Pendente
+                            </span>
+                          )}
+                        </td>
                         <td className="p-4">{emp.Cliente}</td>
                         <td className="p-4">{emp.DataEmprestimo}</td>
                         <td className={`p-4 font-semibold ${atrasado ? 'text-red-600' : 'text-gray-700'}`}>{emp.DataPrevistaDevolucao}</td>
@@ -328,7 +500,7 @@ export function Emprestimos() {
                         <td className="p-4 text-center">
                           <div className="flex flex-wrap items-center justify-center gap-2">
                             <button onClick={() => navigate(`/comprovativo/${emp.Id}`)} className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1" title="Ver comprovativo"><Printer size={12} /> Comprovativo</button>
-                            <button onClick={() => handleRenovar(emp.Id)} disabled={!podeRenovar} className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeRenovar ? "Renovar" : "Sem permissão"}>+{diasEmprestimo}d</button>
+                            <button onClick={() => handleRenovarDireto(emp.Id)} disabled={!podeRenovar} className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeRenovar ? "Renovar diretamente (admin)" : "Sem permissão"}>+{diasEmprestimo}d</button>
                             <button onClick={() => handleDevolver(emp.Id, emp.Obra)} disabled={!podeDevolver} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeDevolver ? "Devolver" : "Sem permissão"}>Devolver</button>
                           </div>
                         </td>

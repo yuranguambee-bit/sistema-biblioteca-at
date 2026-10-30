@@ -317,10 +317,12 @@ app.get('/api/portal/perfil', verificarToken, apenasCliente, async (req, res) =>
 app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT E.id as "Id", E.obraid as "ObraId", O.titulo as "Obra", A.nome as "Autor", 
+            SELECT E.id as "Id", E.obraid as "ObraId", O.titulo as "Obra", 
+                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
-                   CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso"
+                   CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso",
+                   COALESCE(E.renovacaopendente, FALSE) as "RenovacaoPendente"
             FROM Emprestimos E
             INNER JOIN Obras O ON E.obraid = O.id
             LEFT JOIN Autores A ON O.autorid = A.id
@@ -334,7 +336,8 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
 app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", A.nome as "Autor", 
+            SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", 
+                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
                    TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.tipo as "Tipo"
             FROM Reservas R
             INNER JOIN Obras O ON R.obraid = O.id
@@ -349,7 +352,8 @@ app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (
 app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT E.id as "Id", O.titulo as "Obra", A.nome as "Autor", 
+            SELECT E.id as "Id", O.titulo as "Obra", 
+                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
                    TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao"
             FROM Emprestimos E
@@ -473,17 +477,19 @@ app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res)
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// NOVA ROTA: Renovação de Empréstimo pelo Cliente
+// ============ ROTA CLIENTE: SOLICITAR RENOVAÇÃO (só pede, não altera data) ============
 app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, async (req, res) => {
     const emprestimoId = req.params.id;
     const ClienteId = (req as any).user.id;
-    const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
 
     try {
         // 1. Verificar se o empréstimo pertence ao cliente e está ativo
         const empRes = await pool.query(`
-            SELECT E.id, E.obraid, E.dataprevistadevolucao
+            SELECT E.id, E.obraid, E.dataprevistadevolucao, COALESCE(E.renovacaopendente, FALSE) as "RenovacaoPendente",
+                   O.titulo as "ObraTitulo", C.nome as "ClienteNome", C.email as "ClienteEmail"
             FROM Emprestimos E
+            INNER JOIN Obras O ON E.obraid = O.id
+            INNER JOIN Clientes C ON E.clienteid = C.id
             WHERE E.id = $1 AND E.clienteid = $2 AND E.status = 'ATIVO'
         `, [emprestimoId, ClienteId]);
 
@@ -493,31 +499,54 @@ app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, as
 
         const emp = empRes.rows[0];
 
-        // 2. Verificar se está atrasado
+        // 2. Verificar se já tem pedido pendente
+        if (emp.RenovacaoPendente === true) {
+            return res.status(400).json({ error: 'Já tens um pedido de renovação em análise para este empréstimo.' });
+        }
+
+        // 3. Verificar se está atrasado
         const hoje = new Date();
         const dataPrevista = new Date(emp.dataprevistadevolucao);
         if (dataPrevista < hoje) {
-            return res.status(400).json({ error: 'Não é possível renovar um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
+            return res.status(400).json({ error: 'Não é possível pedir renovação de um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
         }
 
-        // 3. Verificar se há reservas pendentes para esta obra (fila de espera)
+        // 4. Verificar se há reservas/fila de espera pendentes para esta obra
         const resRes = await pool.query(`
             SELECT COUNT(*) as total FROM Reservas
             WHERE obraid = $1 AND status = 'PENDENTE'
         `, [emp.obraid]);
 
         if (Number(resRes.rows[0].total) > 0) {
-            return res.status(400).json({ error: 'Não é possível renovar. Há leitores à espera deste livro na fila de espera.' });
+            return res.status(400).json({ error: 'Não é possível pedir renovação. Há leitores à espera deste livro na fila de espera.' });
         }
 
-        // 4. Renovar
+        // 5. Marcar como pedido pendente (NÃO altera a data ainda!)
         await pool.query(`
             UPDATE Emprestimos
-            SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days'
+            SET renovacaopendente = TRUE, renovacaosolicitadaem = NOW()
             WHERE id = $1
         `, [emprestimoId]);
 
-        res.json({ message: `Empréstimo renovado por mais ${diasEmprestimo} dias!` });
+        // 6. Notificar admin
+        await criarNotificacao(
+            '🔄 Pedido de Renovação',
+            `${emp.ClienteNome} pediu para renovar "${emp.ObraTitulo}".`,
+            'RENOVACAO',
+            '/emprestimos',
+            null
+        );
+
+        // 7. Notificar cliente
+        await criarNotificacao(
+            '⏳ Pedido de Renovação Enviado',
+            `O teu pedido de renovação de "${emp.ObraTitulo}" foi enviado. Aguarda aprovação da biblioteca.`,
+            'RENOVACAO',
+            '/meus-emprestimos',
+            ClienteId
+        );
+
+        res.json({ message: 'Pedido de renovação enviado! Aguarda aprovação da biblioteca.' });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -542,6 +571,138 @@ app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) 
         await pool.query('UPDATE Clientes SET passwordhash = $1 WHERE id = $2', [novoHash, (req as any).user.id]);
         res.json({ message: 'Password alterada com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ RENOVAÇÕES (ADMIN) ============
+app.get('/api/renovacoes/pendentes', verificarToken, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT E.id as "Id", 
+                   O.titulo as "Obra", 
+                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor",
+                   C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone",
+                   TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo",
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
+                   TO_CHAR(E.renovacaosolicitadaem, 'DD/MM/YYYY HH24:MI') as "SolicitadoEm"
+            FROM Emprestimos E
+            INNER JOIN Obras O ON E.obraid = O.id
+            INNER JOIN Clientes C ON E.clienteid = C.id
+            LEFT JOIN Autores A ON O.autorid = A.id
+            WHERE E.status = 'ATIVO' AND COALESCE(E.renovacaopendente, FALSE) = TRUE
+            ORDER BY E.renovacaosolicitadaem ASC
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/renovacoes/:id/aprovar', verificarToken, verificarPermissao('emprestimos_renovar'), async (req, res) => {
+    const emprestimoId = req.params.id;
+    const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
+
+    try {
+        // 1. Verificar que o empréstimo existe e tem pedido pendente
+        const empRes = await pool.query(`
+            SELECT E.id, E.obraid, E.clienteid, O.titulo as "ObraTitulo", 
+                   C.nome as "ClienteNome", C.email as "ClienteEmail",
+                   E.dataprevistadevolucao
+            FROM Emprestimos E
+            INNER JOIN Obras O ON E.obraid = O.id
+            INNER JOIN Clientes C ON E.clienteid = C.id
+            WHERE E.id = $1 AND E.status = 'ATIVO' AND COALESCE(E.renovacaopendente, FALSE) = TRUE
+        `, [emprestimoId]);
+
+        if (empRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Pedido de renovação não encontrado ou já processado.' });
+        }
+
+        const emp = empRes.rows[0];
+
+        // 2. Estender a data e limpar flags
+        await pool.query(`
+            UPDATE Emprestimos
+            SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days',
+                renovacaopendente = FALSE,
+                renovacaosolicitadaem = NULL
+            WHERE id = $1
+        `, [emprestimoId]);
+
+        // 3. Buscar nova data para notificação
+        const novaData = await pool.query(
+            "SELECT TO_CHAR(dataprevistadevolucao, 'DD/MM/YYYY') as \"NovaData\" FROM Emprestimos WHERE id = $1",
+            [emprestimoId]
+        );
+        const dataFormatada = novaData.rows[0].NovaData;
+
+        // 4. Notificações
+        await criarNotificacao(
+            '✅ Renovação Aprovada',
+            `Renovação de "${emp.ObraTitulo}" para ${emp.ClienteNome} aprovada. Nova data: ${dataFormatada}.`,
+            'RENOVACAO',
+            '/emprestimos',
+            null
+        );
+
+        await criarNotificacao(
+            '✅ Renovação Aprovada',
+            `O teu pedido de renovação de "${emp.ObraTitulo}" foi aprovado! Nova data de devolução: ${dataFormatada}.`,
+            'RENOVACAO',
+            '/meus-emprestimos',
+            emp.clienteid
+        );
+
+        res.json({ message: `Renovação aprovada! Nova data: ${dataFormatada}.` });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/renovacoes/:id/rejeitar', verificarToken, verificarPermissao('emprestimos_renovar'), async (req, res) => {
+    const emprestimoId = req.params.id;
+
+    try {
+        const empRes = await pool.query(`
+            SELECT E.id, E.obraid, E.clienteid, O.titulo as "ObraTitulo", 
+                   C.nome as "ClienteNome"
+            FROM Emprestimos E
+            INNER JOIN Obras O ON E.obraid = O.id
+            INNER JOIN Clientes C ON E.clienteid = C.id
+            WHERE E.id = $1 AND E.status = 'ATIVO' AND COALESCE(E.renovacaopendente, FALSE) = TRUE
+        `, [emprestimoId]);
+
+        if (empRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Pedido de renovação não encontrado ou já processado.' });
+        }
+
+        const emp = empRes.rows[0];
+
+        // Limpar flags (mantém data original)
+        await pool.query(`
+            UPDATE Emprestimos
+            SET renovacaopendente = FALSE,
+                renovacaosolicitadaem = NULL
+            WHERE id = $1
+        `, [emprestimoId]);
+
+        await criarNotificacao(
+            '❌ Renovação Rejeitada',
+            `Pedido de renovação de "${emp.ObraTitulo}" (${emp.ClienteNome}) foi rejeitado.`,
+            'RENOVACAO',
+            '/emprestimos',
+            null
+        );
+
+        await criarNotificacao(
+            '❌ Renovação Rejeitada',
+            `O teu pedido de renovação de "${emp.ObraTitulo}" foi rejeitado. O prazo original mantém-se. Dirige-te à biblioteca para mais informações.`,
+            'RENOVACAO',
+            '/meus-emprestimos',
+            emp.clienteid
+        );
+
+        res.json({ message: 'Pedido de renovação rejeitado.' });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // ============ CONFIGURAÇÕES ============
@@ -646,7 +807,9 @@ app.delete('/api/usuarios/:id', verificarToken, apenasAdmin, async (req, res) =>
 app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT O.id as "Id", O.titulo as "Titulo", A.nome as "Autor", E.nome as "Editora", 
+            SELECT O.id as "Id", O.titulo as "Titulo", 
+                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
+                   E.nome as "Editora", 
                    O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", 
                    O.area_conhecimento as "AreaConhecimento", O.status as "Status",
                    (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos"
@@ -660,7 +823,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
 
 app.get('/api/obras/disponiveis', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", A.nome as "Autor" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id WHERE O.status = 'DISPONIVEL'`);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id WHERE O.status = 'DISPONIVEL'`);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -840,7 +1003,7 @@ app.post('/api/clientes', verificarToken, verificarPermissao('clientes_criar'), 
             [Nome, Email || null, Telefone || null, PI || null, NUIT || null, hash]
         );
 
-        res.status(201). json({
+        res.status(201).json({
             message: Email
                 ? `Cliente cadastrado! Password inicial: ${passwordFinal} (o leitor deve alterá-la no portal).`
                 : 'Cliente cadastrado (sem conta de portal porque não tem email).',
@@ -1015,7 +1178,7 @@ app.delete('/api/reservas/:id', verificarToken, verificarPermissao('reservas_can
 app.get('/api/emprestimos', verificarToken, async (req, res) => {
     try {
         const valorMulta = await obterConfig('ValorMultaDia', 40);
-        const result = await pool.query(`SELECT E.id as "Id", O.titulo as "Obra", C.nome as "Cliente", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso", E.status as "Status" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.status = 'ATIVO' ORDER BY "DiasAtraso" DESC, E.dataemprestimo DESC`);
+        const result = await pool.query(`SELECT E.id as "Id", O.titulo as "Obra", C.nome as "Cliente", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso", E.status as "Status", COALESCE(E.renovacaopendente, FALSE) as "RenovacaoPendente" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.status = 'ATIVO' ORDER BY "DiasAtraso" DESC, E.dataemprestimo DESC`);
         const dados = result.rows.map((e: any) => ({ ...e, ValorMulta: Number(e.DiasAtraso) > 0 ? Number(e.DiasAtraso) * valorMulta : 0 }));
         res.json(dados);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -1110,7 +1273,7 @@ app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, ver
                 `${d.ClienteNome} levantou "${d.ObraTitulo}".`,
                 'EMPRESTIMO',
                 '/emprestimos',
-                null // Notificação Admin
+                null
             );
 
             await criarNotificacao(
@@ -1118,7 +1281,7 @@ app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, ver
                 `O teu empréstimo de "${d.ObraTitulo}" foi confirmado. Devolve até ${d.DataPrevistaDevolucao}.`,
                 'EMPRESTIMO',
                 '/meus-emprestimos',
-                clienteId // Notificação Cliente
+                clienteId
             );
 
             enviarEmailEmprestimo({
@@ -1178,7 +1341,7 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
         const result = await client.query(`SELECT E.obraid, E.clienteid, O.titulo as "Obra", C.nome as "Cliente" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.id = $1`, [req.params.id]);
         if (result.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Não encontrado.' }); }
         const { obraid: obraId, clienteid: clienteId, Obra: obraTitulo, Cliente: clienteNome } = result.rows[0];
-        await client.query("UPDATE Emprestimos SET status = 'DEVOLVIDO', datadevolucao = NOW() WHERE id = $1", [req.params.id]);
+        await client.query("UPDATE Emprestimos SET status = 'DEVOLVIDO', datadevolucao = NOW(), renovacaopendente = FALSE, renovacaosolicitadaem = NULL WHERE id = $1", [req.params.id]);
         await client.query("UPDATE Obras SET status = 'DISPONIVEL' WHERE id = $1", [obraId]);
         await client.query('COMMIT');
         
@@ -1211,10 +1374,17 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
     } finally { client.release(); }
 });
 
+// Renovação direta pelo Admin (sem precisar de pedido do cliente)
 app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('emprestimos_renovar'), async (req, res) => {
     const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
     try {
-        await pool.query(`UPDATE Emprestimos SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days' WHERE id = $1 AND status = 'ATIVO'`, [req.params.id]);
+        await pool.query(`
+            UPDATE Emprestimos 
+            SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days',
+                renovacaopendente = FALSE,
+                renovacaosolicitadaem = NULL
+            WHERE id = $1 AND status = 'ATIVO'
+        `, [req.params.id]);
         res.json({ message: `Empréstimo renovado por mais ${diasEmprestimo} dias!` });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -1285,7 +1455,15 @@ app.get('/api/estatisticas', verificarToken, async (req, res) => {
         const emprestimosAtivos = await pool.query("SELECT COUNT(*) as total FROM Emprestimos WHERE status = 'ATIVO'");
         const reservasPendentes = await pool.query("SELECT COUNT(*) as total FROM Reservas WHERE status = 'PENDENTE'");
         const emprestimosAtrasados = await pool.query("SELECT COUNT(*) as total FROM Emprestimos WHERE status = 'ATIVO' AND dataprevistadevolucao < CURRENT_DATE");
-        res.json({ totalObras: Number(totalObras.rows[0].total), disponiveis: Number(disponiveis.rows[0].total), emprestimosAtivos: Number(emprestimosAtivos.rows[0].total), reservasPendentes: Number(reservasPendentes.rows[0].total), emprestimosAtrasados: Number(emprestimosAtrasados.rows[0].total) });
+        const renovacoesPendentes = await pool.query("SELECT COUNT(*) as total FROM Emprestimos WHERE status = 'ATIVO' AND COALESCE(renovacaopendente, FALSE) = TRUE");
+        res.json({ 
+            totalObras: Number(totalObras.rows[0].total), 
+            disponiveis: Number(disponiveis.rows[0].total), 
+            emprestimosAtivos: Number(emprestimosAtivos.rows[0].total), 
+            reservasPendentes: Number(reservasPendentes.rows[0].total), 
+            emprestimosAtrasados: Number(emprestimosAtrasados.rows[0].total),
+            renovacoesPendentes: Number(renovacoesPendentes.rows[0].total)
+        });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
