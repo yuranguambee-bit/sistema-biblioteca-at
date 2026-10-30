@@ -4,7 +4,7 @@ import { apiFetch } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   BookOpen, BookMarked, History, ArrowRight, 
-  Sparkles, Clock, AlertTriangle, TrendingUp, BellRing
+  Sparkles, Clock, AlertTriangle, TrendingUp, BellRing, Heart
 } from 'lucide-react';
 
 interface Emprestimo {
@@ -29,6 +29,7 @@ export function PortalHome() {
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [totalHistorico, setTotalHistorico] = useState(0);
   const [totalDisponiveis, setTotalDisponiveis] = useState(0);
+  const [totalFavoritos, setTotalFavoritos] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,12 +38,14 @@ export function PortalHome() {
       apiFetch('/api/portal/meu-historico').then((r) => r.json()),
       apiFetch('/api/obras/disponiveis').then((r) => r.json()),
       apiFetch('/api/portal/minhas-requisicoes').then((r) => r.json()),
+      apiFetch('/api/portal/favoritos').then((r) => r.json()),
     ])
-      .then(([dEmp, dHist, dDisp, dReq]) => {
+      .then(([dEmp, dHist, dDisp, dReq, dFav]) => {
         setEmprestimos(Array.isArray(dEmp) ? dEmp : []);
         setTotalHistorico(Array.isArray(dHist) ? dHist.length : 0);
         setTotalDisponiveis(Array.isArray(dDisp) ? dDisp.length : 0);
         setRequisicoes(Array.isArray(dReq) ? dReq : []);
+        setTotalFavoritos(Array.isArray(dFav) ? dFav.length : 0);
         setLoading(false);
       })
       .catch((e) => { console.error(e); setLoading(false); });
@@ -52,7 +55,6 @@ export function PortalHome() {
 
   return (
     <main className="max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      {/* CABEÇALHO */}
       <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
@@ -74,7 +76,6 @@ export function PortalHome() {
         </div>
       </div>
 
-      {/* AVISO DE REQUISIÇÕES PENDENTES */}
       {requisicoes.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
@@ -88,45 +89,31 @@ export function PortalHome() {
               {requisicoes.map(r => `"${r.Obra}"`).join(', ')}. 
               Por favor, dirige-te à biblioteca para levantares as obras.
             </p>
-            <Link 
-              to="/meus-emprestimos" 
-              className="inline-flex items-center gap-1 mt-3 text-blue-700 font-semibold text-sm hover:underline"
-            >
+            <Link to="/meus-emprestimos" className="inline-flex items-center gap-1 mt-3 text-blue-700 font-semibold text-sm hover:underline">
               Ver detalhes <ArrowRight size={14} />
             </Link>
           </div>
         </div>
       )}
 
-      {/* AVISO DE ATRASOS */}
       {totalAtrasados > 0 && (
         <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0 shadow-md">
             <AlertTriangle className="text-white" size={24} />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-red-700">
-              Tens {totalAtrasados} empréstimo(s) em atraso
-            </h3>
-            <p className="text-sm text-red-600 mt-1">
-              Por favor, dirige-te à biblioteca para devolver as obras o mais breve possível.
-            </p>
-            <Link 
-              to="/meus-emprestimos" 
-              className="inline-flex items-center gap-1 mt-3 text-red-700 font-semibold text-sm hover:underline"
-            >
+            <h3 className="text-base font-bold text-red-700">Tens {totalAtrasados} empréstimo(s) em atraso</h3>
+            <p className="text-sm text-red-600 mt-1">Por favor, dirige-te à biblioteca para devolver as obras o mais breve possível.</p>
+            <Link to="/meus-emprestimos" className="inline-flex items-center gap-1 mt-3 text-red-700 font-semibold text-sm hover:underline">
               Ver os meus empréstimos <ArrowRight size={14} />
             </Link>
           </div>
         </div>
       )}
 
-      {/* CARTÕES DE ESTATÍSTICAS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Link
-          to="/meus-emprestimos"
-          className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-orange-400 cursor-pointer"
-        >
+      {/* CARTÕES DE ESTATÍSTICAS (AGORA COM 4 CARTÕES) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Link to="/meus-emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-orange-400 cursor-pointer">
           <div className="flex items-start justify-between mb-4">
             <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
               <BookMarked className="text-orange-600" size={22} />
@@ -134,14 +121,10 @@ export function PortalHome() {
             <ArrowRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-3xl font-bold text-gray-800">{emprestimos.length}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Empréstimos Ativos</p>
-          <p className="text-xs text-gray-400 mt-0.5">Livros que tens em mãos</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Ativos</p>
         </Link>
 
-        <Link
-          to="/catalogo"
-          className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-green-400 cursor-pointer"
-        >
+        <Link to="/catalogo" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-green-400 cursor-pointer">
           <div className="flex items-start justify-between mb-4">
             <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
               <BookOpen className="text-green-600" size={22} />
@@ -149,14 +132,21 @@ export function PortalHome() {
             <ArrowRight size={18} className="text-gray-300 group-hover:text-green-500 group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-3xl font-bold text-gray-800">{totalDisponiveis}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Obras Disponíveis</p>
-          <p className="text-xs text-gray-400 mt-0.5">Prontas a requisitar</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Disponíveis</p>
         </Link>
 
-        <Link
-          to="/meu-historico"
-          className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-blue-400 cursor-pointer"
-        >
+        <Link to="/favoritos" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-pink-400 cursor-pointer">
+          <div className="flex items-start justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
+              <Heart className="text-pink-600" size={22} />
+            </div>
+            <ArrowRight size={18} className="text-gray-300 group-hover:text-pink-500 group-hover:translate-x-1 transition-all" />
+          </div>
+          <p className="text-3xl font-bold text-gray-800">{totalFavoritos}</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Favoritos</p>
+        </Link>
+
+        <Link to="/meu-historico" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-blue-400 cursor-pointer">
           <div className="flex items-start justify-between mb-4">
             <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
               <History className="text-blue-600" size={22} />
@@ -164,8 +154,7 @@ export function PortalHome() {
             <ArrowRight size={18} className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-3xl font-bold text-gray-800">{totalHistorico}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Livros no Histórico</p>
-          <p className="text-xs text-gray-400 mt-0.5">Já devolvidos</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Histórico</p>
         </Link>
       </div>
 
@@ -182,10 +171,7 @@ export function PortalHome() {
             </div>
           </div>
           {emprestimos.length > 0 && (
-            <Link
-              to="/meus-emprestimos"
-              className="text-xs font-semibold text-at-blue hover:underline flex items-center gap-1"
-            >
+            <Link to="/meus-emprestimos" className="text-xs font-semibold text-at-blue hover:underline flex items-center gap-1">
               Ver todos <ArrowRight size={12} />
             </Link>
           )}
@@ -198,10 +184,7 @@ export function PortalHome() {
             <BookMarked size={56} className="mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500 font-semibold">Não tens empréstimos ativos.</p>
             <p className="text-sm text-gray-400 mt-1 mb-5">Que tal explorar o catálogo?</p>
-            <Link
-              to="/catalogo"
-              className="inline-flex items-center gap-2 bg-at-blue text-white px-5 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm"
-            >
+            <Link to="/catalogo" className="inline-flex items-center gap-2 bg-at-blue text-white px-5 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm">
               <BookOpen size={16} /> Ver Catálogo
             </Link>
           </div>
@@ -235,7 +218,6 @@ export function PortalHome() {
         )}
       </div>
 
-      {/* DICA */}
       <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-at-blue rounded-2xl p-5 flex items-start gap-4">
         <div className="w-10 h-10 rounded-xl bg-at-blue flex items-center justify-center text-white flex-shrink-0">
           <TrendingUp size={20} />
@@ -244,7 +226,7 @@ export function PortalHome() {
           <h3 className="text-sm font-bold text-at-blue">Como funciona</h3>
           <p className="text-sm text-gray-700 mt-1">
             Encontras um livro no <Link to="/catalogo" className="font-semibold text-at-blue hover:underline">Catálogo</Link> e clicas em <strong>"Requisitar"</strong>. 
-            Depois, diriges-te à biblioteca, o bibliotecário confirma a entrega e o empréstimo fica registado no teu nome.
+            Podes também guardar livros para mais tarde clicando no <strong>coração ❤️</strong>.
           </p>
         </div>
       </div>

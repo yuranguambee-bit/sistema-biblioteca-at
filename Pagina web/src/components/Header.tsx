@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { 
   LogOut, User, BookOpen, ShieldCheck, Home, 
-  Library, BookMarked, History 
+  Library, BookMarked, History, Heart
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -74,6 +74,9 @@ export function Header() {
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
+              <Link to="/favoritos" className={linkClasses}>
+                <Heart size={16} className="text-red-400" /> Favoritos
+              </Link>
               <Link to="/perfil" className={linkClasses}><User size={16} /> Perfil</Link>
             </nav>
 

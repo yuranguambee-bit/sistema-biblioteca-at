@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookOpen, Search, User, Building2, Calendar, 
-  BookMarked, RefreshCw, Send, X, Clock, Book, Hash
+  BookMarked, RefreshCw, Send, X, Clock, Book, Hash, Heart
 } from 'lucide-react';
 
 interface Obra {
@@ -24,6 +24,7 @@ export function Catalogo() {
   const { showToast } = useToast();
   const { confirm } = useConfirm();
   const [obras, setObras] = useState<Obra[]>([]);
+  const [favoritos, setFavoritos] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
   const [filtroAutor, setFiltroAutor] = useState('');
@@ -33,12 +34,19 @@ export function Catalogo() {
   const [detalheAberto, setDetalheAberto] = useState<Obra | null>(null);
   const [imgError, setImgError] = useState(false);
 
-  const carregarObras = async () => {
+  const carregarDados = async () => {
     try {
-      const res = await apiFetch('/api/obras');
-      const data = await res.json();
-      const lista = Array.isArray(data) ? data : [];
-      setObras(lista);
+      const [resObras, resFavs] = await Promise.all([
+        apiFetch('/api/obras'),
+        apiFetch('/api/portal/favoritos')
+      ]);
+      const dataObras = await resObras.json();
+      const dataFavs = await resFavs.json();
+      
+      setObras(Array.isArray(dataObras) ? dataObras : []);
+      if (Array.isArray(dataFavs)) {
+        setFavoritos(dataFavs.map((f: any) => f.Id));
+      }
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -46,7 +54,29 @@ export function Catalogo() {
     }
   };
 
-  useEffect(() => { carregarObras(); }, []);
+  useEffect(() => { carregarDados(); }, []);
+
+  const handleToggleFavorito = async (obraId: number) => {
+    const isFav = favoritos.includes(obraId);
+    
+    // Otimista (atualiza logo a UI)
+    if (isFav) {
+      setFavoritos(prev => prev.filter(id => id !== obraId));
+    } else {
+      setFavoritos(prev => [...prev, obraId]);
+    }
+
+    try {
+      const method = isFav ? 'DELETE' : 'POST';
+      const url = isFav ? `/api/portal/favoritos/${obraId}` : '/api/portal/favoritos';
+      await apiFetch(url, { method, body: JSON.stringify({ ObraId: obraId }) });
+    } catch (error) {
+      // Reverter se der erro
+      if (isFav) setFavoritos(prev => [...prev, obraId]);
+      else setFavoritos(prev => prev.filter(id => id !== obraId));
+      showToast('Erro ao atualizar favoritos.', 'error');
+    }
+  };
 
   const autores = useMemo(() => {
     const set = new Set<string>();
@@ -249,19 +279,12 @@ export function Catalogo() {
           <p className="text-gray-500 font-semibold">
             {temFiltros ? 'Nenhuma obra corresponde aos filtros.' : 'Nenhuma obra disponível de momento.'}
           </p>
-          {temFiltros && (
-            <button
-              onClick={limparFiltros}
-              className="mt-4 text-at-blue font-semibold hover:underline text-sm"
-            >
-              Limpar filtros
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {obrasFiltradas.map((obra) => {
             const disponivel = obra.Status === 'DISPONIVEL';
+            const isFav = favoritos.includes(obra.Id);
             return (
               <div
                 key={obra.Id}
@@ -278,11 +301,16 @@ export function Catalogo() {
                       <div className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                         <BookOpen size={18} />
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                        disponivel ? 'bg-green-400 text-green-900' : 'bg-white/20 text-white'
-                      }`}>
-                        {disponivel ? 'DISPONÍVEL' : 'EMPRESTADO'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                          disponivel ? 'bg-green-400 text-green-900' : 'bg-white/20 text-white'
+                        }`}>
+                          {disponivel ? 'DISPONÍVEL' : 'EMPRESTADO'}
+                        </span>
+                        <button onClick={() => handleToggleFavorito(obra.Id)} className="p-1.5 rounded-full hover:bg-white/20 transition-colors">
+                          <Heart size={18} fill={isFav ? "currentColor" : "none"} className={isFav ? "text-red-400" : "text-white"} />
+                        </button>
+                      </div>
                     </div>
                     <h3 className="font-bold text-lg leading-tight line-clamp-2 min-h-[3rem]">
                       {obra.Titulo}
@@ -352,7 +380,7 @@ export function Catalogo() {
         </div>
       )}
 
-      {/* MODAL DE DETALHES TOTALMENTE REDESENHADO */}
+      {/* MODAL DE DETALHES */}
       {detalheAberto && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4"
@@ -362,7 +390,6 @@ export function Catalogo() {
             className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full animate-scale-in overflow-hidden flex flex-col md:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Lado Esquerdo - Capa do Livro */}
             <div className="md:w-2/5 bg-gradient-to-br from-at-blue to-blue-900 p-6 flex flex-col items-center justify-center relative">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
               
@@ -380,16 +407,18 @@ export function Catalogo() {
                 </div>
               )}
               
-              <div className="mt-6 relative z-10 text-center">
+              <div className="mt-6 relative z-10 text-center flex items-center gap-2">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
                   detalheAberto.Status === 'DISPONIVEL' ? 'bg-green-400 text-green-900' : 'bg-orange-500 text-white'
                 }`}>
                   {detalheAberto.Status === 'DISPONIVEL' ? 'DISPONÍVEL' : 'EMPRESTADO'}
                 </span>
+                <button onClick={() => handleToggleFavorito(detalheAberto.Id)} className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors">
+                  <Heart size={18} fill={favoritos.includes(detalheAberto.Id) ? "currentColor" : "none"} className={favoritos.includes(detalheAberto.Id) ? "text-red-400" : "text-white"} />
+                </button>
               </div>
             </div>
 
-            {/* Lado Direito - Detalhes */}
             <div className="md:w-3/5 p-6 md:p-8 flex flex-col">
               <div className="flex justify-between items-start mb-6">
                 <div>

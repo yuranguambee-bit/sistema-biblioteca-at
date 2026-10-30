@@ -29,6 +29,7 @@ import { Catalogo } from './pages/Catalogo';
 import { MeusEmprestimos } from './pages/MeusEmprestimos';
 import { MeuHistorico } from './pages/MeuHistorico';
 import { PerfilCliente } from './pages/PerfilCliente';
+import { MeusFavoritos } from './pages/MeusFavoritos'; // <-- NOVA IMPORTAÇÃO
 
 // ============ PORTAL DO LEITOR (role === 'Cliente') ============
 function PortalLeitor() {
@@ -38,6 +39,7 @@ function PortalLeitor() {
       <Routes>
         <Route path="/" element={<PortalHome />} />
         <Route path="/catalogo" element={<Catalogo />} />
+        <Route path="/favoritos" element={<MeusFavoritos />} /> {/* <-- NOVA ROTA */}
         <Route path="/meus-emprestimos" element={<MeusEmprestimos />} />
         <Route path="/meu-historico" element={<MeuHistorico />} />
         <Route path="/perfil" element={<PerfilCliente />} />
@@ -53,14 +55,12 @@ function SistemaStaff() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <Routes>
-        {/* Rotas sempre acessíveis (qualquer funcionário autenticado) */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/clientes/:id" element={<DetalhesCliente />} />
         <Route path="/obras/:id" element={<DetalhesObra />} />
         <Route path="/comprovativo/:id" element={<Comprovativo />} />
 
-        {/* Rotas protegidas por permissão */}
         <Route path="/cadastrar-obra" element={<RotaPermissao chave="obras"><CadastrarObra /></RotaPermissao>} />
         <Route path="/cadastrar-autor" element={<RotaPermissao chave="autores"><CadastrarAutor /></RotaPermissao>} />
         <Route path="/cadastrar-cliente" element={<RotaPermissao chave="clientes"><CadastrarCliente /></RotaPermissao>} />
@@ -73,7 +73,6 @@ function SistemaStaff() {
         <Route path="/relatorios" element={<RotaPermissao chave="relatorios"><Relatorios /></RotaPermissao>} />
         <Route path="/manual" element={<RotaPermissao chave="manual"><Manual /></RotaPermissao>} />
 
-        {/* Rotas exclusivas do Admin */}
         <Route path="/utilizadores" element={<Utilizadores />} />
         <Route path="/permissoes" element={<Permissoes />} />
 
@@ -89,12 +88,10 @@ function SistemaPrivado() {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  // Cliente → Portal do Leitor
   if (user?.role === 'Cliente') {
     return <PortalLeitor />;
   }
 
-  // Admin / Bibliotecário → Sistema original
   return <SistemaStaff />;
 }
 

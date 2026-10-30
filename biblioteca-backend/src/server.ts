@@ -450,6 +450,67 @@ app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, 
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ============ NOVAS ROTAS: FAVORITOS ============
+app.get('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request()
+            .input('ClienteId', sql.Int, (req as any).user.id)
+            .query(`
+                SELECT O.Id, O.Titulo, 
+                       (A.Nome + ' ' + ISNULL(A.Sobrenome, '')) as Autor,
+                       E.Nome as Editora, O.Ano, O.Status
+                FROM Favoritos F
+                INNER JOIN Obras O ON F.ObraId = O.Id
+                LEFT JOIN Autores A ON O.AutorId = A.Id
+                LEFT JOIN Editoras E ON O.EditoraId = E.Id
+                WHERE F.ClienteId = @ClienteId
+                ORDER BY F.DataCriacao DESC
+            `);
+        res.json(result.recordset);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.post('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res) => {
+    const { ObraId } = req.body;
+    const ClienteId = (req as any).user.id;
+
+    if (!ObraId) return res.status(400).json({ error: 'Indica a obra a favoritar.' });
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        const checkObra = await pool.request().input('Id', sql.Int, ObraId).query('SELECT Id FROM Obras WHERE Id = @Id');
+        if (checkObra.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+
+        await pool.request()
+            .input('ClienteId', sql.Int, ClienteId)
+            .input('ObraId', sql.Int, ObraId)
+            .query(`
+                IF NOT EXISTS (SELECT 1 FROM Favoritos WHERE ClienteId = @ClienteId AND ObraId = @ObraId)
+                BEGIN
+                    INSERT INTO Favoritos (ClienteId, ObraId) VALUES (@ClienteId, @ObraId)
+                END
+            `);
+
+        res.status(201).json({ message: 'Adicionado aos favoritos!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.delete('/api/portal/favoritos/:obraid', verificarToken, apenasCliente, async (req, res) => {
+    const ObraId = req.params.obraid;
+    const ClienteId = (req as any).user.id;
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool.request()
+            .input('ClienteId', sql.Int, ClienteId)
+            .input('ObraId', sql.Int, ObraId)
+            .query('DELETE FROM Favoritos WHERE ClienteId = @ClienteId AND ObraId = @ObraId');
+        res.json({ message: 'Removido dos favoritos.' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ RESERVAS ============
 app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, res) => {
     const { ObraId } = req.body;
     const ClienteId = (req as any).user.id;
@@ -575,7 +636,6 @@ app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, as
     try {
         const pool = await sql.connect(dbConfig);
 
-        // 1. Verificar se o empréstimo pertence ao cliente e está ativo
         const empRes = await pool.request()
             .input('Id', sql.Int, emprestimoId)
             .input('ClienteId', sql.Int, ClienteId)
@@ -594,19 +654,16 @@ app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, as
 
         const emp = empRes.recordset[0];
 
-        // 2. Verificar se já tem pedido pendente
         if (emp.RenovacaoPendente === true || emp.RenovacaoPendente === 1) {
             return res.status(400).json({ error: 'Já tens um pedido de renovação em análise para este empréstimo.' });
         }
 
-        // 3. Verificar se está atrasado
         const hoje = new Date();
         const dataPrevista = new Date(emp.DataPrevistaDevolucao);
         if (dataPrevista < hoje) {
             return res.status(400).json({ error: 'Não é possível pedir renovação de um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
         }
 
-        // 4. Verificar se há reservas/fila de espera pendentes
         const resRes = await pool.request()
             .input('ObraId', sql.Int, emp.ObraId)
             .query("SELECT COUNT(*) as total FROM Reservas WHERE ObraId = @ObraId AND Status = 'PENDENTE'");
@@ -615,12 +672,10 @@ app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, as
             return res.status(400).json({ error: 'Não é possível pedir renovação. Há leitores à espera deste livro na fila de espera.' });
         }
 
-        // 5. Marcar como pedido pendente (NÃO altera data!)
         await pool.request()
             .input('Id', sql.Int, emprestimoId)
             .query("UPDATE Emprestimos SET RenovacaoPendente = 1, RenovacaoSolicitadaEm = GETDATE() WHERE Id = @Id");
 
-        // 6. Notificar admin
         await criarNotificacao(
             '🔄 Pedido de Renovação',
             `${emp.ClienteNome} pediu para renovar "${emp.ObraTitulo}".`,
@@ -629,7 +684,6 @@ app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, as
             null
         );
 
-        // 7. Notificar cliente
         await criarNotificacao(
             '⏳ Pedido de Renovação Enviado',
             `O teu pedido de renovação de "${emp.ObraTitulo}" foi enviado. Aguarda aprovação da biblioteca.`,
@@ -1545,7 +1599,6 @@ app.put('/api/emprestimos/:id/devolver', verificarToken, verificarPermissao('emp
     }
 });
 
-// Renovação direta pelo Admin (sem pedido do cliente)
 app.put('/api/emprestimos/:id/renovar', verificarToken, verificarPermissao('emprestimos_renovar'), async (req, res) => {
     const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
     try {
