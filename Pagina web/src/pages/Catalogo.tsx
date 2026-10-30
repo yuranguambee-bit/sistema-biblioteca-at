@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookOpen, Search, User, Building2, Calendar, 
-  BookMarked, RefreshCw, Send, X, Clock, Book
+  BookMarked, RefreshCw, Send, X, Clock, Book, Hash
 } from 'lucide-react';
 
 interface Obra {
@@ -31,6 +31,7 @@ export function Catalogo() {
   const [filtroArea, setFiltroArea] = useState('');
   const [processando, setProcessando] = useState<number | null>(null);
   const [detalheAberto, setDetalheAberto] = useState<Obra | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   const carregarObras = async () => {
     try {
@@ -149,6 +150,11 @@ export function Catalogo() {
     setFiltroAutor('');
     setFiltroEditora('');
     setFiltroArea('');
+  };
+
+  const abrirDetalhes = (obra: Obra) => {
+    setImgError(false);
+    setDetalheAberto(obra);
   };
 
   const temFiltros = pesquisa || filtroAutor || filtroEditora || filtroArea;
@@ -308,7 +314,7 @@ export function Catalogo() {
 
                   <div className="mt-auto pt-3 flex gap-2">
                     <button
-                      onClick={() => setDetalheAberto(obra)}
+                      onClick={() => abrirDetalhes(obra)}
                       className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-xs font-semibold hover:bg-gray-200 transition-colors"
                     >
                       Ver detalhes
@@ -346,85 +352,130 @@ export function Catalogo() {
         </div>
       )}
 
+      {/* MODAL DE DETALHES TOTALMENTE REDESENHADO */}
       {detalheAberto && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4"
           onClick={() => setDetalheAberto(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in"
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full animate-scale-in overflow-hidden flex flex-col md:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
-                  <BookOpen size={20} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-at-blue line-clamp-2">{detalheAberto.Titulo}</h3>
-                  <p className="text-xs text-gray-500">Detalhes da obra</p>
-                </div>
-              </div>
-              <button onClick={() => setDetalheAberto(null)} className="text-gray-400 hover:text-red-500">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between border-b border-gray-50 pb-2">
-                <span className="text-gray-500">Autor</span>
-                <span className="font-semibold text-gray-800 text-right">{detalheAberto.Autor || '—'}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-50 pb-2">
-                <span className="text-gray-500">Editora</span>
-                <span className="font-semibold text-gray-800">{detalheAberto.Editora || '—'}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-50 pb-2">
-                <span className="text-gray-500">Área de Conhecimento</span>
-                <span className="font-semibold text-gray-800">{detalheAberto.AreaConhecimento || '—'}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-50 pb-2">
-                <span className="text-gray-500">Ano</span>
-                <span className="font-semibold text-gray-800">{detalheAberto.Ano}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">ISBN</span>
-                <span className="font-mono text-xs text-gray-700">{detalheAberto.ISBN || '—'}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
-              <button
-                onClick={() => setDetalheAberto(null)}
-                className="flex-1 bg-gray-100 text-gray-700 px-5 py-2.5 rounded-md font-semibold hover:bg-gray-200 transition-colors text-sm"
-              >
-                Fechar
-              </button>
-              {detalheAberto.Status === 'DISPONIVEL' ? (
-                <button
-                  onClick={() => handleRequisitar(detalheAberto)}
-                  disabled={processando === detalheAberto.Id}
-                  className="flex-1 bg-green-600 text-white px-5 py-2.5 rounded-md font-semibold hover:bg-green-700 transition-colors text-sm disabled:bg-gray-400 flex items-center justify-center gap-2"
-                >
-                  {processando === detalheAberto.Id ? (
-                    <><RefreshCw size={14} className="animate-spin" /> A enviar...</>
-                  ) : (
-                    <><BookMarked size={14} /> Requisitar Obra</>
-                  )}
-                </button>
+            {/* Lado Esquerdo - Capa do Livro */}
+            <div className="md:w-2/5 bg-gradient-to-br from-at-blue to-blue-900 p-6 flex flex-col items-center justify-center relative">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+              
+              {detalheAberto.ISBN && !imgError ? (
+                <img 
+                  src={`https://covers.openlibrary.org/b/isbn/${detalheAberto.ISBN}-L.jpg`} 
+                  alt="Capa do livro" 
+                  className="w-full max-w-[200px] rounded-lg shadow-2xl relative z-10 border-4 border-white/20 object-cover"
+                  onError={() => setImgError(true)}
+                />
               ) : (
-                <button
-                  onClick={() => handleReservar(detalheAberto)}
-                  disabled={processando === detalheAberto.Id}
-                  className="flex-1 bg-orange-500 text-white px-5 py-2.5 rounded-md font-semibold hover:bg-orange-600 transition-colors text-sm disabled:bg-gray-400 flex items-center justify-center gap-2"
-                >
-                  {processando === detalheAberto.Id ? (
-                    <><RefreshCw size={14} className="animate-spin" /> A enviar...</>
-                  ) : (
-                    <><Clock size={14} /> Reservar Obra</>
-                  )}
-                </button>
+                <div className="w-full max-w-[200px] aspect-[2/3] rounded-lg bg-white/10 border-4 border-white/20 shadow-2xl flex flex-col items-center justify-center relative z-10">
+                  <BookOpen size={64} className="text-white/50 mb-2" />
+                  <p className="text-white/60 text-xs font-semibold text-center px-4">Capa Indisponível</p>
+                </div>
               )}
+              
+              <div className="mt-6 relative z-10 text-center">
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                  detalheAberto.Status === 'DISPONIVEL' ? 'bg-green-400 text-green-900' : 'bg-orange-500 text-white'
+                }`}>
+                  {detalheAberto.Status === 'DISPONIVEL' ? 'DISPONÍVEL' : 'EMPRESTADO'}
+                </span>
+              </div>
+            </div>
+
+            {/* Lado Direito - Detalhes */}
+            <div className="md:w-3/5 p-6 md:p-8 flex flex-col">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 leading-tight mb-2">{detalheAberto.Titulo}</h3>
+                  {detalheAberto.AreaConhecimento && (
+                    <span className="inline-block bg-blue-50 text-at-blue text-xs font-bold px-2 py-1 rounded">
+                      {detalheAberto.AreaConhecimento}
+                    </span>
+                  )}
+                </div>
+                <button onClick={() => setDetalheAberto(null)} className="text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 p-1.5 rounded-full transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-sm flex-1">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <User size={14} className="text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold">Autor</p>
+                    <p className="font-semibold text-gray-800">{detalheAberto.Autor || '—'}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Building2 size={14} className="text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold">Editora</p>
+                    <p className="font-semibold text-gray-800">{detalheAberto.Editora || '—'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Calendar size={14} className="text-gray-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold">Ano & Edição</p>
+                    <p className="font-semibold text-gray-800">{detalheAberto.Ano} {detalheAberto.NumeroEdicao ? `· ${detalheAberto.NumeroEdicao}ª Edição` : ''}</p>
+                  </div>
+                </div>
+
+                {detalheAberto.ISBN && (
+                  <div className="flex items-center gap-3 pb-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <Hash size={14} className="text-gray-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 font-semibold">ISBN</p>
+                      <p className="font-mono text-xs text-gray-700">{detalheAberto.ISBN}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-gray-100">
+                {detalheAberto.Status === 'DISPONIVEL' ? (
+                  <button
+                    onClick={() => handleRequisitar(detalheAberto)}
+                    disabled={processando === detalheAberto.Id}
+                    className="w-full bg-green-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2"
+                  >
+                    {processando === detalheAberto.Id ? (
+                      <><RefreshCw size={18} className="animate-spin" /> A processar...</>
+                    ) : (
+                      <><BookMarked size={18} /> Requisitar esta Obra</>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleReservar(detalheAberto)}
+                    disabled={processando === detalheAberto.Id}
+                    className="w-full bg-orange-500 text-white px-5 py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors shadow-md disabled:bg-gray-400 flex items-center justify-center gap-2"
+                  >
+                    {processando === detalheAberto.Id ? (
+                      <><RefreshCw size={18} className="animate-spin" /> A processar...</>
+                    ) : (
+                      <><Clock size={18} /> Entrar na Fila de Espera</>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

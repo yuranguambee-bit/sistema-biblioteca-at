@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Autocomplete } from '../components/Autocomplete';
 import { 
   BookOpen, User, Building2, Calendar, Layers, Lock, 
-  RefreshCw, Hash, Globe, Search, Eye, Barcode, MapPin, Tags
+  RefreshCw, Hash, Globe, Eye, Barcode, MapPin, Tags, Search
 } from 'lucide-react';
 
 interface Autor { Id: number; Nome: string; Nacionalidade?: string; }
@@ -29,7 +29,6 @@ export function CadastrarObra() {
   const navigate = useNavigate();
 
   const [isbn, setIsbn] = useState('');
-  const [loadingIsbn, setLoadingIsbn] = useState(false);
 
   const [titulo, setTitulo] = useState('');
   const [ano, setAno] = useState('');
@@ -98,70 +97,6 @@ export function CadastrarObra() {
 
   const opcoesAutores = autores.map((a) => ({ id: a.Id, label: a.Nome, sublabel: a.Nacionalidade || undefined }));
   const opcoesEditoras = editoras.map((e) => ({ id: e.Id, label: e.Nome, sublabel: e.Contacto || undefined }));
-
-  // ============ INTEGRAÇÃO GOOGLE BOOKS (Via Backend) ============
-  const handleBuscarISBN = async () => {
-    if (!isbn.trim()) {
-      showToast('Digita um ISBN para pesquisar.', 'error');
-      return;
-    }
-
-    setLoadingIsbn(true);
-    try {
-      const response = await apiFetch(`/api/obras/buscar-isbn/${isbn}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao procurar o ISBN.');
-      }
-
-      const data = await response.json();
-      
-      // 1. Preencher Título
-      if (data.titulo) setTitulo(data.titulo);
-      
-      // 2. Preencher Ano
-      if (data.ano) setAno(data.ano);
-
-      // 3. Tentar encontrar o Autor na lista
-      if (data.autor) {
-        const autorNome = data.autor;
-        const autorEncontrado = autores.find(a => 
-          a.Nome.toLowerCase().includes(autorNome.toLowerCase()) || 
-          autorNome.toLowerCase().includes(a.Nome.toLowerCase())
-        );
-        
-        if (autorEncontrado) {
-          setAutorId(autorEncontrado.Id.toString());
-        } else {
-          showToast(`Autor "${autorNome}" não está registado. Cadastra-o primeiro.`, 'warning');
-        }
-      }
-
-      // 4. Tentar encontrar a Editora na lista
-      if (data.editora) {
-        const editoraNome = data.editora;
-        const editoraEncontrada = editoras.find(e => 
-          e.Nome.toLowerCase().includes(editoraNome.toLowerCase()) ||
-          editoraNome.toLowerCase().includes(e.Nome.toLowerCase())
-        );
-
-        if (editoraEncontrada) {
-          setEditoraId(editoraEncontrada.Id.toString());
-        } else {
-          showToast(`Editora "${editoraNome}" não está registada. Cadastra-a primeiro.`, 'warning');
-        }
-      }
-
-      showToast('Dados preenchidos automaticamente!', 'success');
-
-    } catch (error: any) {
-      console.error(error);
-      showToast(error.message || 'Erro ao ligar ao Google Books. Tenta novamente.', 'error');
-    } finally {
-      setLoadingIsbn(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +167,7 @@ export function CadastrarObra() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-at-blue">Cadastrar Nova Obra</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Pesquisa pelo ISBN para preencher automaticamente</p>
+              <p className="text-xs text-gray-500 mt-0.5">Preenche os dados do livro para adicionar ao acervo</p>
             </div>
           </div>
           {!podeCriar && (
@@ -243,14 +178,25 @@ export function CadastrarObra() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* CAMPO ISBN */}
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <label className="text-sm font-bold text-blue-900 mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-2"><Barcode size={16}/> Pesquisa Automática por ISBN</span>
-              {!temPermissao('obras_campo_isbn') && <Lock size={12} className="text-red-400" />}
-            </label>
-            <div className="flex gap-3">
-              <div className="relative flex-1">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Título da Obra</span>
+                {!temPermissao('obras_campo_titulo') && <Lock size={12} className="text-red-400" />}
+              </label>
+              <div className="relative">
+                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input type="text" required value={titulo} onChange={(e) => setTitulo(e.target.value)} disabled={campoBloqueado('obras_campo_titulo')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_titulo') ? disabledClass : enabledClass}`} placeholder="Ex: Manual de Direito Tributário" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>ISBN (Opcional)</span>
+                {!temPermissao('obras_campo_isbn') && <Lock size={12} className="text-red-400" />}
+              </label>
+              <div className="relative">
                 <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input 
                   type="text" 
@@ -261,31 +207,9 @@ export function CadastrarObra() {
                   placeholder="Ex: 978-989-20-1234-5" 
                 />
               </div>
-              <button 
-                type="button" 
-                onClick={handleBuscarISBN}
-                disabled={loadingIsbn || !isbn.trim() || campoBloqueado('obras_campo_isbn')}
-                className="bg-blue-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {loadingIsbn ? <RefreshCw size={18} className="animate-spin" /> : <Search size={18} />}
-                {loadingIsbn ? 'A procurar...' : 'Procurar'}
-              </button>
+              <p className="text-xs text-gray-400 mt-1">Se preencheres o ISBN, o sistema tentará procurar a capa do livro automaticamente.</p>
             </div>
-            <p className="text-xs text-blue-700 mt-2">Dica: O sistema procura no Google Books e preenche o Título, Ano, Autor e Editora.</p>
-          </div>
 
-          <div>
-            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-              <span>Título da Obra</span>
-              {!temPermissao('obras_campo_titulo') && <Lock size={12} className="text-red-400" />}
-            </label>
-            <div className="relative">
-              <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input type="text" required value={titulo} onChange={(e) => setTitulo(e.target.value)} disabled={campoBloqueado('obras_campo_titulo')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_titulo') ? disabledClass : enabledClass}`} placeholder="Ex: Manual de Direito Tributário" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
                 <span>Ano de Publicação</span>
@@ -296,7 +220,9 @@ export function CadastrarObra() {
                 <input type="number" required min={1000} max={2100} value={ano} onChange={(e) => setAno(e.target.value)} disabled={campoBloqueado('obras_campo_ano')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_ano') ? disabledClass : enabledClass}`} placeholder="Ex: 2024" />
               </div>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
                 <span>Número de Edição</span>
@@ -307,9 +233,7 @@ export function CadastrarObra() {
                 <input type="text" value={numeroEdicao} onChange={(e) => setNumeroEdicao(e.target.value)} disabled={campoBloqueado('obras_campo_numeroedicao')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_numeroedicao') ? disabledClass : enabledClass}`} placeholder="Ex: 1ª Edição" />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
                 <span>Nacionalidade do Livro</span>
@@ -320,24 +244,20 @@ export function CadastrarObra() {
                 <input type="text" value={nacionalidadeLivro} onChange={(e) => setNacionalidadeLivro(e.target.value)} disabled={campoBloqueado('obras_campo_nacionalidadelivro')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_nacionalidadelivro') ? disabledClass : enabledClass}`} placeholder="Ex: Moçambicana" />
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                <span>Nº de Exemplares</span>
-                {!temPermissao('obras_campo_exemplares') && <Lock size={12} className="text-red-400" />}
-              </label>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setExemplares(Math.max(1, exemplares - 1))} disabled={campoBloqueado('obras_campo_exemplares')} className="w-11 h-11 rounded-md bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors disabled:opacity-50">−</button>
-                <div className="relative flex-1">
-                  <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <input type="number" min={1} max={50} value={exemplares} onChange={(e) => setExemplares(Math.max(1, Number(e.target.value) || 1))} disabled={campoBloqueado('obras_campo_exemplares')} className={`w-full pl-10 p-3 border rounded-md transition-colors text-center font-semibold ${campoBloqueado('obras_campo_exemplares') ? disabledClass : enabledClass}`} />
-                </div>
-                <button type="button" onClick={() => setExemplares(Math.min(50, exemplares + 1))} disabled={campoBloqueado('obras_campo_exemplares')} className="w-11 h-11 rounded-md bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors disabled:opacity-50">+</button>
-              </div>
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>Área de Conhecimento</span>
+              {!temPermissao('obras_campo_areaconhecimento') && <Lock size={12} className="text-red-400" />}
+            </label>
+            <div className="relative">
+              <Tags className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input type="text" value={areaConhecimento} onChange={(e) => setAreaConhecimento(e.target.value)} disabled={campoBloqueado('obras_campo_areaconhecimento')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_areaconhecimento') ? disabledClass : enabledClass}`} placeholder="Ex: Direito, Economia, Metodologia..." />
             </div>
           </div>
 
-          {/* NOVOS CAMPOS DO INVENTÁRIO */}
+          {/* CAMPOS DO INVENTÁRIO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
@@ -362,19 +282,25 @@ export function CadastrarObra() {
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-              <span>Área de Conhecimento</span>
-              {!temPermissao('obras_campo_areaconhecimento') && <Lock size={12} className="text-red-400" />}
-            </label>
-            <div className="relative">
-              <Tags className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input type="text" value={areaConhecimento} onChange={(e) => setAreaConhecimento(e.target.value)} disabled={campoBloqueado('obras_campo_areaconhecimento')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_areaconhecimento') ? disabledClass : enabledClass}`} placeholder="Ex: Metodologia de Investigação" />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Autocomplete label="Autor" options={opcoesAutores} value={autorId} onChange={setAutorId} placeholder="Escreve para pesquisar..." icon={<User size={18} />} disabled={campoBloqueado('obras_campo_autor')} required />
+            <Autocomplete label="Editora" options={opcoesEditoras} value={editoraId} onChange={setEditoraId} placeholder="Escreve para pesquisar..." icon={<Building2 size={18} />} disabled={campoBloqueado('obras_campo_editora')} required />
           </div>
 
-          <Autocomplete label="Autor" options={opcoesAutores} value={autorId} onChange={setAutorId} placeholder="Escreve para pesquisar..." icon={<User size={18} />} disabled={campoBloqueado('obras_campo_autor')} required />
-          <Autocomplete label="Editora" options={opcoesEditoras} value={editoraId} onChange={setEditoraId} placeholder="Escreve para pesquisar..." icon={<Building2 size={18} />} disabled={campoBloqueado('obras_campo_editora')} required />
+          <div>
+            <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+              <span>Nº de Exemplares a Adicionar</span>
+              {!temPermissao('obras_campo_exemplares') && <Lock size={12} className="text-red-400" />}
+            </label>
+            <div className="flex items-center gap-2 max-w-xs">
+              <button type="button" onClick={() => setExemplares(Math.max(1, exemplares - 1))} disabled={campoBloqueado('obras_campo_exemplares')} className="w-11 h-11 rounded-md bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors disabled:opacity-50">−</button>
+              <div className="relative flex-1">
+                <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input type="number" min={1} max={50} value={exemplares} onChange={(e) => setExemplares(Math.max(1, Number(e.target.value) || 1))} disabled={campoBloqueado('obras_campo_exemplares')} className={`w-full pl-10 p-3 border rounded-md transition-colors text-center font-semibold ${campoBloqueado('obras_campo_exemplares') ? disabledClass : enabledClass}`} />
+              </div>
+              <button type="button" onClick={() => setExemplares(Math.min(50, exemplares + 1))} disabled={campoBloqueado('obras_campo_exemplares')} className="w-11 h-11 rounded-md bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors disabled:opacity-50">+</button>
+            </div>
+          </div>
 
           {autores.length === 0 && (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md text-sm text-yellow-800">⚠️ <strong>Não existem autores registados.</strong> Vai a "Cadastrar Autor" primeiro.</div>
