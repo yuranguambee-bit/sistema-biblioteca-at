@@ -4,7 +4,7 @@ import { apiFetch } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   BookOpen, BookMarked, History, ArrowRight, 
-  Sparkles, Clock, AlertTriangle, TrendingUp, BellRing, Heart
+  Sparkles, Clock, AlertTriangle, TrendingUp, BellRing
 } from 'lucide-react';
 
 interface Emprestimo {
@@ -29,7 +29,6 @@ export function PortalHome() {
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [totalHistorico, setTotalHistorico] = useState(0);
   const [totalDisponiveis, setTotalDisponiveis] = useState(0);
-  const [totalFavoritos, setTotalFavoritos] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,14 +37,12 @@ export function PortalHome() {
       apiFetch('/api/portal/meu-historico').then((r) => r.json()),
       apiFetch('/api/obras/disponiveis').then((r) => r.json()),
       apiFetch('/api/portal/minhas-requisicoes').then((r) => r.json()),
-      apiFetch('/api/portal/favoritos').then((r) => r.json()),
     ])
-      .then(([dEmp, dHist, dDisp, dReq, dFav]) => {
+      .then(([dEmp, dHist, dDisp, dReq]) => {
         setEmprestimos(Array.isArray(dEmp) ? dEmp : []);
         setTotalHistorico(Array.isArray(dHist) ? dHist.length : 0);
         setTotalDisponiveis(Array.isArray(dDisp) ? dDisp.length : 0);
         setRequisicoes(Array.isArray(dReq) ? dReq : []);
-        setTotalFavoritos(Array.isArray(dFav) ? dFav.length : 0);
         setLoading(false);
       })
       .catch((e) => { console.error(e); setLoading(false); });
@@ -111,8 +108,8 @@ export function PortalHome() {
         </div>
       )}
 
-      {/* CARTÕES DE ESTATÍSTICAS (AGORA COM 4 CARTÕES) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* CARTÕES DE ESTATÍSTICAS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Link to="/meus-emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-orange-400 cursor-pointer">
           <div className="flex items-start justify-between mb-4">
             <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
@@ -121,7 +118,8 @@ export function PortalHome() {
             <ArrowRight size={18} className="text-gray-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-3xl font-bold text-gray-800">{emprestimos.length}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Ativos</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Empréstimos Ativos</p>
+          <p className="text-xs text-gray-400 mt-0.5">Livros que tens em mãos</p>
         </Link>
 
         <Link to="/catalogo" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-green-400 cursor-pointer">
@@ -132,18 +130,8 @@ export function PortalHome() {
             <ArrowRight size={18} className="text-gray-300 group-hover:text-green-500 group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-3xl font-bold text-gray-800">{totalDisponiveis}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Disponíveis</p>
-        </Link>
-
-        <Link to="/favoritos" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-pink-400 cursor-pointer">
-          <div className="flex items-start justify-between mb-4">
-            <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
-              <Heart className="text-pink-600" size={22} />
-            </div>
-            <ArrowRight size={18} className="text-gray-300 group-hover:text-pink-500 group-hover:translate-x-1 transition-all" />
-          </div>
-          <p className="text-3xl font-bold text-gray-800">{totalFavoritos}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Favoritos</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Obras Disponíveis</p>
+          <p className="text-xs text-gray-400 mt-0.5">Prontas a requisitar</p>
         </Link>
 
         <Link to="/meu-historico" className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border-l-4 border-blue-400 cursor-pointer">
@@ -154,11 +142,11 @@ export function PortalHome() {
             <ArrowRight size={18} className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
           </div>
           <p className="text-3xl font-bold text-gray-800">{totalHistorico}</p>
-          <p className="text-sm font-semibold text-gray-600 mt-1">Histórico</p>
+          <p className="text-sm font-semibold text-gray-600 mt-1">Livros no Histórico</p>
+          <p className="text-xs text-gray-400 mt-0.5">Já devolvidos</p>
         </Link>
       </div>
 
-      {/* EMPRÉSTIMOS RECENTES */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -226,7 +214,7 @@ export function PortalHome() {
           <h3 className="text-sm font-bold text-at-blue">Como funciona</h3>
           <p className="text-sm text-gray-700 mt-1">
             Encontras um livro no <Link to="/catalogo" className="font-semibold text-at-blue hover:underline">Catálogo</Link> e clicas em <strong>"Requisitar"</strong>. 
-            Podes também guardar livros para mais tarde clicando no <strong>coração ❤️</strong>.
+            Depois, diriges-te à biblioteca, o bibliotecário confirma a entrega e o empréstimo fica registado no teu nome.
           </p>
         </div>
       </div>

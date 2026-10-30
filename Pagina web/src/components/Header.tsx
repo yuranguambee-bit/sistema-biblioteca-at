@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { 
   LogOut, User, BookOpen, ShieldCheck, Home, 
-  Library, BookMarked, History, Heart
+  Library, BookMarked, History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -21,7 +21,6 @@ export function Header() {
   const isCliente = user?.role === 'Cliente';
 
   useEffect(() => {
-    // Cliente não vê estatísticas de atrasados de toda a biblioteca
     if (isCliente) return;
     if (!temPermissao('emprestimos')) return;
 
@@ -55,7 +54,6 @@ export function Header() {
 
   const linkClasses = "px-2.5 py-2 rounded-md hover:bg-white/10 hover:text-yellow-300 transition-colors text-[15px] font-semibold flex items-center gap-1.5 whitespace-nowrap";
 
-  // ============ HEADER DO PORTAL DO LEITOR ============
   if (isCliente) {
     return (
       <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
@@ -74,9 +72,6 @@ export function Header() {
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
-              <Link to="/favoritos" className={linkClasses}>
-                <Heart size={16} className="text-red-400" /> Favoritos
-              </Link>
               <Link to="/perfil" className={linkClasses}><User size={16} /> Perfil</Link>
             </nav>
 
@@ -105,7 +100,6 @@ export function Header() {
     );
   }
 
-  // ============ HEADER DO SISTEMA STAFF (original) ============
   return (
     <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
       <div className="flex flex-col items-center justify-center py-5 px-4">

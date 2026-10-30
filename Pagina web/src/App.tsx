@@ -23,13 +23,12 @@ import { Permissoes } from './pages/Permissoes';
 import { Perfil } from './pages/Perfil';
 import { Manual } from './pages/Manual';
 import { Login } from './pages/Login';
-// NOVAS PÁGINAS DO PORTAL DO LEITOR
+// PÁGINAS DO PORTAL DO LEITOR
 import { PortalHome } from './pages/PortalHome';
 import { Catalogo } from './pages/Catalogo';
 import { MeusEmprestimos } from './pages/MeusEmprestimos';
 import { MeuHistorico } from './pages/MeuHistorico';
 import { PerfilCliente } from './pages/PerfilCliente';
-import { MeusFavoritos } from './pages/MeusFavoritos'; // <-- NOVA IMPORTAÇÃO
 
 // ============ PORTAL DO LEITOR (role === 'Cliente') ============
 function PortalLeitor() {
@@ -39,7 +38,6 @@ function PortalLeitor() {
       <Routes>
         <Route path="/" element={<PortalHome />} />
         <Route path="/catalogo" element={<Catalogo />} />
-        <Route path="/favoritos" element={<MeusFavoritos />} /> {/* <-- NOVA ROTA */}
         <Route path="/meus-emprestimos" element={<MeusEmprestimos />} />
         <Route path="/meu-historico" element={<MeuHistorico />} />
         <Route path="/perfil" element={<PerfilCliente />} />
