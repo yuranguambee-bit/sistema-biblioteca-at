@@ -193,6 +193,9 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
     if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN');
+    if (req.body.Codigo !== undefined && !p['obras_campo_codigo']) proibidos.push('Codigo');
+    if (req.body.AreaConhecimento !== undefined && !p['obras_campo_areaconhecimento']) proibidos.push('AreaConhecimento');
+    if (req.body.Localizacao !== undefined && !p['obras_campo_localizacao']) proibidos.push('Localizacao');
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -366,7 +369,7 @@ app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, 
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ NOVAS ROTAS: FAVORITOS ============
+// ============ FAVORITOS (MANTIDO NO BACKEND PARA NÃO DAR ERRO, MAS SEM UI) ============
 app.get('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -387,19 +390,11 @@ app.get('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res)
 app.post('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res) => {
     const { ObraId } = req.body;
     const ClienteId = (req as any).user.id;
-
     if (!ObraId) return res.status(400).json({ error: 'Indica a obra a favoritar.' });
-
     try {
         const checkObra = await pool.query('SELECT id FROM Obras WHERE id = $1', [ObraId]);
         if (checkObra.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
-
-        await pool.query(`
-            INSERT INTO Favoritos (clienteid, obraid) 
-            VALUES ($1, $2) 
-            ON CONFLICT (clienteid, obraid) DO NOTHING
-        `, [ClienteId, ObraId]);
-
+        await pool.query(`INSERT INTO Favoritos (clienteid, obraid) VALUES ($1, $2) ON CONFLICT (clienteid, obraid) DO NOTHING`, [ClienteId, ObraId]);
         res.status(201).json({ message: 'Adicionado aos favoritos!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -407,7 +402,6 @@ app.post('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res
 app.delete('/api/portal/favoritos/:obraid', verificarToken, apenasCliente, async (req, res) => {
     const ObraId = req.params.obraid;
     const ClienteId = (req as any).user.id;
-
     try {
         await pool.query('DELETE FROM Favoritos WHERE clienteid = $1 AND obraid = $2', [ClienteId, ObraId]);
         res.json({ message: 'Removido dos favoritos.' });
@@ -444,26 +438,10 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
         const clienteInfo = await pool.query('SELECT nome FROM Clientes WHERE id = $1', [ClienteId]);
         const nomeCliente = clienteInfo.rows[0].nome;
 
-        await criarNotificacao(
-            '🔔 Nova Requisição',
-            `O leitor ${nomeCliente} requisitou "${checkObra.rows[0].titulo}" para levantamento.`,
-            'RESERVA',
-            '/reservas',
-            null
-        );
-        
-        await criarNotificacao(
-            '📌 Requisição Efetuada',
-            `A tua requisição de "${checkObra.rows[0].titulo}" foi enviada. Aguarda a confirmação na biblioteca.`,
-            'RESERVA',
-            '/meus-emprestimos',
-            ClienteId
-        );
+        await criarNotificacao('🔔 Nova Requisição', `O leitor ${nomeCliente} requisitou "${checkObra.rows[0].titulo}" para levantamento.`, 'RESERVA', '/reservas', null);
+        await criarNotificacao('📌 Requisição Efetuada', `A tua requisição de "${checkObra.rows[0].titulo}" foi enviada. Aguarda a confirmação na biblioteca.`, 'RESERVA', '/meus-emprestimos', ClienteId);
 
-        res.status(201).json({
-            message: 'Requisição efetuada! Dirige-te à biblioteca para levantares o livro.',
-            reservaId: insertResult.rows[0].id
-        });
+        res.status(201).json({ message: 'Requisição efetuada! Dirige-te à biblioteca para levantares o livro.', reservaId: insertResult.rows[0].id });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -502,31 +480,14 @@ app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res)
         const clienteInfo = await pool.query('SELECT nome FROM Clientes WHERE id = $1', [ClienteId]);
         const nomeCliente = clienteInfo.rows[0].nome;
 
-        await criarNotificacao(
-            '📌 Nova Reserva (Fila de Espera)',
-            `O leitor ${nomeCliente} entrou na fila de espera para "${checkObra.rows[0].titulo}". Posição: ${posicao}º`,
-            'RESERVA',
-            '/reservas',
-            null
-        );
-        
-        await criarNotificacao(
-            '⏳ Reserva em Fila de Espera',
-            `Entraste na fila de espera para "${checkObra.rows[0].titulo}". A tua posição é ${posicao}º.`,
-            'RESERVA',
-            '/meus-emprestimos',
-            ClienteId
-        );
+        await criarNotificacao('📌 Nova Reserva (Fila de Espera)', `O leitor ${nomeCliente} entrou na fila de espera para "${checkObra.rows[0].titulo}". Posição: ${posicao}º`, 'RESERVA', '/reservas', null);
+        await criarNotificacao('⏳ Reserva em Fila de Espera', `Entraste na fila de espera para "${checkObra.rows[0].titulo}". A tua posição é ${posicao}º.`, 'RESERVA', '/meus-emprestimos', ClienteId);
 
-        res.status(201).json({
-            message: `Reserva efetuada! Estás na posição ${posicao}º da fila de espera.`,
-            reservaId: insertResult.rows[0].id,
-            posicao
-        });
+        res.status(201).json({ message: `Reserva efetuada! Estás na posição ${posicao}º da fila de espera.`, reservaId: insertResult.rows[0].id, posicao });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ ROTA CLIENTE: SOLICITAR RENOVAÇÃO (só pede, não altera data) ============
+// ============ ROTA CLIENTE: SOLICITAR RENOVAÇÃO ============
 app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, async (req, res) => {
     const emprestimoId = req.params.id;
     const ClienteId = (req as any).user.id;
@@ -541,57 +502,26 @@ app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, as
             WHERE E.id = $1 AND E.clienteid = $2 AND E.status = 'ATIVO'
         `, [emprestimoId, ClienteId]);
 
-        if (empRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Empréstimo não encontrado ou não está ativo.' });
-        }
+        if (empRes.rows.length === 0) return res.status(404).json({ error: 'Empréstimo não encontrado ou não está ativo.' });
 
         const emp = empRes.rows[0];
 
-        if (emp.RenovacaoPendente === true) {
-            return res.status(400).json({ error: 'Já tens um pedido de renovação em análise para este empréstimo.' });
-        }
+        if (emp.RenovacaoPendente === true) return res.status(400).json({ error: 'Já tens um pedido de renovação em análise para este empréstimo.' });
 
         const hoje = new Date();
         const dataPrevista = new Date(emp.dataprevistadevolucao);
-        if (dataPrevista < hoje) {
-            return res.status(400).json({ error: 'Não é possível pedir renovação de um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
-        }
+        if (dataPrevista < hoje) return res.status(400).json({ error: 'Não é possível pedir renovação de um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
 
-        const resRes = await pool.query(`
-            SELECT COUNT(*) as total FROM Reservas
-            WHERE obraid = $1 AND status = 'PENDENTE'
-        `, [emp.obraid]);
+        const resRes = await pool.query(`SELECT COUNT(*) as total FROM Reservas WHERE obraid = $1 AND status = 'PENDENTE'`, [emp.obraid]);
+        if (Number(resRes.rows[0].total) > 0) return res.status(400).json({ error: 'Não é possível pedir renovação. Há leitores à espera deste livro na fila de espera.' });
 
-        if (Number(resRes.rows[0].total) > 0) {
-            return res.status(400).json({ error: 'Não é possível pedir renovação. Há leitores à espera deste livro na fila de espera.' });
-        }
+        await pool.query(`UPDATE Emprestimos SET renovacaopendente = TRUE, renovacaosolicitadaem = NOW() WHERE id = $1`, [emprestimoId]);
 
-        await pool.query(`
-            UPDATE Emprestimos
-            SET renovacaopendente = TRUE, renovacaosolicitadaem = NOW()
-            WHERE id = $1
-        `, [emprestimoId]);
-
-        await criarNotificacao(
-            '🔄 Pedido de Renovação',
-            `${emp.ClienteNome} pediu para renovar "${emp.ObraTitulo}".`,
-            'RENOVACAO',
-            '/emprestimos',
-            null
-        );
-
-        await criarNotificacao(
-            '⏳ Pedido de Renovação Enviado',
-            `O teu pedido de renovação de "${emp.ObraTitulo}" foi enviado. Aguarda aprovação da biblioteca.`,
-            'RENOVACAO',
-            '/meus-emprestimos',
-            ClienteId
-        );
+        await criarNotificacao('🔄 Pedido de Renovação', `${emp.ClienteNome} pediu para renovar "${emp.ObraTitulo}".`, 'RENOVACAO', '/emprestimos', null);
+        await criarNotificacao('⏳ Pedido de Renovação Enviado', `O teu pedido de renovação de "${emp.ObraTitulo}" foi enviado. Aguarda aprovação da biblioteca.`, 'RENOVACAO', '/meus-emprestimos', ClienteId);
 
         res.json({ message: 'Pedido de renovação enviado! Aguarda aprovação da biblioteca.' });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) => {
@@ -619,9 +549,7 @@ app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) 
 app.get('/api/renovacoes/pendentes', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT E.id as "Id", 
-                   O.titulo as "Obra", 
-                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor",
+            SELECT E.id as "Id", O.titulo as "Obra", (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor",
                    C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone",
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo",
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
@@ -643,55 +571,27 @@ app.post('/api/renovacoes/:id/aprovar', verificarToken, verificarPermissao('empr
 
     try {
         const empRes = await pool.query(`
-            SELECT E.id, E.obraid, E.clienteid, O.titulo as "ObraTitulo", 
-                   C.nome as "ClienteNome", C.email as "ClienteEmail",
-                   E.dataprevistadevolucao
+            SELECT E.id, E.obraid, E.clienteid, O.titulo as "ObraTitulo", C.nome as "ClienteNome", E.dataprevistadevolucao
             FROM Emprestimos E
             INNER JOIN Obras O ON E.obraid = O.id
             INNER JOIN Clientes C ON E.clienteid = C.id
             WHERE E.id = $1 AND E.status = 'ATIVO' AND COALESCE(E.renovacaopendente, FALSE) = TRUE
         `, [emprestimoId]);
 
-        if (empRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Pedido de renovação não encontrado ou já processado.' });
-        }
+        if (empRes.rows.length === 0) return res.status(404).json({ error: 'Pedido de renovação não encontrado ou já processado.' });
 
         const emp = empRes.rows[0];
 
-        await pool.query(`
-            UPDATE Emprestimos
-            SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days',
-                renovacaopendente = FALSE,
-                renovacaosolicitadaem = NULL
-            WHERE id = $1
-        `, [emprestimoId]);
+        await pool.query(`UPDATE Emprestimos SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days', renovacaopendente = FALSE, renovacaosolicitadaem = NULL WHERE id = $1`, [emprestimoId]);
 
-        const novaData = await pool.query(
-            "SELECT TO_CHAR(dataprevistadevolucao, 'DD/MM/YYYY') as \"NovaData\" FROM Emprestimos WHERE id = $1",
-            [emprestimoId]
-        );
+        const novaData = await pool.query("SELECT TO_CHAR(dataprevistadevolucao, 'DD/MM/YYYY') as \"NovaData\" FROM Emprestimos WHERE id = $1", [emprestimoId]);
         const dataFormatada = novaData.rows[0].NovaData;
 
-        await criarNotificacao(
-            '✅ Renovação Aprovada',
-            `Renovação de "${emp.ObraTitulo}" para ${emp.ClienteNome} aprovada. Nova data: ${dataFormatada}.`,
-            'RENOVACAO',
-            '/emprestimos',
-            null
-        );
-
-        await criarNotificacao(
-            '✅ Renovação Aprovada',
-            `O teu pedido de renovação de "${emp.ObraTitulo}" foi aprovado! Nova data de devolução: ${dataFormatada}.`,
-            'RENOVACAO',
-            '/meus-emprestimos',
-            emp.clienteid
-        );
+        await criarNotificacao('✅ Renovação Aprovada', `Renovação de "${emp.ObraTitulo}" para ${emp.ClienteNome} aprovada. Nova data: ${dataFormatada}.`, 'RENOVACAO', '/emprestimos', null);
+        await criarNotificacao('✅ Renovação Aprovada', `O teu pedido de renovação de "${emp.ObraTitulo}" foi aprovado! Nova data de devolução: ${dataFormatada}.`, 'RENOVACAO', '/meus-emprestimos', emp.clienteid);
 
         res.json({ message: `Renovação aprovada! Nova data: ${dataFormatada}.` });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/renovacoes/:id/rejeitar', verificarToken, verificarPermissao('emprestimos_renovar'), async (req, res) => {
@@ -699,47 +599,24 @@ app.post('/api/renovacoes/:id/rejeitar', verificarToken, verificarPermissao('emp
 
     try {
         const empRes = await pool.query(`
-            SELECT E.id, E.obraid, E.clienteid, O.titulo as "ObraTitulo", 
-                   C.nome as "ClienteNome"
+            SELECT E.id, E.obraid, E.clienteid, O.titulo as "ObraTitulo", C.nome as "ClienteNome"
             FROM Emprestimos E
             INNER JOIN Obras O ON E.obraid = O.id
             INNER JOIN Clientes C ON E.clienteid = C.id
             WHERE E.id = $1 AND E.status = 'ATIVO' AND COALESCE(E.renovacaopendente, FALSE) = TRUE
         `, [emprestimoId]);
 
-        if (empRes.rows.length === 0) {
-            return res.status(404).json({ error: 'Pedido de renovação não encontrado ou já processado.' });
-        }
+        if (empRes.rows.length === 0) return res.status(404).json({ error: 'Pedido de renovação não encontrado ou já processado.' });
 
         const emp = empRes.rows[0];
 
-        await pool.query(`
-            UPDATE Emprestimos
-            SET renovacaopendente = FALSE,
-                renovacaosolicitadaem = NULL
-            WHERE id = $1
-        `, [emprestimoId]);
+        await pool.query(`UPDATE Emprestimos SET renovacaopendente = FALSE, renovacaosolicitadaem = NULL WHERE id = $1`, [emprestimoId]);
 
-        await criarNotificacao(
-            '❌ Renovação Rejeitada',
-            `Pedido de renovação de "${emp.ObraTitulo}" (${emp.ClienteNome}) foi rejeitado.`,
-            'RENOVACAO',
-            '/emprestimos',
-            null
-        );
-
-        await criarNotificacao(
-            '❌ Renovação Rejeitada',
-            `O teu pedido de renovação de "${emp.ObraTitulo}" foi rejeitado. O prazo original mantém-se. Dirige-te à biblioteca para mais informações.`,
-            'RENOVACAO',
-            '/meus-emprestimos',
-            emp.clienteid
-        );
+        await criarNotificacao('❌ Renovação Rejeitada', `Pedido de renovação de "${emp.ObraTitulo}" (${emp.ClienteNome}) foi rejeitado.`, 'RENOVACAO', '/emprestimos', null);
+        await criarNotificacao('❌ Renovação Rejeitada', `O teu pedido de renovação de "${emp.ObraTitulo}" foi rejeitado. O prazo original mantém-se. Dirige-te à biblioteca para mais informações.`, 'RENOVACAO', '/meus-emprestimos', emp.clienteid);
 
         res.json({ message: 'Pedido de renovação rejeitado.' });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // ============ CONFIGURAÇÕES ============
@@ -848,7 +725,9 @@ app.get('/api/obras', verificarToken, async (req, res) => {
                    (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
                    E.nome as "Editora", 
                    O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", 
-                   O.area_conhecimento as "AreaConhecimento", O.status as "Status",
+                   O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
+                   O.autorid as "AutorId", O.editoraid as "EditoraId",
+                   O.status as "Status",
                    (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos"
             FROM Obras O 
             LEFT JOIN Autores A ON O.autorid = A.id 
@@ -929,27 +808,59 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto", O.autorid as "AutorId", O.editoraid as "EditoraId" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN } = req.body;
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
     try {
         const insertResult = await pool.query(
-            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, status) VALUES ($1, $2, $3, $4, $5, $6, $7, 'DISPONIVEL') RETURNING id", 
-            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null]
+            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, codigo, area_conhecimento, localizacao, ordem_excel, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'DISPONIVEL') RETURNING id", 
+            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null, Codigo || null, AreaConhecimento || null, Localizacao || null, OrdemExcel || null]
         );
         const novaObraId = insertResult.rows[0].id;
         
         await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada.`, 'OBRA', '/acervo', null);
         
         res.status(201).json({ message: 'Obra cadastrada!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), verificarCamposObra, async (req, res) => {
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
+    
+    try {
+        const current = await pool.query('SELECT titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, codigo, area_conhecimento, localizacao, ordem_excel FROM Obras WHERE id = $1', [req.params.id]);
+        if (current.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        const old = current.rows[0];
+
+        const novoTitulo = Titulo !== undefined ? Titulo : old.titulo;
+        const novoAno = Ano !== undefined ? Ano : old.ano;
+        const novoAutorId = AutorId !== undefined ? AutorId : old.autorid;
+        const novoEditoraId = EditoraId !== undefined ? EditoraId : old.editoraid;
+        const novoNumeroEdicao = NumeroEdicao !== undefined ? NumeroEdicao : old.numeroedicao;
+        const novoNacionalidade = NacionalidadeLivro !== undefined ? NacionalidadeLivro : old.nacionalidadelivro;
+        const novoISBN = ISBN !== undefined ? ISBN : old.isbn;
+        const novoCodigo = Codigo !== undefined ? Codigo : old.codigo;
+        const novaArea = AreaConhecimento !== undefined ? AreaConhecimento : old.area_conhecimento;
+        const novaLocalizacao = Localizacao !== undefined ? Localizacao : old.localizacao;
+        const novaOrdem = OrdemExcel !== undefined ? OrdemExcel : old.ordem_excel;
+
+        await pool.query(`
+            UPDATE Obras 
+            SET titulo = $1, ano = $2, autorid = $3, editoraid = $4, numeroedicao = $5, nacionalidadelivro = $6, isbn = $7, codigo = $8, area_conhecimento = $9, localizacao = $10, ordem_excel = $11
+            WHERE id = $12
+        `, [novoTitulo, novoAno, novoAutorId, novoEditoraId, novoNumeroEdicao, novoNacionalidade, novoISBN, novoCodigo, novaArea, novaLocalizacao, novaOrdem, req.params.id]);
+
+        await criarNotificacao('✏️ Obra Atualizada', `A obra "${novoTitulo}" foi atualizada.`, 'OBRA', '/acervo', null);
+
+        res.json({ message: 'Obra atualizada com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 

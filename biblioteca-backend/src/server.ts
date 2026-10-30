@@ -209,6 +209,9 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
     if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN');
+    if (req.body.Codigo !== undefined && !p['obras_campo_codigo']) proibidos.push('Codigo');
+    if (req.body.AreaConhecimento !== undefined && !p['obras_campo_areaconhecimento']) proibidos.push('AreaConhecimento');
+    if (req.body.Localizacao !== undefined && !p['obras_campo_localizacao']) proibidos.push('Localizacao');
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -450,7 +453,7 @@ app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, 
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ NOVAS ROTAS: FAVORITOS ============
+// ============ FAVORITOS ============
 app.get('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
@@ -983,6 +986,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().query(`
             SELECT O.Id, O.Titulo, (A.Nome + ' ' + ISNULL(A.Sobrenome, '')) as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Codigo, O.AreaConhecimento, O.Localizacao, O.OrdemExcel, O.Status,
+                   O.AutorId, O.EditoraId,
                    (SELECT COUNT(*) FROM Emprestimos WHERE ObraId = O.Id) as TotalEmprestimos
             FROM Obras O 
             LEFT JOIN Autores A ON O.AutorId = A.Id 
@@ -1058,7 +1062,7 @@ app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().input('Id', sql.Int, req.params.id).query(`
-            SELECT O.Id, O.Titulo, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Codigo, O.AreaConhecimento, O.Localizacao, O.OrdemExcel, O.Status, A.Nome as Autor, A.Nacionalidade, E.Nome as Editora, E.Contacto as EditoraContacto
+            SELECT O.Id, O.Titulo, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Codigo, O.AreaConhecimento, O.Localizacao, O.OrdemExcel, O.Status, A.Nome as Autor, A.Nacionalidade, E.Nome as Editora, E.Contacto as EditoraContacto, O.AutorId, O.EditoraId
             FROM Obras O LEFT JOIN Autores A ON O.AutorId = A.Id LEFT JOIN Editoras E ON O.EditoraId = E.Id WHERE O.Id = @Id
         `);
         if (result.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
@@ -1086,6 +1090,48 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
         await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada ao acervo.`, 'OBRA', '/acervo', null);
 
         res.status(201).json({ message: 'Obra cadastrada!' });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), verificarCamposObra, async (req, res) => {
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
+    
+    try {
+        const pool = await sql.connect(dbConfig);
+        const current = await pool.request().input('Id', sql.Int, req.params.id).query('SELECT Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel FROM Obras WHERE Id = @Id');
+        if (current.recordset.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        const old = current.recordset[0];
+
+        const novoTitulo = Titulo !== undefined ? Titulo : old.Titulo;
+        const novoAno = Ano !== undefined ? Ano : old.Ano;
+        const novoAutorId = AutorId !== undefined ? AutorId : old.AutorId;
+        const novoEditoraId = EditoraId !== undefined ? EditoraId : old.EditoraId;
+        const novoNumeroEdicao = NumeroEdicao !== undefined ? NumeroEdicao : old.NumeroEdicao;
+        const novoNacionalidade = NacionalidadeLivro !== undefined ? NacionalidadeLivro : old.NacionalidadeLivro;
+        const novoISBN = ISBN !== undefined ? ISBN : old.ISBN;
+        const novoCodigo = Codigo !== undefined ? Codigo : old.Codigo;
+        const novaArea = AreaConhecimento !== undefined ? AreaConhecimento : old.AreaConhecimento;
+        const novaLocalizacao = Localizacao !== undefined ? Localizacao : old.Localizacao;
+        const novaOrdem = OrdemExcel !== undefined ? OrdemExcel : old.OrdemExcel;
+
+        await pool.request()
+            .input('Id', sql.Int, req.params.id)
+            .input('Titulo', sql.NVarChar, novoTitulo)
+            .input('Ano', sql.Int, novoAno)
+            .input('AutorId', sql.Int, novoAutorId)
+            .input('EditoraId', sql.Int, novoEditoraId)
+            .input('NumeroEdicao', sql.NVarChar, novoNumeroEdicao)
+            .input('NacionalidadeLivro', sql.NVarChar, novoNacionalidade)
+            .input('ISBN', sql.NVarChar, novoISBN)
+            .input('Codigo', sql.NVarChar, novoCodigo)
+            .input('AreaConhecimento', sql.NVarChar, novaArea)
+            .input('Localizacao', sql.NVarChar, novaLocalizacao)
+            .input('OrdemExcel', sql.Int, novaOrdem)
+            .query(`UPDATE Obras SET Titulo = @Titulo, Ano = @Ano, AutorId = @AutorId, EditoraId = @EditoraId, NumeroEdicao = @NumeroEdicao, NacionalidadeLivro = @NacionalidadeLivro, ISBN = @ISBN, Codigo = @Codigo, AreaConhecimento = @AreaConhecimento, Localizacao = @Localizacao, OrdemExcel = @OrdemExcel WHERE Id = @Id`);
+
+        await criarNotificacao('✏️ Obra Atualizada', `A obra "${novoTitulo}" foi atualizada no acervo.`, 'OBRA', '/acervo', null);
+
+        res.json({ message: 'Obra atualizada com sucesso!' });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
