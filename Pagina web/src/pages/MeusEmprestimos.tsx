@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../services/api';
+import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookMarked, Clock, AlertTriangle, CheckCircle, 
-  Calendar, ArrowLeft, RefreshCw, BookOpen, User, BellRing
+  Calendar, ArrowLeft, RefreshCw, BookOpen, User, BellRing, RotateCw
 } from 'lucide-react';
 
 interface Emprestimo {
   Id: number;
+  ObraId: number;
   Obra: string;
   Autor: string | null;
   DataEmprestimo: string;
@@ -25,9 +28,12 @@ interface Requisicao {
 }
 
 export function MeusEmprestimos() {
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [emprestimos, setEmprestimos] = useState<Emprestimo[]>([]);
   const [requisicoes, setRequisicoes] = useState<Requisicao[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processando, setProcessando] = useState<number | null>(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -48,6 +54,36 @@ export function MeusEmprestimos() {
   useEffect(() => { carregar(); }, []);
 
   const totalAtrasados = emprestimos.filter((e) => e.DiasAtraso > 0).length;
+
+  const handleRenovar = async (id: number, titulo: string) => {
+    const ok = await confirm({
+      title: 'Renovar Empréstimo',
+      message: `Queres renovar o empréstimo da obra "${titulo}" por mais 15 dias?`,
+      confirmText: 'Renovar',
+      cancelText: 'Cancelar',
+      variant: 'info',
+    });
+    if (!ok) return;
+
+    setProcessando(id);
+    try {
+      const response = await apiFetch(`/api/portal/emprestimos/${id}/renovar`, {
+        method: 'PUT'
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast(data.message || 'Empréstimo renovado com sucesso!', 'success');
+        carregar();
+      } else {
+        showToast(data.error || 'Erro ao renovar.', 'error');
+      }
+    } catch (error) {
+      showToast('Erro de ligação ao servidor.', 'error');
+    } finally {
+      setProcessando(null);
+    }
+  };
 
   return (
     <main className="max-w-5xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
@@ -248,6 +284,21 @@ export function MeusEmprestimos() {
                             </p>
                           </div>
                         )}
+
+                        {/* BOTÃO RENOVAR - só se não estiver atrasado */}
+                        {!atrasado && (
+                          <button
+                            onClick={() => handleRenovar(emp.Id, emp.Obra)}
+                            disabled={processando === emp.Id}
+                            className="w-full mt-2 bg-blue-600 text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {processando === emp.Id ? (
+                              <><RefreshCw size={12} className="animate-spin" /> A renovar...</>
+                            ) : (
+                              <><RotateCw size={12} /> Renovar +15 dias</>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -264,6 +315,8 @@ export function MeusEmprestimos() {
           <p className="text-sm text-blue-900">
             <strong>💡 Nota:</strong> Quando devolveres um livro na biblioteca, ele desaparecerá automaticamente desta lista.
             Podes consultar o histórico em <Link to="/meu-historico" className="font-semibold underline">Meu Histórico</Link>.
+            <br />
+            <strong>💡 Renovação:</strong> Só podes renovar empréstimos que não estejam em atraso e que não tenham fila de espera.
           </p>
         </div>
       )}

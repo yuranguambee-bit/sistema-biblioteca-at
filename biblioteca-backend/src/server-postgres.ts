@@ -193,11 +193,6 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
     if (req.body.ISBN !== undefined && !p['obras_campo_isbn']) proibidos.push('ISBN');
-    // Novos campos
-    if (req.body.Codigo !== undefined && !p['obras_campo_codigo']) proibidos.push('Codigo');
-    if (req.body.AreaConhecimento !== undefined && !p['obras_campo_areaconhecimento']) proibidos.push('AreaConhecimento');
-    if (req.body.Localizacao !== undefined && !p['obras_campo_localizacao']) proibidos.push('Localizacao');
-    if (req.body.OrdemExcel !== undefined && !p['obras_campo_ordem_excel']) proibidos.push('OrdemExcel');
     if (proibidos.length > 0) return res.status(403).json({ error: `Sem permissão para alterar: ${proibidos.join(', ')}` });
     next();
 }
@@ -322,7 +317,7 @@ app.get('/api/portal/perfil', verificarToken, apenasCliente, async (req, res) =>
 app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT E.id as "Id", O.titulo as "Obra", A.nome as "Autor", 
+            SELECT E.id as "Id", E.obraid as "ObraId", O.titulo as "Obra", A.nome as "Autor", 
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
                    CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso"
@@ -419,7 +414,6 @@ app.post('/api/portal/requisitar', verificarToken, apenasCliente, async (req, re
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// NOVA ROTA: RESERVAR OBRA EMPRESTADA (FILA DE ESPERA)
 app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res) => {
     const { ObraId } = req.body;
     const ClienteId = (req as any).user.id;
@@ -446,7 +440,6 @@ app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res)
             [ObraId, ClienteId]
         );
 
-        // Calcular posição na fila
         const queueInfo = await pool.query(
             "SELECT COUNT(*) as posicao FROM Reservas WHERE obraid = $1 AND status = 'PENDENTE' AND tipo = 'FILA_ESPERA'",
             [ObraId]
@@ -478,6 +471,56 @@ app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res)
             posicao
         });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// NOVA ROTA: Renovação de Empréstimo pelo Cliente
+app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, async (req, res) => {
+    const emprestimoId = req.params.id;
+    const ClienteId = (req as any).user.id;
+    const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
+
+    try {
+        // 1. Verificar se o empréstimo pertence ao cliente e está ativo
+        const empRes = await pool.query(`
+            SELECT E.id, E.obraid, E.dataprevistadevolucao
+            FROM Emprestimos E
+            WHERE E.id = $1 AND E.clienteid = $2 AND E.status = 'ATIVO'
+        `, [emprestimoId, ClienteId]);
+
+        if (empRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Empréstimo não encontrado ou não está ativo.' });
+        }
+
+        const emp = empRes.rows[0];
+
+        // 2. Verificar se está atrasado
+        const hoje = new Date();
+        const dataPrevista = new Date(emp.dataprevistadevolucao);
+        if (dataPrevista < hoje) {
+            return res.status(400).json({ error: 'Não é possível renovar um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
+        }
+
+        // 3. Verificar se há reservas pendentes para esta obra (fila de espera)
+        const resRes = await pool.query(`
+            SELECT COUNT(*) as total FROM Reservas
+            WHERE obraid = $1 AND status = 'PENDENTE'
+        `, [emp.obraid]);
+
+        if (Number(resRes.rows[0].total) > 0) {
+            return res.status(400).json({ error: 'Não é possível renovar. Há leitores à espera deste livro na fila de espera.' });
+        }
+
+        // 4. Renovar
+        await pool.query(`
+            UPDATE Emprestimos
+            SET dataprevistadevolucao = dataprevistadevolucao + INTERVAL '${diasEmprestimo} days'
+            WHERE id = $1
+        `, [emprestimoId]);
+
+        res.json({ message: `Empréstimo renovado por mais ${diasEmprestimo} dias!` });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) => {
@@ -604,8 +647,8 @@ app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT O.id as "Id", O.titulo as "Titulo", A.nome as "Autor", E.nome as "Editora", 
-                   O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status",
-                   O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
+                   O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", 
+                   O.area_conhecimento as "AreaConhecimento", O.status as "Status",
                    (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos"
             FROM Obras O 
             LEFT JOIN Autores A ON O.autorid = A.id 
@@ -686,31 +729,21 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`
-            SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status", 
-                   O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
-                   A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" 
-            FROM Obras O 
-            LEFT JOIN Autores A ON O.autorid = A.id 
-            LEFT JOIN Editoras E ON O.editoraid = E.id 
-            WHERE O.id = $1
-        `, [req.params.id]);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
+    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN } = req.body;
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
     try {
         const insertResult = await pool.query(
-            `INSERT INTO Obras 
-                (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, status, codigo, area_conhecimento, localizacao, ordem_excel) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'DISPONIVEL', $8, $9, $10, $11) RETURNING id`, 
-            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null, Codigo || null, AreaConhecimento || null, Localizacao || null, OrdemExcel || null]
+            "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, status) VALUES ($1, $2, $3, $4, $5, $6, $7, 'DISPONIVEL') RETURNING id", 
+            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null]
         );
         const novaObraId = insertResult.rows[0].id;
         

@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { 
   BookOpen, Search, User, Building2, Calendar, 
-  BookMarked, RefreshCw, Send, X, Clock
+  BookMarked, RefreshCw, Send, X, Clock, Book
 } from 'lucide-react';
 
 interface Obra {
@@ -16,6 +16,7 @@ interface Obra {
   NumeroEdicao: string | null;
   NacionalidadeLivro: string | null;
   ISBN: string | null;
+  AreaConhecimento: string | null;
   Status: string;
 }
 
@@ -27,6 +28,7 @@ export function Catalogo() {
   const [pesquisa, setPesquisa] = useState('');
   const [filtroAutor, setFiltroAutor] = useState('');
   const [filtroEditora, setFiltroEditora] = useState('');
+  const [filtroArea, setFiltroArea] = useState('');
   const [processando, setProcessando] = useState<number | null>(null);
   const [detalheAberto, setDetalheAberto] = useState<Obra | null>(null);
 
@@ -35,7 +37,7 @@ export function Catalogo() {
       const res = await apiFetch('/api/obras');
       const data = await res.json();
       const lista = Array.isArray(data) ? data : [];
-      setObras(lista); // Agora mostra TODAS as obras
+      setObras(lista);
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -57,6 +59,12 @@ export function Catalogo() {
     return Array.from(set).sort();
   }, [obras]);
 
+  const areas = useMemo(() => {
+    const set = new Set<string>();
+    obras.forEach((o) => { if (o.AreaConhecimento) set.add(o.AreaConhecimento); });
+    return Array.from(set).sort();
+  }, [obras]);
+
   const obrasFiltradas = useMemo(() => {
     let resultado = obras;
     if (pesquisa.trim()) {
@@ -70,8 +78,9 @@ export function Catalogo() {
     }
     if (filtroAutor) resultado = resultado.filter((o) => o.Autor === filtroAutor);
     if (filtroEditora) resultado = resultado.filter((o) => o.Editora === filtroEditora);
+    if (filtroArea) resultado = resultado.filter((o) => o.AreaConhecimento === filtroArea);
     return resultado;
-  }, [obras, pesquisa, filtroAutor, filtroEditora]);
+  }, [obras, pesquisa, filtroAutor, filtroEditora, filtroArea]);
 
   const handleRequisitar = async (obra: Obra) => {
     const ok = await confirm({
@@ -139,9 +148,10 @@ export function Catalogo() {
     setPesquisa('');
     setFiltroAutor('');
     setFiltroEditora('');
+    setFiltroArea('');
   };
 
-  const temFiltros = pesquisa || filtroAutor || filtroEditora;
+  const temFiltros = pesquisa || filtroAutor || filtroEditora || filtroArea;
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
@@ -167,17 +177,26 @@ export function Catalogo() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative md:col-span-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
               value={pesquisa}
               onChange={(e) => setPesquisa(e.target.value)}
-              placeholder="Pesquisar por título, autor, editora ou ISBN..."
+              placeholder="Pesquisar..."
               className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
             />
           </div>
+
+          <select
+            value={filtroArea}
+            onChange={(e) => setFiltroArea(e.target.value)}
+            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm bg-white"
+          >
+            <option value="">Todas as Áreas</option>
+            {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
 
           <select
             value={filtroAutor}
@@ -266,9 +285,15 @@ export function Catalogo() {
                 </div>
 
                 <div className="p-5 flex-1 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <User size={14} className="text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{obra.Autor || <span className="text-gray-300 italic">Sem autor</span>}</span>
+                  {obra.AreaConhecimento && (
+                    <div className="text-xs font-semibold text-at-blue bg-blue-50 px-2 py-1 rounded-md mb-1 flex items-center gap-1 w-fit">
+                      <Book size={12} /> {obra.AreaConhecimento}
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2 text-sm text-gray-600">
+                    <User size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                    <span className="line-clamp-2">{obra.Autor || <span className="text-gray-300 italic">Sem autor</span>}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -279,16 +304,7 @@ export function Catalogo() {
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Calendar size={14} className="text-gray-400 flex-shrink-0" />
                     <span>{obra.Ano}</span>
-                    {obra.NumeroEdicao && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full ml-auto">
-                        {obra.NumeroEdicao}
-                      </span>
-                    )}
                   </div>
-
-                  {obra.ISBN && (
-                    <p className="text-xs text-gray-400 font-mono mt-1">ISBN: {obra.ISBN}</p>
-                  )}
 
                   <div className="mt-auto pt-3 flex gap-2">
                     <button
@@ -357,23 +373,19 @@ export function Catalogo() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between border-b border-gray-50 pb-2">
                 <span className="text-gray-500">Autor</span>
-                <span className="font-semibold text-gray-800">{detalheAberto.Autor || '—'}</span>
+                <span className="font-semibold text-gray-800 text-right">{detalheAberto.Autor || '—'}</span>
               </div>
               <div className="flex justify-between border-b border-gray-50 pb-2">
                 <span className="text-gray-500">Editora</span>
                 <span className="font-semibold text-gray-800">{detalheAberto.Editora || '—'}</span>
               </div>
               <div className="flex justify-between border-b border-gray-50 pb-2">
+                <span className="text-gray-500">Área de Conhecimento</span>
+                <span className="font-semibold text-gray-800">{detalheAberto.AreaConhecimento || '—'}</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-50 pb-2">
                 <span className="text-gray-500">Ano</span>
                 <span className="font-semibold text-gray-800">{detalheAberto.Ano}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-50 pb-2">
-                <span className="text-gray-500">Nº de Edição</span>
-                <span className="font-semibold text-gray-800">{detalheAberto.NumeroEdicao || '—'}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-50 pb-2">
-                <span className="text-gray-500">Nacionalidade do Livro</span>
-                <span className="font-semibold text-gray-800">{detalheAberto.NacionalidadeLivro || '—'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">ISBN</span>

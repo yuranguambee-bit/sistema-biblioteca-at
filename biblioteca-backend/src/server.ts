@@ -395,7 +395,7 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
         const result = await pool.request()
             .input('ClienteId', sql.Int, (req as any).user.id)
             .query(`
-                SELECT E.Id, O.Titulo as Obra, A.Nome as Autor, 
+                SELECT E.Id, O.Id as ObraId, O.Titulo as Obra, A.Nome as Autor, 
                        CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo, 
                        CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao,
                        CASE WHEN E.DataPrevistaDevolucao < CAST(GETDATE() AS DATE) THEN DATEDIFF(DAY, E.DataPrevistaDevolucao, GETDATE()) ELSE 0 END as DiasAtraso
@@ -561,6 +561,57 @@ app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res)
             posicao
         });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// NOVA ROTA: Renovação de Empréstimo pelo Cliente
+app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, async (req, res) => {
+    const emprestimoId = req.params.id;
+    const ClienteId = (req as any).user.id;
+    const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
+
+    try {
+        const pool = await sql.connect(dbConfig);
+
+        // 1. Verificar se o empréstimo pertence ao cliente e está ativo
+        const empRes = await pool.request()
+            .input('Id', sql.Int, emprestimoId)
+            .input('ClienteId', sql.Int, ClienteId)
+            .query("SELECT E.Id, E.ObraId, E.DataPrevistaDevolucao FROM Emprestimos E WHERE E.Id = @Id AND E.ClienteId = @ClienteId AND E.Status = 'ATIVO'");
+
+        if (empRes.recordset.length === 0) {
+            return res.status(404).json({ error: 'Empréstimo não encontrado ou não está ativo.' });
+        }
+
+        const emp = empRes.recordset[0];
+
+        // 2. Verificar se está atrasado
+        const dataPrevista = new Date(emp.DataPrevistaDevolucao);
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        dataPrevista.setHours(0, 0, 0, 0);
+        if (dataPrevista < hoje) {
+            return res.status(400).json({ error: 'Não é possível renovar um empréstimo em atraso. Deves devolvê-lo na biblioteca.' });
+        }
+
+        // 3. Verificar se há reservas pendentes para esta obra (fila de espera)
+        const resRes = await pool.request()
+            .input('ObraId', sql.Int, emp.ObraId)
+            .query("SELECT COUNT(*) as total FROM Reservas WHERE ObraId = @ObraId AND Status = 'PENDENTE'");
+
+        if (resRes.recordset[0].total > 0) {
+            return res.status(400).json({ error: 'Não é possível renovar. Há leitores à espera deste livro na fila de espera.' });
+        }
+
+        // 4. Renovar
+        await pool.request()
+            .input('Id', sql.Int, emprestimoId)
+            .input('Dias', sql.Int, diasEmprestimo)
+            .query("UPDATE Emprestimos SET DataPrevistaDevolucao = DATEADD(DAY, @Dias, DataPrevistaDevolucao) WHERE Id = @Id");
+
+        res.json({ message: `Empréstimo renovado por mais ${diasEmprestimo} dias!` });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) => {
