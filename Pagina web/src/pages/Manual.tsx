@@ -4,7 +4,7 @@ import {
   BookOpen, Search, User, BookMarked, Bookmark, Users, 
   BarChart3, Settings, Shield, Mail, ChevronDown, ChevronUp,
   CheckCircle, AlertTriangle, Info, Printer, FileText, Lock,
-  Hash, Sparkles, ArrowRight, Clock, RotateCw, BellRing, Hourglass
+  Hash, Sparkles, ArrowRight, RotateCw, BellRing, Hourglass
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -181,7 +181,7 @@ export function Manual() {
   ], []);
 
   // ==========================================
-  // MANUAL PARA O ADMIN / BIBLIOTECÁRIO (Existente)
+  // MANUAL PARA O ADMIN / BIBLIOTECÁRIO
   // ==========================================
   const seccoesAdmin: Seccao[] = useMemo(() => [
     {
