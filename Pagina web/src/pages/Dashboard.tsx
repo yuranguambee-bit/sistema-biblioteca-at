@@ -198,69 +198,43 @@ export function Dashboard() {
         </Link>
       )}
 
-      {/* CARTÕES DE ESTATÍSTICA */}
+      {/* CARTÕES DE ESTATÍSTICA - NOVO DESIGN (ESTILO ILUSTRAÇÃO) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         
-        {/* Cartão 1 - Clicável */}
-        <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
-          <div className="absolute -top-8 -right-8 w-32 h-32 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                <BookOpen className="text-at-blue" size={24} />
-              </div>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">CATÁLOGO</span>
-            </div>
-            <p className="text-5xl font-bold text-at-blue leading-none">{stats.totalObras}</p>
-            <p className="text-sm text-gray-500 mt-2 font-medium">Total de Obras</p>
+        {/* Cartão 1: Catálogo */}
+        <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
+          <div className="w-24 h-24 mb-3 text-blue-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+            <BookOpen size={80} strokeWidth={1} />
           </div>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Livros Cadastrados</h3>
+          <p className="text-4xl font-black text-at-blue">{stats.totalObras}</p>
         </Link>
 
-        {/* Cartão 2 - Clicável */}
-        <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
-          <div className="absolute -top-8 -right-8 w-32 h-32 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                <CheckCircle className="text-green-600" size={24} />
-              </div>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">PRONTAS</span>
-            </div>
-            <p className="text-5xl font-bold text-green-600 leading-none">{stats.disponiveis}</p>
-            <p className="text-sm text-gray-500 mt-2 font-medium">Disponíveis</p>
+        {/* Cartão 2: Disponíveis */}
+        <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
+          <div className="w-24 h-24 mb-3 text-green-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+            <CheckCircle size={80} strokeWidth={1} />
           </div>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Livros Prontos</h3>
+          <p className="text-4xl font-black text-green-600">{stats.disponiveis}</p>
         </Link>
 
-        {/* Cartão 3 - Clicável */}
-        <Link to="/emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
-          <div className="absolute -top-8 -right-8 w-32 h-32 bg-red-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                <BookMarked className="text-red-600" size={24} />
-              </div>
-              <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">ATIVOS</span>
-            </div>
-            <p className="text-5xl font-bold text-red-600 leading-none">{stats.emprestimosAtivos}</p>
-            <p className="text-sm text-gray-500 mt-2 font-medium">Empréstimos</p>
+        {/* Cartão 3: Empréstimos */}
+        <Link to="/emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
+          <div className="w-24 h-24 mb-3 text-red-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+            <BookMarked size={80} strokeWidth={1} />
           </div>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Empréstimos Ativos</h3>
+          <p className="text-4xl font-black text-red-600">{stats.emprestimosAtivos}</p>
         </Link>
 
-        {/* Cartão 4 - Clicável */}
-        <Link to="/reservas" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
-          <div className="absolute -top-8 -right-8 w-32 h-32 bg-yellow-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center">
-                <Bookmark className="text-yellow-600" size={24} />
-              </div>
-              <span className="text-xs font-bold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">FILA</span>
-            </div>
-            <p className="text-5xl font-bold text-yellow-600 leading-none">{stats.reservasPendentes || 0}</p>
-            <p className="text-sm text-gray-500 mt-2 font-medium flex items-center gap-1">
-              Reservas <ArrowRight size={12} />
-            </p>
+        {/* Cartão 4: Reservas */}
+        <Link to="/reservas" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
+          <div className="w-24 h-24 mb-3 text-yellow-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+            <Bookmark size={80} strokeWidth={1} />
           </div>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Fila de Reservas</h3>
+          <p className="text-4xl font-black text-yellow-600">{stats.reservasPendentes || 0}</p>
         </Link>
       </div>
 
