@@ -51,7 +51,6 @@ export function PortalHome() {
 
   const totalAtrasados = emprestimos.filter((e) => e.DiasAtraso > 0).length;
   
-  // Formatar Data e Hora atual (igual ao admin)
   const dataAtual = new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   const dataFormatada = dataAtual.charAt(0).toUpperCase() + dataAtual.slice(1);
   const horaAtual = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
@@ -59,8 +58,8 @@ export function PortalHome() {
   return (
     <main className="max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       
-      {/* 1. BANNER DE BOAS-VINDAS (Idêntico ao Admin) */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#002c5f] to-[#004a99] rounded-3xl shadow-xl p-8 md:p-10 mb-6 text-white">
+      {/* 1. BANNER DE BOAS-VINDAS (Exatamente igual ao Admin) */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#0a2f5e] to-[#004d99] rounded-3xl shadow-xl p-8 md:p-10 mb-6 text-white">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           
           <div className="flex items-start gap-5">
@@ -104,7 +103,75 @@ export function PortalHome() {
         </div>
       </div>
 
-      {/* ALERTAS (Requisicoes e Atrasos) */}
+      {/* 2. GRELHA DE CARTÕES (Exatamente igual ao Admin) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
+        {/* Cartão 1: Catálogo */}
+        <Link to="/catalogo" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
+              <BookOpen size={20} strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mt-1">Catálogo</span>
+          </div>
+          <div className="relative z-10">
+            <p className="text-3xl font-extrabold text-slate-800">{totalDisponiveis}</p>
+            <p className="text-sm font-semibold text-slate-600 mt-1">Obras Disponíveis</p>
+          </div>
+        </Link>
+
+        {/* Cartão 2: Histórico */}
+        <Link to="/meu-historico" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+              <History size={20} strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Histórico</span>
+          </div>
+          <div className="relative z-10">
+            <p className="text-3xl font-extrabold text-slate-800">{totalHistorico}</p>
+            <p className="text-sm font-semibold text-slate-600 mt-1">Já Devolvidos</p>
+          </div>
+        </Link>
+
+        {/* Cartão 3: Empréstimos Ativos */}
+        <Link to="/meus-emprestimos" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
+              <BookMarked size={20} strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">Ativos</span>
+          </div>
+          <div className="relative z-10">
+            <p className="text-3xl font-extrabold text-slate-800">{emprestimos.length}</p>
+            <p className="text-sm font-semibold text-slate-600 mt-1">Empréstimos</p>
+          </div>
+        </Link>
+
+        {/* Cartão 4: Reservas / Fila */}
+        <Link to="/meus-emprestimos" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-50 rounded-bl-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
+            <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-600">
+              <BellRing size={20} strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider mt-1">Fila</span>
+          </div>
+          <div className="relative z-10">
+            <p className="text-3xl font-extrabold text-slate-800">{requisicoes.length}</p>
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-semibold text-slate-600 mt-1">Reservas</p>
+              <ArrowRight size={14} className="text-slate-400 mt-1 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </Link>
+
+      </div>
+
+      {/* 3. ALERTAS (Agora colocados abaixo dos cartões) */}
       {(requisicoes.length > 0 || totalAtrasados > 0) && (
         <div className="space-y-4 mb-6">
           {requisicoes.length > 0 && (
@@ -148,84 +215,7 @@ export function PortalHome() {
         </div>
       )}
 
-      {/* 2. GRELHA DE CARTÕES (Idêntica ao Admin) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        
-        {/* Cartão 1: Empréstimos Ativos (Vermelho) */}
-        <Link to="/meus-emprestimos" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-28 h-28 bg-red-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
-          <div className="relative z-10 flex items-start justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
-              <BookMarked size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">Ativos</span>
-          </div>
-          <div className="relative z-10">
-            <p className="text-3xl font-extrabold text-slate-800">{emprestimos.length}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-1">Empréstimos</p>
-            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
-              Ver detalhes <ArrowRight size={12} className="ml-1" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Cartão 2: Obras Disponíveis (Verde) */}
-        <Link to="/catalogo" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-28 h-28 bg-green-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
-          <div className="relative z-10 flex items-start justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
-              <BookOpen size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Prontas</span>
-          </div>
-          <div className="relative z-10">
-            <p className="text-3xl font-extrabold text-slate-800">{totalDisponiveis}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-1">Disponíveis</p>
-            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
-              Ver catálogo <ArrowRight size={12} className="ml-1" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Cartão 3: Livros no Histórico (Azul) */}
-        <Link to="/meu-historico" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-28 h-28 bg-blue-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
-          <div className="relative z-10 flex items-start justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <History size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mt-1">Histórico</span>
-          </div>
-          <div className="relative z-10">
-            <p className="text-3xl font-extrabold text-slate-800">{totalHistorico}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-1">Devolvidos</p>
-            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
-              Ver histórico <ArrowRight size={12} className="ml-1" />
-            </div>
-          </div>
-        </Link>
-
-        {/* Cartão 4: Fila de Espera / Reservas (Amarelo) */}
-        <Link to="/meus-emprestimos" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute -top-6 -right-6 w-28 h-28 bg-yellow-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
-          <div className="relative z-10 flex items-start justify-between mb-4">
-            <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-600">
-              <BookOpen size={20} strokeWidth={2.5} />
-            </div>
-            <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider mt-1">Fila</span>
-          </div>
-          <div className="relative z-10">
-            <p className="text-3xl font-extrabold text-slate-800">{requisicoes.length}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-1">Reservas</p>
-            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
-              Ver reservas <ArrowRight size={12} className="ml-1" />
-            </div>
-          </div>
-        </Link>
-
-      </div>
-
-      {/* 3. LISTA DE EMPRÉSTIMOS ATIVOS */}
+      {/* 4. LISTA DE EMPRÉSTIMOS ATIVOS */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
