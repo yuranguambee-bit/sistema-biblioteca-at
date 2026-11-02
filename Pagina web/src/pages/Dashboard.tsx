@@ -78,7 +78,6 @@ export function Dashboard() {
   const [horaAtual, setHoraAtual] = useState(new Date());
 
   useEffect(() => {
-    // Carregar dados em paralelo
     Promise.all([
       apiFetch('/api/estatisticas').then(r => r.json()),
       apiFetch('/api/estatisticas/graficos').then(r => r.json()),
@@ -93,7 +92,7 @@ export function Dashboard() {
       });
       setTopObras(Array.isArray(dTop) ? dTop : []);
       setReservas(Array.isArray(dReservas) ? dReservas : []);
-      setNotificacoes(Array.isArray(dNotif) ? dNotif.slice(0, 4) : []); // Top 4 notificações
+      setNotificacoes(Array.isArray(dNotif) ? dNotif.slice(0, 4) : []);
     }).catch(e => {
       console.error(e);
     });
@@ -201,7 +200,9 @@ export function Dashboard() {
 
       {/* CARTÕES DE ESTATÍSTICA */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
+        
+        {/* Cartão 1 - Clicável */}
+        <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
@@ -213,9 +214,10 @@ export function Dashboard() {
             <p className="text-5xl font-bold text-at-blue leading-none">{stats.totalObras}</p>
             <p className="text-sm text-gray-500 mt-2 font-medium">Total de Obras</p>
           </div>
-        </div>
+        </Link>
 
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
+        {/* Cartão 2 - Clicável */}
+        <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-green-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
@@ -227,9 +229,10 @@ export function Dashboard() {
             <p className="text-5xl font-bold text-green-600 leading-none">{stats.disponiveis}</p>
             <p className="text-sm text-gray-500 mt-2 font-medium">Disponíveis</p>
           </div>
-        </div>
+        </Link>
 
-        <div className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden cursor-pointer">
+        {/* Cartão 3 - Clicável */}
+        <Link to="/emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-red-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
@@ -241,9 +244,10 @@ export function Dashboard() {
             <p className="text-5xl font-bold text-red-600 leading-none">{stats.emprestimosAtivos}</p>
             <p className="text-sm text-gray-500 mt-2 font-medium">Empréstimos</p>
           </div>
-        </div>
+        </Link>
 
-        <Link to="/reservas" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block">
+        {/* Cartão 4 - Clicável */}
+        <Link to="/reservas" className="group bg-white rounded-2xl shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 p-6 relative overflow-hidden block cursor-pointer">
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-yellow-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center justify-between mb-4">

@@ -67,8 +67,8 @@ export function MeuHistorico() {
         <ArrowLeft size={16} /> Voltar ao início
       </Link>
 
-      {/* CABEÇALHO */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      {/* CABEÇALHO - CORRIGIDO PARA AZUL INSTITUCIONAL */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>

@@ -142,8 +142,9 @@ export function Header() {
 
             {isAdmin && (
               <>
-                <Link to="/utilizadores" className={`${linkClasses} text-yellow-200`}>🔐 Utilizadores</Link>
-                <Link to="/permissoes" className={`${linkClasses} text-yellow-200`}><ShieldCheck size={16} /> Permissões</Link>
+                {/* REMOVIDO O text-yellow-200 AQUI */}
+                <Link to="/utilizadores" className={linkClasses}>🔐 Utilizadores</Link>
+                <Link to="/permissoes" className={linkClasses}><ShieldCheck size={16} /> Permissões</Link>
               </>
             )}
           </nav>

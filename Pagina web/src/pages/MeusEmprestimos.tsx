@@ -100,8 +100,8 @@ export function MeusEmprestimos() {
         <ArrowLeft size={16} /> Voltar ao início
       </Link>
 
-      {/* CABEÇALHO */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-red-700 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      {/* CABEÇALHO - CORRIGIDO PARA AZUL INSTITUCIONAL */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -111,12 +111,12 @@ export function MeusEmprestimos() {
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">Os Meus Empréstimos</h1>
-                <p className="text-orange-100 text-sm mt-0.5">Obras que tens neste momento</p>
+                <p className="text-blue-100 text-sm mt-0.5">Obras que tens neste momento</p>
               </div>
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/20 text-center">
-            <p className="text-xs text-orange-100 font-medium uppercase tracking-wider">Ativos</p>
+            <p className="text-xs text-blue-100 font-medium uppercase tracking-wider">Ativos</p>
             <p className="text-3xl font-bold mt-1">{emprestimos.length}</p>
           </div>
         </div>
@@ -214,8 +214,8 @@ export function MeusEmprestimos() {
           {/* SECÇÃO: EMPRÉSTIMOS ATIVOS */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                <BookMarked className="text-orange-700" size={20} />
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <BookMarked className="text-blue-700" size={20} />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-at-blue">Empréstimos Ativos</h3>
@@ -249,11 +249,11 @@ export function MeusEmprestimos() {
                         atrasado ? 'border-red-200' : renovacaoPendente ? 'border-yellow-300' : 'border-gray-100'
                       }`}
                     >
-                      <div className={`p-4 ${atrasado ? 'bg-red-50' : renovacaoPendente ? 'bg-yellow-50' : 'bg-gradient-to-r from-orange-50 to-amber-50'}`}>
+                      <div className={`p-4 ${atrasado ? 'bg-red-50' : renovacaoPendente ? 'bg-yellow-50' : 'bg-gradient-to-r from-blue-50 to-indigo-50'}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              atrasado ? 'bg-red-500' : renovacaoPendente ? 'bg-yellow-500' : 'bg-orange-500'
+                              atrasado ? 'bg-red-500' : renovacaoPendente ? 'bg-yellow-500' : 'bg-at-blue'
                             }`}>
                               <BookOpen className="text-white" size={18} />
                             </div>
