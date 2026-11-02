@@ -26,6 +26,7 @@ interface Requisicao {
   Autor: string | null;
   DataReserva: string;
   Tipo: 'LEVANTAMENTO' | 'FILA_ESPERA';
+  PosicaoFila?: number;
 }
 
 function isRenovacaoPendente(v: boolean | number | undefined): boolean {
@@ -185,14 +186,23 @@ export function MeusEmprestimos() {
                           </div>
                         </div>
                       </div>
-                      <div className={`px-4 py-2 text-[11px] font-medium border-t ${
+                      <div className={`px-4 py-3 text-[11px] font-medium border-t flex items-center justify-between gap-2 ${
                         isLevantamento 
                           ? 'bg-blue-100/50 text-blue-800 border-blue-200' 
                           : 'bg-orange-100/50 text-orange-800 border-orange-200'
                       }`}>
-                        {isLevantamento 
-                          ? '💡 Dirige-te à biblioteca para levantares esta obra.' 
-                          : '⏳ Aguarda que o livro seja devolvido. Serás notificado por email.'}
+                        {isLevantamento ? (
+                          <span>💡 Dirige-te à biblioteca para levantares esta obra.</span>
+                        ) : (
+                          <>
+                            <span className="flex items-center gap-1"><Hourglass size={12} /> Aguarda que o livro seja devolvido.</span>
+                            {req.PosicaoFila && (
+                              <span className="bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
+                                {req.PosicaoFila}º Lugar
+                              </span>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -295,7 +305,7 @@ export function MeusEmprestimos() {
                           </div>
                         )}
 
-                        {/* BOTÃO SOLICITAR RENOVAÇÃO - só se não atrasado e não pendente */}
+                        {/* BOTÃO SOLICITAR RENOVAÇÃO */}
                         {!atrasado && !renovacaoPendente && (
                           <button
                             onClick={() => handleSolicitarRenovacao(emp.Id, emp.Obra)}

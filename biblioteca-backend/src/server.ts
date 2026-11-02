@@ -414,18 +414,27 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
+// ✅ NOVO: inclui PosicaoFila via CTE (ROW_NUMBER)
 app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request()
             .input('ClienteId', sql.Int, (req as any).user.id)
             .query(`
+                WITH Fila AS (
+                    SELECT Id, ObraId, ClienteId, DataReserva, Status, Tipo,
+                           ROW_NUMBER() OVER (PARTITION BY ObraId ORDER BY DataReserva ASC, Id ASC) as Posicao
+                    FROM Reservas
+                    WHERE Status = 'PENDENTE' AND Tipo = 'FILA_ESPERA'
+                )
                 SELECT R.Id, O.Id as ObraId, O.Titulo as Obra, 
                        (A.Nome + ' ' + ISNULL(A.Sobrenome, '')) as Autor, 
-                       CONVERT(VARCHAR(10), R.DataReserva, 103) as DataReserva, R.Tipo as Tipo
+                       CONVERT(VARCHAR(10), R.DataReserva, 103) as DataReserva, R.Tipo as Tipo,
+                       F.Posicao as PosicaoFila
                 FROM Reservas R
                 INNER JOIN Obras O ON R.ObraId = O.Id
                 LEFT JOIN Autores A ON O.AutorId = A.Id
+                LEFT JOIN Fila F ON R.Id = F.Id
                 WHERE R.ClienteId = @ClienteId AND R.Status = 'PENDENTE'
                 ORDER BY R.DataReserva DESC
             `);
