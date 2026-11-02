@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../services/api';
+import { exportarParaCSV } from '../utils/exportar';
+import { useToast } from '../contexts/ToastContext';
 import { 
   FileText, Printer, Users, BookX, 
-  Calendar, Filter, BookOpen, Award
+  Calendar, Filter, BookOpen, Award, AlertTriangle, Download
 } from 'lucide-react';
 
-type TipoRelatorio = 'inventario' | 'emprestimos' | 'clientes' | 'topLeitores' | 'nuncaEmprestadas';
+type TipoRelatorio = 'inventario' | 'emprestimos' | 'clientes' | 'topLeitores' | 'nuncaEmprestadas' | 'atrasos';
 type FiltroData = 'TODOS' | '7DIAS' | '30DIAS' | 'ANO';
 
 function parseDataPT(data: string): Date {
@@ -14,6 +16,7 @@ function parseDataPT(data: string): Date {
 }
 
 export function Relatorios() {
+  const { showToast } = useToast();
   const [tipo, setTipo] = useState<TipoRelatorio>('inventario');
   const [filtroData, setFiltroData] = useState<FiltroData>('TODOS');
   const [dados, setDados] = useState<any[]>([]);
@@ -28,6 +31,7 @@ export function Relatorios() {
     tipo === 'emprestimos' ? 'Relatório de Empréstimos Ativos' :
     tipo === 'clientes' ? 'Relatório de Clientes Registados' :
     tipo === 'topLeitores' ? 'Top Leitores da Biblioteca' :
+    tipo === 'atrasos' ? 'Relatório de Atrasos e Multas' :
     'Obras Nunca Emprestadas';
 
   const subtituloFiltro = 
@@ -40,6 +44,7 @@ export function Relatorios() {
     const endpoint = 
       tipo === 'inventario' || tipo === 'nuncaEmprestadas' ? 'obras' :
       tipo === 'emprestimos' ? 'emprestimos/historico' :
+      tipo === 'atrasos' ? 'emprestimos/atrasados' :
       'clientes';
 
     apiFetch(`/api/${endpoint}`)
@@ -92,24 +97,84 @@ export function Relatorios() {
   const corBotaoAtivo = 'bg-at-blue text-white';
   const corBotaoInativo = 'bg-gray-100 text-gray-700 hover:bg-gray-200';
 
+  // ============ EXPORTAÇÃO EXCEL ============
+  const handleExportarCSV = () => {
+    if (dadosProcessados.length === 0) {
+      showToast('Não há dados para exportar.', 'error');
+      return;
+    }
+
+    let colunas: any[] = [];
+    let nomeFicheiro = 'relatorio';
+
+    if (tipo === 'inventario' || tipo === 'nuncaEmprestadas') {
+      colunas = [
+        { chave: 'Titulo', titulo: 'Título' },
+        { chave: 'Autor', titulo: 'Autor' },
+        { chave: 'Editora', titulo: 'Editora' },
+        { chave: 'Ano', titulo: 'Ano' },
+        { chave: 'Status', titulo: 'Status' }
+      ];
+      nomeFicheiro = tipo === 'inventario' ? 'inventario' : 'obras_nunca_emprestadas';
+    } else if (tipo === 'emprestimos') {
+      colunas = [
+        { chave: 'Obra', titulo: 'Obra' },
+        { chave: 'Cliente', titulo: 'Cliente' },
+        { chave: 'DataEmprestimo', titulo: 'Data Empréstimo' },
+        { chave: 'DataPrevistaDevolucao', titulo: 'Devolução Prevista' },
+        { chave: 'DataDevolucao', titulo: 'Devolvido em' },
+        { chave: 'Status', titulo: 'Status' }
+      ];
+      nomeFicheiro = 'emprestimos';
+    } else if (tipo === 'clientes' || tipo === 'topLeitores') {
+      colunas = [
+        { chave: 'Nome', titulo: 'Nome' },
+        { chave: 'Email', titulo: 'Email' },
+        { chave: 'Telefone', titulo: 'Telefone' },
+        { chave: 'TotalEmprestimos', titulo: 'Total Empréstimos' }
+      ];
+      nomeFicheiro = tipo === 'clientes' ? 'clientes' : 'top_leitores';
+    } else if (tipo === 'atrasos') {
+      colunas = [
+        { chave: 'Obra', titulo: 'Obra' },
+        { chave: 'Cliente', titulo: 'Cliente' },
+        { chave: 'ClienteEmail', titulo: 'Email' },
+        { chave: 'ClienteTelefone', titulo: 'Telefone' },
+        { chave: 'DataPrevistaDevolucao', titulo: 'Prazo' },
+        { chave: 'DiasAtraso', titulo: 'Dias de Atraso' },
+        { chave: 'ValorMulta', titulo: 'Multa (MT)' }
+      ];
+      nomeFicheiro = 'relatorio_atrasos';
+    }
+
+    exportarParaCSV(dadosProcessados, colunas, nomeFicheiro);
+    showToast('Ficheiro Excel exportado com sucesso!', 'success');
+  };
+
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border-l-4 border-at-blue flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-at-blue">Relatórios</h2>
-          <p className="text-gray-500 text-sm mt-1">Gere e imprime relatórios do sistema.</p>
+          <p className="text-gray-500 text-sm mt-1">Gere, exporta e imprime relatórios do sistema.</p>
         </div>
-        <button onClick={() => window.print()} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors flex items-center gap-2 shadow-md">
-          <Printer size={18} /> Imprimir Relatório
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={handleExportarCSV} className="bg-green-600 text-white px-5 py-3 rounded-md font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md">
+            <Download size={18} /> Exportar Excel
+          </button>
+          <button onClick={() => window.print()} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors flex items-center gap-2 shadow-md">
+            <Printer size={18} /> Imprimir PDF
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-3 mb-4 flex flex-wrap gap-2 print:hidden">
-        <button onClick={() => setTipo('inventario')} className={`px-5 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'inventario' ? corBotaoAtivo : corBotaoInativo}`}><BookOpen size={16} /> Inventário</button>
-        <button onClick={() => setTipo('emprestimos')} className={`px-5 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'emprestimos' ? corBotaoAtivo : corBotaoInativo}`}><FileText size={16} /> Empréstimos</button>
-        <button onClick={() => setTipo('clientes')} className={`px-5 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'clientes' ? corBotaoAtivo : corBotaoInativo}`}><Users size={16} /> Clientes</button>
-        <button onClick={() => setTipo('topLeitores')} className={`px-5 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'topLeitores' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}><Award size={16} /> Top Leitores</button>
-        <button onClick={() => setTipo('nuncaEmprestadas')} className={`px-5 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'nuncaEmprestadas' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}><BookX size={16} /> Nunca Emprestadas</button>
+        <button onClick={() => setTipo('inventario')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'inventario' ? corBotaoAtivo : corBotaoInativo}`}><BookOpen size={16} /> Inventário</button>
+        <button onClick={() => setTipo('emprestimos')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'emprestimos' ? corBotaoAtivo : corBotaoInativo}`}><FileText size={16} /> Empréstimos</button>
+        <button onClick={() => setTipo('atrasos')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'atrasos' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}><AlertTriangle size={16} /> Atrasos e Multas</button>
+        <button onClick={() => setTipo('clientes')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'clientes' ? corBotaoAtivo : corBotaoInativo}`}><Users size={16} /> Clientes</button>
+        <button onClick={() => setTipo('topLeitores')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'topLeitores' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}><Award size={16} /> Top Leitores</button>
+        <button onClick={() => setTipo('nuncaEmprestadas')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'nuncaEmprestadas' ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100'}`}><BookX size={16} /> Nunca Emprestadas</button>
       </div>
 
       {tipo === 'emprestimos' && (
@@ -155,6 +220,18 @@ export function Relatorios() {
               </table>
             )}
 
+            {tipo === 'atrasos' && (
+              <div>
+                <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+                  <p className="text-sm text-red-900 flex items-center gap-2"><AlertTriangle size={16} /> <span><strong>Atenção:</strong> Estes leitores têm obras em atraso e multas a pagar.</span></p>
+                </div>
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Obra</th><th className="p-3 font-bold">Cliente</th><th className="p-3 font-bold">Contacto</th><th className="p-3 font-bold">Prazo</th><th className="p-3 font-bold text-center">Dias Atraso</th><th className="p-3 font-bold text-right">Multa (MT)</th></tr></thead>
+                  <tbody>{dadosProcessados.map((atr, i) => (<tr key={atr.Id} className="border-b border-gray-200"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{atr.Obra}</td><td className="p-3">{atr.Cliente}</td><td className="p-3 text-xs">{atr.ClienteEmail || '—'}<br/>{atr.ClienteTelefone || '—'}</td><td className="p-3 text-red-600 font-semibold">{atr.DataPrevistaDevolucao}</td><td className="p-3 text-center text-red-600 font-bold">{atr.DiasAtraso}</td><td className="p-3 text-right font-bold text-red-700">{Number(atr.ValorMulta).toLocaleString('pt-MZ')} MT</td></tr>))}</tbody>
+                </table>
+              </div>
+            )}
+
             {tipo === 'clientes' && (
               <table className="w-full text-left border-collapse text-sm">
                 <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Nome</th><th className="p-3 font-bold">Email</th><th className="p-3 font-bold">Telefone</th><th className="p-3 font-bold">PI</th><th className="p-3 font-bold">NUIT</th><th className="p-3 font-bold text-center">Empréstimos</th></tr></thead>
@@ -176,8 +253,8 @@ export function Relatorios() {
 
             {tipo === 'nuncaEmprestadas' && (
               <div>
-                <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-400 p-4 rounded-md mb-6">
-                  <p className="text-sm text-red-900 flex items-center gap-2"><BookX size={16} /> <span><strong>Atenção:</strong> Estas obras nunca foram requisitadas.</span></p>
+                <div className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-400 p-4 rounded-md mb-6">
+                  <p className="text-sm text-orange-900 flex items-center gap-2"><BookX size={16} /> <span><strong>Atenção:</strong> Estas obras nunca foram requisitadas.</span></p>
                 </div>
                 <table className="w-full text-left border-collapse text-sm">
                   <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Título</th><th className="p-3 font-bold">Autor</th><th className="p-3 font-bold">Editora</th><th className="p-3 font-bold text-center">Ano</th></tr></thead>

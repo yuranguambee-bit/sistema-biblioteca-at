@@ -369,7 +369,7 @@ app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, 
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ FAVORITOS (MANTIDO NO BACKEND PARA NÃO DAR ERRO, MAS SEM UI) ============
+// ============ FAVORITOS ============
 app.get('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -728,7 +728,8 @@ app.get('/api/obras', verificarToken, async (req, res) => {
                    O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
                    O.autorid as "AutorId", O.editoraid as "EditoraId",
                    O.status as "Status",
-                   (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos"
+                   (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos",
+                   (SELECT COUNT(*) FROM Reservas WHERE obraid = O.id AND status = 'PENDENTE') as "ReservasPendentes"
             FROM Obras O 
             LEFT JOIN Autores A ON O.autorid = A.id 
             LEFT JOIN Editoras E ON O.editoraid = E.id
@@ -1135,7 +1136,17 @@ app.get('/api/emprestimos', verificarToken, async (req, res) => {
 app.get('/api/emprestimos/atrasados', verificarToken, async (req, res) => {
     try {
         const valorMulta = await obterConfig('ValorMultaDia', 40);
-        const result = await pool.query(`SELECT E.id as "Id", O.titulo as "Obra", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", (CURRENT_DATE - E.dataprevistadevolucao::date) as "DiasAtraso" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id INNER JOIN Clientes C ON E.clienteid = C.id WHERE E.status = 'ATIVO' AND E.dataprevistadevolucao < CURRENT_DATE ORDER BY "DiasAtraso" DESC`);
+        const result = await pool.query(`
+            SELECT E.id as "Id", O.titulo as "Obra", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", 
+                   TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", 
+                   (CURRENT_DATE - E.dataprevistadevolucao::date) as "DiasAtraso" 
+            FROM Emprestimos E 
+            INNER JOIN Obras O ON E.obraid = O.id 
+            INNER JOIN Clientes C ON E.clienteid = C.id 
+            WHERE E.status = 'ATIVO' AND E.dataprevistadevolucao < CURRENT_DATE 
+            ORDER BY "DiasAtraso" DESC
+        `);
         const dados = result.rows.map((e: any) => ({ ...e, ValorMulta: Number(e.DiasAtraso) * valorMulta }));
         res.json(dados);
     } catch (error: any) { res.status(500).json({ error: error.message }); }

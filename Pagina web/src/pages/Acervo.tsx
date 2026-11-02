@@ -7,12 +7,17 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Eye, Edit, X, Save, RefreshCw, BookOpen, 
-  User, Building2, Calendar, Hash, Barcode, MapPin, Tags 
+  User, Building2, Calendar, Hash, Barcode, MapPin, Tags, Clock
 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
 
 interface Autor { Id: number; Nome: string; }
 interface Editora { Id: number; Nome: string; }
+
+// Extensão local para apanhar o novo campo do backend
+interface ObraComFila extends Obra {
+  ReservasPendentes?: number;
+}
 
 const ITENS_POR_PAGINA = 10;
 
@@ -21,7 +26,7 @@ export function Acervo() {
   const { temPermissao } = useAuth();
   const navigate = useNavigate();
   
-  const [obras, setObras] = useState<Obra[]>([]);
+  const [obras, setObras] = useState<ObraComFila[]>([]);
   const [autores, setAutores] = useState<Autor[]>([]);
   const [editoras, setEditoras] = useState<Editora[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,8 +115,7 @@ export function Acervo() {
   };
 
   // ============ FUNÇÕES DE EDIÇÃO ============
-  const handleAbrirEdicao = (obra: Obra) => {
-    // Preenche o formulário com os dados atuais da obra
+  const handleAbrirEdicao = (obra: ObraComFila) => {
     setEditForm({
       Id: obra.Id,
       Titulo: obra.Titulo,
@@ -143,7 +147,7 @@ export function Acervo() {
       if (res.ok) {
         showToast('Obra atualizada com sucesso!', 'success');
         setModalAberto(false);
-        carregarDados(); // Recarrega a lista para mostrar as alterações
+        carregarDados();
       } else {
         showToast(data.error || 'Erro ao atualizar obra.', 'error');
       }
@@ -247,47 +251,60 @@ export function Acervo() {
                 </tr>
               </thead>
               <tbody className="text-sm text-gray-700">
-                {obrasPaginadas.map((obra) => (
-                  <tr key={obra.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-800">{obra.Titulo}</td>
-                    <td className="px-6 py-4 text-gray-600">{obra.Autor}</td>
-                    <td className="px-6 py-4 text-gray-600">{obra.Editora || <span className="text-gray-300 italic">—</span>}</td>
-                    <td className="px-6 py-4 text-center text-gray-600 font-medium">{obra.Ano}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                        obra.Status === 'DISPONIVEL' 
-                          ? 'bg-green-50 text-green-700 ring-1 ring-green-200' 
-                          : 'bg-red-50 text-red-700 ring-1 ring-red-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          obra.Status === 'DISPONIVEL' ? 'bg-green-500' : 'bg-red-500'
-                        }`}></span>
-                        {obra.Status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => navigate(`/obras/${obra.Id}`)}
-                          className="inline-flex items-center gap-1.5 bg-at-blue text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-at-blue-light transition-colors"
-                          title="Ver detalhes e histórico"
-                        >
-                          <Eye size={14} /> Ver Detalhes
-                        </button>
-                        
-                        {podeEditar && (
+                {obrasPaginadas.map((obra) => {
+                  const temFila = obra.ReservasPendentes && obra.ReservasPendentes > 0;
+                  
+                  return (
+                    <tr key={obra.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-gray-800">{obra.Titulo}</td>
+                      <td className="px-6 py-4 text-gray-600">{obra.Autor}</td>
+                      <td className="px-6 py-4 text-gray-600">{obra.Editora || <span className="text-gray-300 italic">—</span>}</td>
+                      <td className="px-6 py-4 text-center text-gray-600 font-medium">{obra.Ano}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                            obra.Status === 'DISPONIVEL' 
+                              ? 'bg-green-50 text-green-700 ring-1 ring-green-200' 
+                              : 'bg-red-50 text-red-700 ring-1 ring-red-200'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              obra.Status === 'DISPONIVEL' ? 'bg-green-500' : 'bg-red-500'
+                            }`}></span>
+                            {obra.Status}
+                          </span>
+                          
+                          {/* ALERTA DE FILA DE ESPERA */}
+                          {temFila && (
+                            <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ring-orange-200" title="Existem leitores à espera desta obra">
+                              <Clock size={10} /> {obra.ReservasPendentes} na fila
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <button 
-                            onClick={() => handleAbrirEdicao(obra)}
-                            className="inline-flex items-center gap-1.5 bg-yellow-500 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-yellow-600 transition-colors"
-                            title="Editar dados da obra"
+                            onClick={() => navigate(`/obras/${obra.Id}`)}
+                            className="inline-flex items-center gap-1.5 bg-at-blue text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-at-blue-light transition-colors"
+                            title="Ver detalhes e histórico"
                           >
-                            <Edit size={14} /> Editar
+                            <Eye size={14} /> Ver Detalhes
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          
+                          {podeEditar && (
+                            <button 
+                              onClick={() => handleAbrirEdicao(obra)}
+                              className="inline-flex items-center gap-1.5 bg-yellow-500 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-yellow-600 transition-colors"
+                              title="Editar dados da obra"
+                            >
+                              <Edit size={14} /> Editar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -328,7 +345,6 @@ export function Acervo() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full my-8 animate-scale-in flex flex-col">
             
-            {/* Cabeçalho do Modal */}
             <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50 rounded-t-3xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
@@ -344,11 +360,9 @@ export function Acervo() {
               </button>
             </div>
 
-            {/* Corpo do Modal (Formulário) */}
             <form onSubmit={handleSalvarEdicao} className="p-6 overflow-y-auto max-h-[70vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 
-                {/* Título */}
                 <div className="md:col-span-2">
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <BookOpen size={14} className="text-gray-400" /> Título da Obra
@@ -356,7 +370,6 @@ export function Acervo() {
                   <input type="text" required value={editForm.Titulo} onChange={(e) => setEditForm({...editForm, Titulo: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" />
                 </div>
 
-                {/* Ano e Edição */}
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Calendar size={14} className="text-gray-400" /> Ano de Publicação
@@ -370,7 +383,6 @@ export function Acervo() {
                   <input type="text" value={editForm.NumeroEdicao} onChange={(e) => setEditForm({...editForm, NumeroEdicao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: 1ª" />
                 </div>
 
-                {/* Autor e Editora */}
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <User size={14} className="text-gray-400" /> Autor
@@ -390,7 +402,6 @@ export function Acervo() {
                   </select>
                 </div>
 
-                {/* Código e Localização */}
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Barcode size={14} className="text-gray-400" /> Código Físico
@@ -404,7 +415,6 @@ export function Acervo() {
                   <input type="text" value={editForm.Localizacao} onChange={(e) => setEditForm({...editForm, Localizacao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: E1C1F1" />
                 </div>
 
-                {/* Área de Conhecimento e ISBN */}
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Tags size={14} className="text-gray-400" /> Área de Conhecimento
@@ -420,7 +430,6 @@ export function Acervo() {
 
               </div>
 
-              {/* Botões de Ação */}
               <div className="mt-8 pt-5 border-t border-gray-100 flex justify-end gap-3">
                 <button type="button" onClick={() => setModalAberto(false)} className="px-5 py-2.5 rounded-md text-gray-600 font-semibold hover:bg-gray-100 transition-colors text-sm">
                   Cancelar

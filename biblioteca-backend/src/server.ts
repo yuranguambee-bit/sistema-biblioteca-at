@@ -987,7 +987,8 @@ app.get('/api/obras', verificarToken, async (req, res) => {
         const result = await pool.request().query(`
             SELECT O.Id, O.Titulo, (A.Nome + ' ' + ISNULL(A.Sobrenome, '')) as Autor, E.Nome as Editora, O.Ano, O.NumeroEdicao, O.NacionalidadeLivro, O.ISBN, O.Codigo, O.AreaConhecimento, O.Localizacao, O.OrdemExcel, O.Status,
                    O.AutorId, O.EditoraId,
-                   (SELECT COUNT(*) FROM Emprestimos WHERE ObraId = O.Id) as TotalEmprestimos
+                   (SELECT COUNT(*) FROM Emprestimos WHERE ObraId = O.Id) as TotalEmprestimos,
+                   (SELECT COUNT(*) FROM Reservas WHERE ObraId = O.Id AND Status = 'PENDENTE') as ReservasPendentes
             FROM Obras O 
             LEFT JOIN Autores A ON O.AutorId = A.Id 
             LEFT JOIN Editoras E ON O.EditoraId = E.Id
@@ -1467,7 +1468,10 @@ app.get('/api/emprestimos/atrasados', verificarToken, async (req, res) => {
         const valorMulta = await obterConfig('ValorMultaDia', 40);
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().query(`
-            SELECT E.Id, O.Titulo as Obra, C.Nome as Cliente, C.Email as ClienteEmail, C.Telefone as ClienteTelefone, CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo, CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao, DATEDIFF(DAY, E.DataPrevistaDevolucao, GETDATE()) as DiasAtraso
+            SELECT E.Id, O.Titulo as Obra, C.Nome as Cliente, C.Email as ClienteEmail, C.Telefone as ClienteTelefone, 
+                   CONVERT(VARCHAR(10), E.DataEmprestimo, 103) as DataEmprestimo, 
+                   CONVERT(VARCHAR(10), E.DataPrevistaDevolucao, 103) as DataPrevistaDevolucao, 
+                   DATEDIFF(DAY, E.DataPrevistaDevolucao, GETDATE()) as DiasAtraso
             FROM Emprestimos E INNER JOIN Obras O ON E.ObraId = O.Id INNER JOIN Clientes C ON E.ClienteId = C.Id WHERE E.Status = 'ATIVO' AND E.DataPrevistaDevolucao < CAST(GETDATE() AS DATE) ORDER BY DiasAtraso DESC
         `);
         const dados = result.recordset.map((e: any) => ({ ...e, ValorMulta: e.DiasAtraso * valorMulta }));
