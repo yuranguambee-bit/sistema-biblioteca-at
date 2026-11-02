@@ -59,13 +59,13 @@ export function PortalHome() {
   return (
     <main className="max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       
-      {/* BANNER DE BOAS-VINDAS (Estilo Admin) */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#002855] to-[#004B93] rounded-3xl shadow-xl p-8 md:p-10 mb-6 text-white">
+      {/* 1. BANNER DE BOAS-VINDAS (Idêntico ao Admin) */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#002c5f] to-[#004a99] rounded-3xl shadow-xl p-8 md:p-10 mb-6 text-white">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-yellow-400/20 backdrop-blur-sm border border-yellow-400/30 flex items-center justify-center flex-shrink-0">
-              <Sun className="text-yellow-400" size={32} />
+            <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+              <Sun className="text-yellow-400 fill-yellow-400" size={32} />
             </div>
             <div>
               <p className="text-sm text-blue-200 font-medium mb-1">Bom dia,</p>
@@ -78,17 +78,17 @@ export function PortalHome() {
               </p>
               
               <div className="flex flex-wrap items-center gap-3 mt-5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-blue-50">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs font-medium text-blue-50">
                   <Calendar size={14} /> {dataFormatada}
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-medium text-blue-50">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs font-medium text-blue-50">
                   <Clock size={14} /> {horaAtual}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Cartão lateral (Estilo "Taxa de Disponibilidade" do admin) */}
+          {/* Cartão lateral de destaque */}
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center min-w-[220px] flex-shrink-0 shadow-lg">
             <p className="text-xs text-blue-100 font-bold uppercase tracking-wider mb-2">
               Empréstimos Ativos
@@ -105,117 +105,119 @@ export function PortalHome() {
       </div>
 
       {/* ALERTAS (Requisicoes e Atrasos) */}
-      <div className="space-y-4 mb-6">
-        {requisicoes.length > 0 && (
-          <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
-              <BellRing className="text-white" size={20} />
+      {(requisicoes.length > 0 || totalAtrasados > 0) && (
+        <div className="space-y-4 mb-6">
+          {requisicoes.length > 0 && (
+            <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+                <BellRing className="text-white" size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-blue-900">
+                  Tens {requisicoes.length} livro(s) à tua espera!
+                </h3>
+                <p className="text-sm text-blue-800 mt-1">
+                  {requisicoes.map(r => `"${r.Obra}"`).join(', ')}. <br className="hidden sm:block"/>
+                  Por favor, dirige-te à biblioteca para efetuares o levantamento.
+                </p>
+                <Link to="/meus-emprestimos" className="inline-flex items-center gap-1.5 mt-2 text-blue-700 font-bold text-xs hover:underline">
+                  Ver detalhes <ArrowRight size={14} />
+                </Link>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-blue-900">
-                Tens {requisicoes.length} livro(s) à tua espera!
-              </h3>
-              <p className="text-sm text-blue-800 mt-1">
-                {requisicoes.map(r => `"${r.Obra}"`).join(', ')}. <br className="hidden sm:block"/>
-                Por favor, dirige-te à biblioteca para efetuares o levantamento.
-              </p>
-              <Link to="/meus-emprestimos" className="inline-flex items-center gap-1.5 mt-2 text-blue-700 font-bold text-xs hover:underline">
-                Ver detalhes <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-        )}
+          )}
 
-        {totalAtrasados > 0 && (
-          <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
-              <AlertTriangle className="text-white" size={20} />
+          {totalAtrasados > 0 && (
+            <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+                <AlertTriangle className="text-white" size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-rose-900">
+                  Atenção: {totalAtrasados} empréstimo(s) em atraso
+                </h3>
+                <p className="text-sm text-rose-800 mt-1">
+                  Por favor, dirige-te à biblioteca para devolver as obras e evitar multas.
+                </p>
+                <Link to="/meus-emprestimos" className="inline-flex items-center gap-1.5 mt-2 text-rose-700 font-bold text-xs hover:underline">
+                  Resolver agora <ArrowRight size={14} />
+                </Link>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-rose-900">
-                Atenção: {totalAtrasados} empréstimo(s) em atraso
-              </h3>
-              <p className="text-sm text-rose-800 mt-1">
-                Por favor, dirige-te à biblioteca para devolver as obras e evitar multas.
-              </p>
-              <Link to="/meus-emprestimos" className="inline-flex items-center gap-1.5 mt-2 text-rose-700 font-bold text-xs hover:underline">
-                Resolver agora <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* GRELHA DE CARTÕES (Exatamente igual ao estilo do Admin) */}
+      {/* 2. GRELHA DE CARTÕES (Idêntica ao Admin) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         
-        {/* Cartão 1: Empréstimos Ativos */}
+        {/* Cartão 1: Empréstimos Ativos (Vermelho) */}
         <Link to="/meus-emprestimos" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[80px] -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-start justify-between mb-4 relative z-10">
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-red-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
               <BookMarked size={20} strokeWidth={2.5} />
             </div>
-            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider bg-red-50 px-2 py-1 rounded-md">Ativos</span>
+            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">Ativos</span>
           </div>
           <div className="relative z-10">
             <p className="text-3xl font-extrabold text-slate-800">{emprestimos.length}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-1">Empréstimos Ativos</p>
-            <div className="flex items-center text-xs text-slate-400 mt-1">
+            <p className="text-sm font-semibold text-slate-600 mt-1">Empréstimos</p>
+            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
               Ver detalhes <ArrowRight size={12} className="ml-1" />
             </div>
           </div>
         </Link>
 
-        {/* Cartão 2: Obras Disponíveis */}
+        {/* Cartão 2: Obras Disponíveis (Verde) */}
         <Link to="/catalogo" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-[80px] -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-start justify-between mb-4 relative z-10">
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-green-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
               <BookOpen size={20} strokeWidth={2.5} />
             </div>
-            <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider bg-green-50 px-2 py-1 rounded-md">Prontas</span>
+            <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mt-1">Prontas</span>
           </div>
           <div className="relative z-10">
             <p className="text-3xl font-extrabold text-slate-800">{totalDisponiveis}</p>
             <p className="text-sm font-semibold text-slate-600 mt-1">Disponíveis</p>
-            <div className="flex items-center text-xs text-slate-400 mt-1">
+            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
               Ver catálogo <ArrowRight size={12} className="ml-1" />
             </div>
           </div>
         </Link>
 
-        {/* Cartão 3: Livros no Histórico */}
+        {/* Cartão 3: Livros no Histórico (Azul) */}
         <Link to="/meu-historico" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-[80px] -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-start justify-between mb-4 relative z-10">
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-blue-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
               <History size={20} strokeWidth={2.5} />
             </div>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded-md">Histórico</span>
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mt-1">Histórico</span>
           </div>
           <div className="relative z-10">
             <p className="text-3xl font-extrabold text-slate-800">{totalHistorico}</p>
             <p className="text-sm font-semibold text-slate-600 mt-1">Devolvidos</p>
-            <div className="flex items-center text-xs text-slate-400 mt-1">
+            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
               Ver histórico <ArrowRight size={12} className="ml-1" />
             </div>
           </div>
         </Link>
 
-        {/* Cartão 4: Fila de Espera */}
+        {/* Cartão 4: Fila de Espera / Reservas (Amarelo) */}
         <Link to="/meus-emprestimos" className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-50 rounded-bl-[80px] -mr-2 -mt-2 transition-transform group-hover:scale-110"></div>
-          <div className="flex items-start justify-between mb-4 relative z-10">
+          <div className="absolute -top-6 -right-6 w-28 h-28 bg-yellow-50 rounded-full opacity-60 group-hover:scale-110 transition-transform"></div>
+          <div className="relative z-10 flex items-start justify-between mb-4">
             <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-600">
               <BookOpen size={20} strokeWidth={2.5} />
             </div>
-            <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider bg-yellow-50 px-2 py-1 rounded-md">Fila</span>
+            <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-wider mt-1">Fila</span>
           </div>
           <div className="relative z-10">
             <p className="text-3xl font-extrabold text-slate-800">{requisicoes.length}</p>
             <p className="text-sm font-semibold text-slate-600 mt-1">Reservas</p>
-            <div className="flex items-center text-xs text-slate-400 mt-1">
+            <div className="flex items-center text-[11px] text-slate-400 mt-1 font-medium group-hover:text-slate-600 transition-colors">
               Ver reservas <ArrowRight size={12} className="ml-1" />
             </div>
           </div>
@@ -223,12 +225,12 @@ export function PortalHome() {
 
       </div>
 
-      {/* LISTA DE EMPRÉSTIMOS ATIVOS (Estilo Tabela/Lista do Admin) */}
+      {/* 3. LISTA DE EMPRÉSTIMOS ATIVOS */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-              <Clock className="text-orange-500" size={18} />
+            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-100">
+              <Clock className="text-slate-500" size={18} />
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-800">Os teus Empréstimos Atuais</h3>
