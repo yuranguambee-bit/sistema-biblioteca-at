@@ -4,8 +4,9 @@ import {
   BookOpen, Search, User, BookMarked, Bookmark, Users, 
   BarChart3, Settings, Shield, Mail, ChevronDown, ChevronUp,
   CheckCircle, AlertTriangle, Info, Printer, FileText, Lock,
-  Hash, Sparkles, ArrowRight
+  Hash, Sparkles, ArrowRight, Clock, RotateCw, BellRing, Hourglass
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Seccao {
   id: string;
@@ -16,19 +17,173 @@ interface Seccao {
 }
 
 export function Manual() {
+  const { user } = useAuth();
+  const isCliente = user?.role === 'Cliente';
+
   const [pesquisa, setPesquisa] = useState('');
   const [abertas, setAbertas] = useState<string[]>(['introducao']);
 
-  const toggleSeccao = (id: string) => {
-    setAbertas((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
+  // ==========================================
+  // MANUAL PARA O CLIENTE / LEITOR
+  // ==========================================
+  const seccoesCliente: Seccao[] = useMemo(() => [
+    {
+      id: 'introducao',
+      titulo: 'Bem-vindo ao Portal do Leitor',
+      icone: <Sparkles size={20} />,
+      cor: 'blue',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Bem-vindo ao <strong>Portal do Leitor</strong> da Biblioteca da Autoridade Tributária de Moçambique. 
+            Este espaço foi criado para ti, para que possas explorar o nosso acervo e gerir as tuas leituras de forma autónoma.
+          </p>
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+            <p className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+              <Info size={16} /> O que podes fazer aqui?
+            </p>
+            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+              <li>Pesquisar livros no catálogo</li>
+              <li>Requisitar obras disponíveis para levantamento</li>
+              <li>Entrar na fila de espera para livros emprestados</li>
+              <li>Acompanhar os teus empréstimos e datas de devolução</li>
+              <li>Solicitar renovação de empréstimos</li>
+              <li>Consultar o teu histórico de leituras</li>
+            </ul>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'requisitar',
+      titulo: 'Como Requisitar uma Obra',
+      icone: <BookOpen size={20} />,
+      cor: 'green',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">Se o livro que procuras está disponível na biblioteca, podes requisitá-lo diretamente.</p>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><CheckCircle size={16} className="text-green-600" /> Passo a Passo</p>
+            <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+              <li>Vai à aba <strong>Catálogo</strong> no menu superior.</li>
+              <li>Pesquisa pelo título ou autor do livro que desejas.</li>
+              <li>Se o livro estiver <span className="text-green-600 font-bold">Disponível</span>, clica no botão <strong>"Requisitar"</strong>.</li>
+              <li>O sistema enviará uma notificação à biblioteca.</li>
+              <li>Dirige-te à biblioteca física para efetuares o levantamento e o bibliotecário confirmará o teu empréstimo.</li>
+            </ol>
+          </div>
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <p className="text-sm text-yellow-900">💡 <strong>Dica:</strong> Após o levantamento, o livro aparecerá automaticamente na secção "Meus Empréstimos" com a data limite de devolução.</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'fila-espera',
+      titulo: 'Fila de Espera (Livros Emprestados)',
+      icone: <Hourglass size={20} />,
+      cor: 'orange',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">E se o livro que queres já estiver emprestado a outra pessoa? Não há problema! Podes entrar na fila de espera.</p>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><Bookmark size={16} className="text-orange-500" /> Como funciona?</p>
+            <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
+              <li>No catálogo, clica em <strong>"Reservar"</strong> no livro indisponível.</li>
+              <li>Vais entrar numa fila organizada por ordem de chegada.</li>
+              <li>Na página <strong>"Meus Empréstimos"</strong>, poderás ver a tua <strong>Posição exata na fila</strong> (ex: "3º Lugar").</li>
+              <li>Quando o livro for devolvido, o sistema envia-te um email e uma notificação automática a avisar que é a tua vez!</li>
+            </ul>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'emprestimos',
+      titulo: 'Os Meus Empréstimos e Renovações',
+      icone: <RotateCw size={20} />,
+      cor: 'cyan',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">Acede à aba <strong>Meus Empréstimos</strong> para acompanhar os prazos das obras que tens em teu poder.</p>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><RotateCw size={16} className="text-cyan-600" /> Pedir Renovação (+15 dias)</p>
+            <p className="text-sm text-gray-700 mb-2">Se precisares de mais tempo para ler, podes pedir uma renovação.</p>
+            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+              <li>O botão <strong>"Solicitar Renovação"</strong> só aparece se o livro não estiver em atraso e se não houver mais ninguém à espera dele.</li>
+              <li>O teu pedido é enviado ao bibliotecário.</li>
+              <li>O estado ficará como <strong>"Em Análise"</strong> até o bibliotecário aprovar.</li>
+              <li>Receberás uma notificação assim que for aprovado ou rejeitado.</li>
+            </ul>
+          </div>
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+            <p className="text-sm text-red-900 flex items-center gap-2"><AlertTriangle size={16} /> <strong>Atenção aos Atrasos:</strong> Se a data limite passar, o empréstimo fica marcado a vermelho e não poderás pedir renovação. Deves devolver o livro o mais rápido possível.</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'historico',
+      titulo: 'O Meu Histórico de Leitura',
+      icone: <BookMarked size={20} />,
+      cor: 'purple',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">Na aba <strong>Meu Histórico</strong>, podes consultar todos os livros que já requisitaste e devolveste no passado.</p>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><Search size={16} className="text-purple-600" /> Filtros Disponíveis</p>
+            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+              <li>Podes pesquisar pelo título ou autor.</li>
+              <li>Podes filtrar por ano de empréstimo.</li>
+              <li>Verás a data em que requisitaste e a data em que devolveste.</li>
+            </ul>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'notificacoes',
+      titulo: 'Notificações e Perfil',
+      icone: <BellRing size={20} />,
+      cor: 'pink',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">O sistema comunica contigo de forma automática.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><BellRing size={16} className="text-pink-600" /> O Sino</p>
+              <p className="text-sm text-gray-700">No canto superior direito, o ícone do sino mostra alertas sobre: livros prontos para levantamento, avisos de atraso e renovações aprovadas.</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><User size={16} className="text-pink-600" /> O Meu Perfil</p>
+              <p className="text-sm text-gray-700">Na aba "Perfil", podes alterar a tua password e confirmar os teus dados de contacto (email e telefone).</p>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'suporte',
+      titulo: 'Suporte e Contacto',
+      icone: <Mail size={20} />,
+      cor: 'gray',
+      conteudo: (
+        <div className="space-y-4">
+          <p className="text-gray-700">Em caso de problemas técnicos ou dúvidas sobre o teu empréstimo, contacta:</p>
+          <div className="bg-gradient-to-br from-at-blue to-at-blue-light text-white rounded-lg p-6">
+            <p className="text-sm text-blue-100 font-medium mb-1">Biblioteca da AT</p>
+            <p className="text-xl font-bold">Autoridade Tributária de Moçambique</p>
+            <p className="text-sm text-blue-100 mt-3">📧 biblioteca@at.gov.mz<br />📞 +258 21 000 000</p>
+          </div>
+        </div>
+      ),
+    },
+  ], []);
 
-  const abrirTodas = () => setAbertas(seccoes.map((s) => s.id));
-  const fecharTodas = () => setAbertas([]);
-
-  const seccoes: Seccao[] = useMemo(() => [
+  // ==========================================
+  // MANUAL PARA O ADMIN / BIBLIOTECÁRIO (Existente)
+  // ==========================================
+  const seccoesAdmin: Seccao[] = useMemo(() => [
     {
       id: 'introducao',
       titulo: 'Introdução ao Sistema',
@@ -260,10 +415,22 @@ export function Manual() {
     },
   ], []);
 
+  // Escolhe o conjunto de secções com base no papel do utilizador
+  const seccoes = isCliente ? seccoesCliente : seccoesAdmin;
+
+  const toggleSeccao = (id: string) => {
+    setAbertas((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const abrirTodas = () => setAbertas(seccoes.map((s) => s.id));
+  const fecharTodas = () => setAbertas([]);
+
   const seccoesFiltradas = useMemo(() => {
     if (!pesquisa.trim()) return seccoes;
     const p = pesquisa.toLowerCase();
-    return seccoes.filter((s) => s.titulo.toLowerCase().includes(p));
+    return seccoes.filter((s) => s.titulo.toLowerCase().includes(p) || (typeof s.conteudo === 'string' && s.conteudo.toLowerCase().includes(p)));
   }, [seccoes, pesquisa]);
 
   const corClasses: { [key: string]: { bg: string; border: string; text: string; badge: string } } = {
@@ -271,15 +438,15 @@ export function Manual() {
     green: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', badge: 'bg-green-100' },
     red: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', badge: 'bg-red-100' },
     yellow: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', badge: 'bg-yellow-100' },
+    orange: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', badge: 'bg-orange-100' },
     pink: { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-700', badge: 'bg-pink-100' },
     cyan: { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', badge: 'bg-cyan-100' },
     purple: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-700', badge: 'bg-purple-100' },
     gray: { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700', badge: 'bg-gray-100' },
-    indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-700', badge: 'bg-indigo-100' },
   };
 
   return (
-    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
+    <main className="w-full max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 right-32 w-40 h-40 bg-white/5 rounded-full -mb-20"></div>
@@ -288,11 +455,15 @@ export function Manual() {
             <div className="flex items-center gap-3 mb-3">
               <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center"><BookOpen size={26} /></div>
               <div>
-                <h1 className="text-3xl font-bold">Manual do Utilizador</h1>
-                <p className="text-blue-100 text-sm">Guia completo do Sistema de Biblioteca</p>
+                <h1 className="text-3xl font-bold">{isCliente ? 'Manual do Leitor' : 'Manual do Utilizador'}</h1>
+                <p className="text-blue-100 text-sm">{isCliente ? 'Guia completo do Portal do Leitor' : 'Guia completo do Sistema de Biblioteca'}</p>
               </div>
             </div>
-            <p className="text-blue-100 text-sm max-w-lg mt-2">Aprende a usar todas as funcionalidades do sistema passo a passo.</p>
+            <p className="text-blue-100 text-sm max-w-lg mt-2">
+              {isCliente 
+                ? 'Aprende a explorar o catálogo, requisitar obras e gerir as tuas leituras passo a passo.' 
+                : 'Aprende a usar todas as funcionalidades do sistema passo a passo.'}
+            </p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/20">
             <p className="text-xs text-blue-200 font-medium uppercase tracking-wider">Secções</p>
@@ -344,8 +515,10 @@ export function Manual() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm p-6 mt-6 text-center">
-        <p className="text-sm text-gray-600 mb-2">Precisas de ajuda adicional? Contacta o suporte técnico.</p>
-        <Link to="/" className="inline-flex items-center gap-2 text-at-blue font-semibold hover:underline text-sm">Voltar ao Dashboard <ArrowRight size={14} /></Link>
+        <p className="text-sm text-gray-600 mb-2">Precisas de ajuda adicional? Contacta a biblioteca.</p>
+        <Link to={isCliente ? "/" : "/dashboard"} className="inline-flex items-center gap-2 text-at-blue font-semibold hover:underline text-sm">
+          Voltar ao Início <ArrowRight size={14} />
+        </Link>
       </div>
     </main>
   );
