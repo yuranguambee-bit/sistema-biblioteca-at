@@ -72,6 +72,10 @@ export function Header() {
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
+              
+              {/* LINK DO MANUAL ADICIONADO AQUI PARA O LEITOR */}
+              <Link to="/manual" className={linkClasses}><BookOpen size={16} /> Manual</Link>
+              
               <Link to="/perfil" className={linkClasses}><User size={16} /> Perfil</Link>
             </nav>
 
@@ -142,7 +146,6 @@ export function Header() {
 
             {isAdmin && (
               <>
-                {/* REMOVIDO O text-yellow-200 AQUI */}
                 <Link to="/utilizadores" className={linkClasses}>🔐 Utilizadores</Link>
                 <Link to="/permissoes" className={linkClasses}><ShieldCheck size={16} /> Permissões</Link>
               </>
