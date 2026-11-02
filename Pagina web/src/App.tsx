@@ -40,6 +40,8 @@ function PortalLeitor() {
         <Route path="/catalogo" element={<Catalogo />} />
         <Route path="/meus-emprestimos" element={<MeusEmprestimos />} />
         <Route path="/meu-historico" element={<MeuHistorico />} />
+        {/* ROTA DO MANUAL ADICIONADA AQUI */}
+        <Route path="/manual" element={<Manual />} />
         <Route path="/perfil" element={<PerfilCliente />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
