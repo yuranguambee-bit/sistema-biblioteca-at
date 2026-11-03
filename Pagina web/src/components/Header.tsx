@@ -52,124 +52,92 @@ export function Header() {
     }
   };
 
-  const linkClasses = "px-2.5 py-2 rounded-md hover:bg-white/10 hover:text-yellow-300 transition-colors text-[15px] font-semibold flex items-center gap-1.5 whitespace-nowrap";
+  const linkClasses = "px-3 py-4 hover:bg-white/10 transition-colors text-[14px] font-medium flex items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent hover:border-white";
 
-  if (isCliente) {
-    return (
-      <header className="relative z-50 bg-[#002B5C] text-white shadow-md print:hidden">
-        <div className="flex flex-col items-center justify-center py-5 px-4">
-          <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
-            <img src="/logo-at.png" alt="Logotipo da Autoridade Tributária de Moçambique" className="w-full h-full object-contain" />
+  const TopBar = () => (
+    <div className="bg-white text-[#004B93] shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        {/* Lado Esquerdo: Logo e Título */}
+        <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+          <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
+          <div className="hidden md:block border-l border-gray-300 pl-4">
+            <h1 className="text-xl font-bold leading-tight uppercase tracking-wide">Autoridade Tributária</h1>
+            <p className="text-sm font-semibold text-gray-500">de Moçambique</p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-wide text-center leading-tight">Autoridade Tributária de Moçambique</h1>
-          <p className="text-sm text-blue-200 font-semibold tracking-[0.15em] uppercase mt-1.5">Portal do Leitor · Biblioteca</p>
-        </div>
+        </Link>
 
-        <div className="bg-[#001F42] border-t border-white/10 px-3">
-          <div className="flex items-center justify-between gap-2 py-1.5 w-full">
-            <nav className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
+        {/* Lado Direito: Perfil e Notificações */}
+        <div className="flex items-center gap-3">
+          <Notificacoes />
+          <div className="w-px h-8 bg-gray-200"></div>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#004B93] text-white flex items-center justify-center shadow-sm">
+              <User size={18} />
+            </div>
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-bold text-gray-800 leading-tight">{user?.nome || 'Utilizador'}</p>
+              <p className="text-xs text-gray-500">{user?.role}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="ml-2 flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-md transition-colors text-sm font-semibold border border-transparent hover:border-red-100" title="Terminar sessão">
+            <LogOut size={16} /> <span className="hidden md:inline">Sair</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const NavBar = () => (
+    <div className="bg-[#004B93] text-white">
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between overflow-x-auto scrollbar-hide">
+        <nav className="flex items-center gap-1">
+          {isCliente ? (
+            <>
               <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
               <Link to="/manual" className={linkClasses}><BookOpen size={16} /> Manual</Link>
-              <Link to="/perfil" className={linkClasses}><User size={16} /> Perfil</Link>
-            </nav>
-
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
-              <Notificacoes />
-              <div className="w-px h-5 bg-white/20"></div>
-              <div className="flex items-center gap-1.5 px-2 py-1" title={user?.nome || ''}>
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow ring-1 ring-white/20">
-                  <User size={12} />
-                </div>
-                <span className="hidden xl:inline font-semibold text-xs text-white whitespace-nowrap">
-                  {user?.nome?.split(' ')[0] || 'Leitor'}
-                </span>
-                <span className="hidden xl:inline px-1.5 rounded text-[9px] font-bold bg-green-400 text-white">
-                  Leitor
-                </span>
-              </div>
-              <div className="w-px h-5 bg-white/20"></div>
-              <button onClick={handleLogout} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/50 px-2.5 py-1 rounded-full transition-colors text-xs font-semibold text-red-100 hover:text-white" title="Terminar sessão">
-                <LogOut size={12} /> <span className="hidden md:inline">Sair</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-  }
+            </>
+          ) : (
+            <>
+              <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
+              {temPermissao('obras') && <Link to="/cadastrar-obra" className={linkClasses}>Obras</Link>}
+              {temPermissao('autores') && <Link to="/cadastrar-autor" className={linkClasses}>Autores</Link>}
+              {temPermissao('clientes') && <Link to="/clientes" className={linkClasses}>Clientes</Link>}
+              {temPermissao('editoras') && <Link to="/cadastrar-editora" className={linkClasses}>Editoras</Link>}
+              {temPermissao('emprestimos') && (
+                <Link to="/emprestimos" className={`${linkClasses} relative`}>
+                  Empréstimos
+                  {atrasados > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center animate-pulse ml-1">
+                      {atrasados}
+                    </span>
+                  )}
+                </Link>
+              )}
+              {temPermissao('reservas') && <Link to="/reservas" className={linkClasses}>Reservas</Link>}
+              {temPermissao('historico') && <Link to="/historico" className={linkClasses}>Histórico</Link>}
+              {temPermissao('acervo') && <Link to="/acervo" className={linkClasses}>Acervo</Link>}
+              {temPermissao('relatorios') && <Link to="/relatorios" className={linkClasses}>Relatórios</Link>}
+              {temPermissao('manual') && <Link to="/manual" className={linkClasses}>Manual</Link>}
+              {isAdmin && (
+                <>
+                  <Link to="/utilizadores" className={linkClasses}>Utilizadores</Link>
+                  <Link to="/permissoes" className={linkClasses}>Permissões</Link>
+                </>
+              )}
+            </>
+          )}
+        </nav>
+      </div>
+    </div>
+  );
 
   return (
-    <header className="relative z-50 bg-[#002B5C] text-white shadow-md print:hidden">
-      <div className="flex flex-col items-center justify-center py-5 px-4">
-        <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
-          <img src="/logo-at.png" alt="Logotipo da Autoridade Tributária de Moçambique" className="w-full h-full object-contain" />
-        </div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-wide text-center leading-tight">Autoridade Tributária de Moçambique</h1>
-        <p className="text-sm text-blue-200 font-semibold tracking-[0.15em] uppercase mt-1.5">Sistema de Gestão de Biblioteca</p>
-      </div>
-
-      <div className="bg-[#001F42] border-t border-white/10 px-3">
-        <div className="flex items-center justify-between gap-2 py-1.5 w-full">
-          <nav className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
-            <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
-
-            {temPermissao('obras') && <Link to="/cadastrar-obra" className={linkClasses}>Obras</Link>}
-            {temPermissao('autores') && <Link to="/cadastrar-autor" className={linkClasses}>Autores</Link>}
-            {temPermissao('clientes') && <Link to="/clientes" className={linkClasses}>Clientes</Link>}
-            {temPermissao('editoras') && <Link to="/cadastrar-editora" className={linkClasses}>Editoras</Link>}
-            
-            {temPermissao('emprestimos') && (
-              <Link to="/emprestimos" className={`${linkClasses} relative`}>
-                Empréstimos
-                {atrasados > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center animate-pulse">
-                    {atrasados}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {temPermissao('reservas') && <Link to="/reservas" className={linkClasses}>Reservas</Link>}
-            {temPermissao('historico') && <Link to="/historico" className={linkClasses}>Histórico</Link>}
-            {temPermissao('acervo') && <Link to="/acervo" className={linkClasses}>Acervo</Link>}
-            {temPermissao('relatorios') && <Link to="/relatorios" className={linkClasses}>📊 Relatórios</Link>}
-
-            {temPermissao('manual') && (
-              <Link to="/manual" className={linkClasses}><BookOpen size={16} /> Manual</Link>
-            )}
-
-            {isAdmin && (
-              <>
-                <Link to="/utilizadores" className={linkClasses}>🔐 Utilizadores</Link>
-                <Link to="/permissoes" className={linkClasses}><ShieldCheck size={16} /> Permissões</Link>
-              </>
-            )}
-          </nav>
-
-          <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
-            <Notificacoes />
-            <div className="w-px h-5 bg-white/20"></div>
-            <Link to="/perfil" className="flex items-center gap-1.5 hover:bg-white/10 px-2 py-1 rounded-full transition-colors" title="Ver o meu perfil">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-at-blue to-blue-700 flex items-center justify-center shadow ring-1 ring-white/20">
-                <User size={12} />
-              </div>
-              <span className="hidden xl:inline font-semibold text-xs text-white whitespace-nowrap">
-                {user?.nome?.split(' ')[0] || 'Utilizador'}
-              </span>
-              <span className={`hidden xl:inline px-1.5 rounded text-[9px] font-bold ${isAdmin ? 'bg-yellow-400 text-black' : 'bg-blue-400 text-white'}`}>
-                {user?.role}
-              </span>
-            </Link>
-            <div className="w-px h-5 bg-white/20"></div>
-            <button onClick={handleLogout} className="flex items-center gap-1 bg-red-500/20 hover:bg-red-500/50 px-2.5 py-1 rounded-full transition-colors text-xs font-semibold text-red-100 hover:text-white" title="Terminar sessão">
-              <LogOut size={12} /> <span className="hidden md:inline">Sair</span>
-            </button>
-          </div>
-        </div>
-      </div>
+    <header className="relative z-50 flex flex-col shadow-md print:hidden">
+      <TopBar />
+      <NavBar />
     </header>
   );
 }

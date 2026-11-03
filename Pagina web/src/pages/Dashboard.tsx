@@ -133,8 +133,8 @@ export function Dashboard() {
 
   return (
       <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-        {/* BANNER DE BOAS-VINDAS */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-8 text-white animate-fade-down">
+        {/* BANNER DE BOAS-VINDAS - COR EXATA DO SITE DA AT */}
+        <div className="relative overflow-hidden bg-[#0E4D92] rounded-3xl shadow-2xl p-8 mb-8 text-white animate-fade-down">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
         <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-white/5 rounded-full"></div>
@@ -198,7 +198,7 @@ export function Dashboard() {
         </Link>
       )}
 
-      {/* CARTÕES DE ESTATÍSTICA - NOVO DESIGN (ESTILO ILUSTRAÇÃO) */}
+      {/* CARTÕES DE ESTATÍSTICA */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         
         {/* Cartão 1: Catálogo */}
