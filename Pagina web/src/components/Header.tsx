@@ -56,7 +56,7 @@ export function Header() {
 
   if (isCliente) {
     return (
-      <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
+      <header className="relative z-50 bg-[#002B5C] text-white shadow-md print:hidden">
         <div className="flex flex-col items-center justify-center py-5 px-4">
           <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
             <img src="/logo-at.png" alt="Logotipo da Autoridade Tributária de Moçambique" className="w-full h-full object-contain" />
@@ -65,21 +65,18 @@ export function Header() {
           <p className="text-sm text-blue-200 font-semibold tracking-[0.15em] uppercase mt-1.5">Portal do Leitor · Biblioteca</p>
         </div>
 
-        <div className="bg-at-blue-light/70 backdrop-blur-sm border-t border-blue-400/20 px-3">
+        <div className="bg-[#001F42] border-t border-white/10 px-3">
           <div className="flex items-center justify-between gap-2 py-1.5 w-full">
             <nav className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
               <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
-              
-              {/* LINK DO MANUAL ADICIONADO AQUI PARA O LEITOR */}
               <Link to="/manual" className={linkClasses}><BookOpen size={16} /> Manual</Link>
-              
               <Link to="/perfil" className={linkClasses}><User size={16} /> Perfil</Link>
             </nav>
 
-            <div className="flex items-center gap-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
+            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
               <Notificacoes />
               <div className="w-px h-5 bg-white/20"></div>
               <div className="flex items-center gap-1.5 px-2 py-1" title={user?.nome || ''}>
@@ -105,7 +102,7 @@ export function Header() {
   }
 
   return (
-    <header className="relative z-50 bg-gradient-to-b from-at-blue to-at-blue-light text-white shadow-md print:hidden">
+    <header className="relative z-50 bg-[#002B5C] text-white shadow-md print:hidden">
       <div className="flex flex-col items-center justify-center py-5 px-4">
         <div className="w-20 h-20 mb-3 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center p-2.5 shadow-2xl hover:scale-105 transition-transform duration-300">
           <img src="/logo-at.png" alt="Logotipo da Autoridade Tributária de Moçambique" className="w-full h-full object-contain" />
@@ -114,7 +111,7 @@ export function Header() {
         <p className="text-sm text-blue-200 font-semibold tracking-[0.15em] uppercase mt-1.5">Sistema de Gestão de Biblioteca</p>
       </div>
 
-      <div className="bg-at-blue-light/70 backdrop-blur-sm border-t border-blue-400/20 px-3">
+      <div className="bg-[#001F42] border-t border-white/10 px-3">
         <div className="flex items-center justify-between gap-2 py-1.5 w-full">
           <nav className="flex items-center gap-0.5 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
             <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
@@ -152,7 +149,7 @@ export function Header() {
             )}
           </nav>
 
-          <div className="flex items-center gap-1 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
+          <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-1.5 py-1 shadow-md flex-shrink-0">
             <Notificacoes />
             <div className="w-px h-5 bg-white/20"></div>
             <Link to="/perfil" className="flex items-center gap-1.5 hover:bg-white/10 px-2 py-1 rounded-full transition-colors" title="Ver o meu perfil">

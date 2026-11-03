@@ -1,274 +1,179 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { apiFetch } from '../services/api';
-import { exportarParaCSV } from '../utils/exportar';
-import { useToast } from '../contexts/ToastContext';
 import { 
-  FileText, Printer, Users, BookX, 
-  Calendar, Filter, BookOpen, Award, AlertTriangle, Download
+  Download, Printer, BookOpen, AlertTriangle, 
+  Users, Award, BookX, RefreshCw, FileText 
 } from 'lucide-react';
-
-type TipoRelatorio = 'inventario' | 'emprestimos' | 'clientes' | 'topLeitores' | 'nuncaEmprestadas' | 'atrasos';
-type FiltroData = 'TODOS' | '7DIAS' | '30DIAS' | 'ANO';
-
-function parseDataPT(data: string): Date {
-  const [dia, mes, ano] = data.split('/').map(Number);
-  return new Date(ano, mes - 1, dia);
-}
+import { useToast } from '../contexts/ToastContext';
 
 export function Relatorios() {
   const { showToast } = useToast();
-  const [tipo, setTipo] = useState<TipoRelatorio>('inventario');
-  const [filtroData, setFiltroData] = useState<FiltroData>('TODOS');
-  const [dados, setDados] = useState<any[]>([]);
+  const [abaAtiva, setAbaAtiva] = useState('inventario');
   const [loading, setLoading] = useState(false);
+  const [dados, setDados] = useState<any[]>([]);
 
-  const dataAtual = new Date().toLocaleDateString('pt-PT', {
-    day: '2-digit', month: 'long', year: 'numeric'
-  });
-
-  const tituloRelatorio = 
-    tipo === 'inventario' ? 'Relatório de Inventário do Acervo' :
-    tipo === 'emprestimos' ? 'Relatório de Empréstimos Ativos' :
-    tipo === 'clientes' ? 'Relatório de Clientes Registados' :
-    tipo === 'topLeitores' ? 'Top Leitores da Biblioteca' :
-    tipo === 'atrasos' ? 'Relatório de Atrasos e Multas' :
-    'Obras Nunca Emprestadas';
-
-  const subtituloFiltro = 
-    filtroData === '7DIAS' ? 'Últimos 7 dias' :
-    filtroData === '30DIAS' ? 'Últimos 30 dias' :
-    filtroData === 'ANO' ? 'Este ano' : 'Todos os registos';
-
-  useEffect(() => {
+  const carregarDados = async () => {
     setLoading(true);
-    const endpoint = 
-      tipo === 'inventario' || tipo === 'nuncaEmprestadas' ? 'obras' :
-      tipo === 'emprestimos' ? 'emprestimos/historico' :
-      tipo === 'atrasos' ? 'emprestimos/atrasados' :
-      'clientes';
+    try {
+      let endpoint = '';
+      if (abaAtiva === 'inventario') endpoint = '/api/relatorios/inventario';
+      else if (abaAtiva === 'emprestimos') endpoint = '/api/relatorios/emprestimos';
+      else if (abaAtiva === 'atrasos') endpoint = '/api/relatorios/atrasos';
+      else if (abaAtiva === 'clientes') endpoint = '/api/relatorios/clientes';
+      else if (abaAtiva === 'top-leitores') endpoint = '/api/relatorios/top-leitores';
+      else if (abaAtiva === 'nunca-emprestadas') endpoint = '/api/relatorios/nunca-emprestadas';
 
-    apiFetch(`/api/${endpoint}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setDados(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch((e) => { console.error(e); setLoading(false); });
-  }, [tipo]);
-
-  const dadosFiltrados = useMemo(() => {
-    if (tipo !== 'emprestimos' || filtroData === 'TODOS') return dados;
-
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    let limite: Date;
-
-    if (filtroData === '7DIAS') {
-      limite = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (filtroData === '30DIAS') {
-      limite = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else {
-      limite = new Date(hoje.getFullYear(), 0, 1);
+      const res = await apiFetch(endpoint);
+      const data = await res.json();
+      setDados(Array.isArray(data) ? data : []);
+    } catch (e) {
+      showToast('Erro ao carregar relatório.', 'error');
+    } finally {
+      setLoading(false);
     }
-
-    return dados.filter((e) => {
-      try {
-        const dataEmp = parseDataPT(e.DataEmprestimo);
-        return dataEmp >= limite;
-      } catch {
-        return true;
-      }
-    });
-  }, [dados, tipo, filtroData]);
-
-  const dadosProcessados = useMemo(() => {
-    if (tipo === 'topLeitores') {
-      return [...dados]
-        .sort((a, b) => (b.TotalEmprestimos || 0) - (a.TotalEmprestimos || 0))
-        .filter((c) => (c.TotalEmprestimos || 0) > 0);
-    }
-    if (tipo === 'nuncaEmprestadas') {
-      return dadosFiltrados.filter((o: any) => Number(o.TotalEmprestimos) === 0);
-    }
-
-    return dadosFiltrados;
-  }, [dados, dadosFiltrados, tipo]);
-
-  const corBotaoAtivo = 'bg-at-blue text-white';
-  const corBotaoInativo = 'bg-gray-100 text-gray-700 hover:bg-gray-200';
-
-  // ============ EXPORTAÇÃO EXCEL ============
-  const handleExportarCSV = () => {
-    if (dadosProcessados.length === 0) {
-      showToast('Não há dados para exportar.', 'error');
-      return;
-    }
-
-    let colunas: any[] = [];
-    let nomeFicheiro = 'relatorio';
-
-    if (tipo === 'inventario' || tipo === 'nuncaEmprestadas') {
-      colunas = [
-        { chave: 'Titulo', titulo: 'Título' },
-        { chave: 'Autor', titulo: 'Autor' },
-        { chave: 'Editora', titulo: 'Editora' },
-        { chave: 'Ano', titulo: 'Ano' },
-        { chave: 'Status', titulo: 'Status' }
-      ];
-      nomeFicheiro = tipo === 'inventario' ? 'inventario' : 'obras_nunca_emprestadas';
-    } else if (tipo === 'emprestimos') {
-      colunas = [
-        { chave: 'Obra', titulo: 'Obra' },
-        { chave: 'Cliente', titulo: 'Cliente' },
-        { chave: 'DataEmprestimo', titulo: 'Data Empréstimo' },
-        { chave: 'DataPrevistaDevolucao', titulo: 'Devolução Prevista' },
-        { chave: 'DataDevolucao', titulo: 'Devolvido em' },
-        { chave: 'Status', titulo: 'Status' }
-      ];
-      nomeFicheiro = 'emprestimos';
-    } else if (tipo === 'clientes' || tipo === 'topLeitores') {
-      colunas = [
-        { chave: 'Nome', titulo: 'Nome' },
-        { chave: 'Email', titulo: 'Email' },
-        { chave: 'Telefone', titulo: 'Telefone' },
-        { chave: 'TotalEmprestimos', titulo: 'Total Empréstimos' }
-      ];
-      nomeFicheiro = tipo === 'clientes' ? 'clientes' : 'top_leitores';
-    } else if (tipo === 'atrasos') {
-      colunas = [
-        { chave: 'Obra', titulo: 'Obra' },
-        { chave: 'Cliente', titulo: 'Cliente' },
-        { chave: 'ClienteEmail', titulo: 'Email' },
-        { chave: 'ClienteTelefone', titulo: 'Telefone' },
-        { chave: 'DataPrevistaDevolucao', titulo: 'Prazo' },
-        { chave: 'DiasAtraso', titulo: 'Dias de Atraso' },
-        { chave: 'ValorMulta', titulo: 'Multa (MT)' }
-      ];
-      nomeFicheiro = 'relatorio_atrasos';
-    }
-
-    exportarParaCSV(dadosProcessados, colunas, nomeFicheiro);
-    showToast('Ficheiro Excel exportado com sucesso!', 'success');
   };
 
+  useEffect(() => {
+    carregarDados();
+  }, [abaAtiva]);
+
+  const handleExportarExcel = () => {
+    if (dados.length === 0) {
+      showToast('Não há dados para exportar.', 'warning');
+      return;
+    }
+    
+    const cabecalhos = Object.keys(dados[0]);
+    const csvContent = [
+      cabecalhos.join(';'),
+      ...dados.map(row => cabecalhos.map(c => `"${row[c] || ''}"`).join(';'))
+    ].join('\n');
+    
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio_${abaAtiva}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    showToast('Ficheiro Excel gerado com sucesso!', 'success');
+  };
+
+  const handleImprimir = () => {
+    window.print();
+  };
+
+  const formatarCabecalho = (texto: string) => {
+    const resultado = texto.replace(/([A-Z])/g, ' $1').trim();
+    return resultado.charAt(0).toUpperCase() + resultado.slice(1);
+  };
+
+  const abas = [
+    { id: 'inventario', label: 'Inventário', icon: <BookOpen size={16} /> },
+    { id: 'emprestimos', label: 'Empréstimos', icon: <BookOpen size={16} /> },
+    { id: 'atrasos', label: 'Atrasos e Multas', icon: <AlertTriangle size={16} /> },
+    { id: 'clientes', label: 'Clientes', icon: <Users size={16} /> },
+    { id: 'top-leitores', label: 'Top Leitores', icon: <Award size={16} /> },
+    { id: 'nunca-emprestadas', label: 'Nunca Emprestadas', icon: <BookX size={16} /> },
+  ];
+
   return (
-    <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 border-l-4 border-at-blue flex flex-wrap items-center justify-between gap-4 print:hidden">
+    <main className="max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up print:p-0 print:mt-0 print:max-w-full">
+      
+      <div className="bg-[#002B5C] rounded-3xl shadow-xl p-8 mb-6 text-white relative overflow-hidden flex flex-wrap items-center justify-between gap-4 print:hidden">
         <div>
-          <h2 className="text-2xl font-bold text-at-blue">Relatórios</h2>
-          <p className="text-gray-500 text-sm mt-1">Gere, exporta e imprime relatórios do sistema.</p>
+          <h1 className="text-3xl font-bold mb-1">Relatórios</h1>
+          <p className="text-blue-200 text-sm">Gere, exporta e imprime relatórios do sistema.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleExportarCSV} className="bg-green-600 text-white px-5 py-3 rounded-md font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-md">
-            <Download size={18} /> Exportar Excel
+        <div className="flex gap-3">
+          <button 
+            onClick={handleExportarExcel} 
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm disabled:opacity-50"
+            disabled={dados.length === 0}
+          >
+            <Download size={16} /> Exportar Excel
           </button>
-          <button onClick={() => window.print()} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors flex items-center gap-2 shadow-md">
-            <Printer size={18} /> Imprimir PDF
+          <button 
+            onClick={handleImprimir} 
+            className="flex items-center gap-2 bg-[#001F42] hover:bg-black px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors shadow-sm disabled:opacity-50"
+            disabled={dados.length === 0}
+          >
+            <Printer size={16} /> Imprimir PDF
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm p-3 mb-4 flex flex-wrap gap-2 print:hidden">
-        <button onClick={() => setTipo('inventario')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'inventario' ? corBotaoAtivo : corBotaoInativo}`}><BookOpen size={16} /> Inventário</button>
-        <button onClick={() => setTipo('emprestimos')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'emprestimos' ? corBotaoAtivo : corBotaoInativo}`}><FileText size={16} /> Empréstimos</button>
-        <button onClick={() => setTipo('atrasos')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'atrasos' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}><AlertTriangle size={16} /> Atrasos e Multas</button>
-        <button onClick={() => setTipo('clientes')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'clientes' ? corBotaoAtivo : corBotaoInativo}`}><Users size={16} /> Clientes</button>
-        <button onClick={() => setTipo('topLeitores')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'topLeitores' ? 'bg-yellow-500 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}><Award size={16} /> Top Leitores</button>
-        <button onClick={() => setTipo('nuncaEmprestadas')} className={`px-4 py-2.5 rounded-md font-semibold transition-colors text-sm flex items-center gap-2 ${tipo === 'nuncaEmprestadas' ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100'}`}><BookX size={16} /> Nunca Emprestadas</button>
+      <div className="bg-white rounded-2xl shadow-sm p-2 mb-6 flex overflow-x-auto gap-2 scrollbar-hide print:hidden">
+        {abas.map((aba) => (
+          <button
+            key={aba.id}
+            onClick={() => setAbaAtiva(aba.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors whitespace-nowrap ${
+              abaAtiva === aba.id 
+                ? 'bg-[#002B5C] text-white shadow-md' 
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {aba.icon} {aba.label}
+          </button>
+        ))}
       </div>
 
-      {tipo === 'emprestimos' && (
-        <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 flex flex-wrap items-center gap-3 print:hidden">
-          <div className="flex items-center gap-2 text-gray-600"><Filter size={16} /><span className="text-sm font-bold">Filtrar por período:</span></div>
-          <button onClick={() => setFiltroData('TODOS')} className={`px-4 py-2 rounded-md text-xs font-semibold transition-colors ${filtroData === 'TODOS' ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Todos</button>
-          <button onClick={() => setFiltroData('7DIAS')} className={`px-4 py-2 rounded-md text-xs font-semibold transition-colors ${filtroData === '7DIAS' ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Últimos 7 dias</button>
-          <button onClick={() => setFiltroData('30DIAS')} className={`px-4 py-2 rounded-md text-xs font-semibold transition-colors ${filtroData === '30DIAS' ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Últimos 30 dias</button>
-          <button onClick={() => setFiltroData('ANO')} className={`px-4 py-2 rounded-md text-xs font-semibold transition-colors ${filtroData === 'ANO' ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Este ano</button>
-        </div>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-sm p-8 print-shadow-none">
-        <div className="text-center mb-8 border-b-2 border-at-blue pb-6">
-          <h1 className="text-2xl font-bold text-at-blue">Autoridade Tributária de Moçambique</h1>
-          <h2 className="text-lg font-semibold text-gray-700 mt-2">{tituloRelatorio}</h2>
-          <div className="flex flex-wrap items-center justify-center gap-4 mt-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><Calendar size={12} /> Emitido em: {dataAtual}</span>
-            {tipo === 'emprestimos' && <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-bold"><Filter size={12} /> {subtituloFiltro}</span>}
-          </div>
+      <div className="bg-white rounded-2xl shadow-sm p-8 min-h-[500px] print:shadow-none print:p-0">
+        
+        <div className="text-center mb-8 border-b-2 border-gray-200 pb-6 print:border-gray-400">
+          <h2 className="text-2xl font-bold text-[#002B5C] uppercase tracking-wide print:text-black">
+            Autoridade Tributária de Moçambique
+          </h2>
+          <p className="text-gray-700 text-lg font-semibold mt-1">
+            Relatório de {abas.find(a => a.id === abaAtiva)?.label}
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            Emitido em: {new Date().toLocaleDateString('pt-PT')} às {new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
 
         {loading ? (
-          <div className="p-10 text-center text-gray-500">A gerar relatório...</div>
-        ) : dadosProcessados.length === 0 ? (
-          <div className="p-10 text-center text-gray-500">
-            <BookOpen size={48} className="mx-auto mb-3 opacity-30" />
-            <p className="font-medium">Nenhum registo encontrado para este relatório.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+            <RefreshCw size={32} className="animate-spin text-[#002B5C] mb-4" />
+            <p className="font-medium">A carregar dados do relatório...</p>
+          </div>
+        ) : dados.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <FileText size={56} className="mx-auto mb-4 opacity-20" />
+            <p className="text-lg font-medium">Nenhum registo encontrado.</p>
+            <p className="text-sm">Não existem dados para este relatório de momento.</p>
           </div>
         ) : (
-          <>
-            {tipo === 'inventario' && (
-              <table className="w-full text-left border-collapse text-sm">
-                <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Título</th><th className="p-3 font-bold">Autor</th><th className="p-3 font-bold">Editora</th><th className="p-3 font-bold text-center">Ano</th><th className="p-3 font-bold">Status</th></tr></thead>
-                <tbody>{dadosProcessados.map((obra, i) => (<tr key={obra.Id} className="border-b border-gray-200"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{obra.Titulo}</td><td className="p-3">{obra.Autor || '—'}</td><td className="p-3">{obra.Editora || '—'}</td><td className="p-3 text-center">{obra.Ano}</td><td className="p-3 font-semibold">{obra.Status}</td></tr>))}</tbody>
-              </table>
-            )}
-
-            {tipo === 'emprestimos' && (
-              <table className="w-full text-left border-collapse text-sm">
-                <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Obra</th><th className="p-3 font-bold">Cliente</th><th className="p-3 font-bold">Empréstimo</th><th className="p-3 font-bold">Devolução Prevista</th><th className="p-3 font-bold">Devolvido em</th><th className="p-3 font-bold">Status</th></tr></thead>
-                <tbody>{dadosProcessados.map((emp, i) => (<tr key={emp.Id} className="border-b border-gray-200"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{emp.Obra}</td><td className="p-3">{emp.Cliente}</td><td className="p-3">{emp.DataEmprestimo}</td><td className="p-3">{emp.DataPrevistaDevolucao}</td><td className="p-3">{emp.DataDevolucao || '—'}</td><td className="p-3 font-semibold">{emp.Status}</td></tr>))}</tbody>
-              </table>
-            )}
-
-            {tipo === 'atrasos' && (
-              <div>
-                <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
-                  <p className="text-sm text-red-900 flex items-center gap-2"><AlertTriangle size={16} /> <span><strong>Atenção:</strong> Estes leitores têm obras em atraso e multas a pagar.</span></p>
-                </div>
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Obra</th><th className="p-3 font-bold">Cliente</th><th className="p-3 font-bold">Contacto</th><th className="p-3 font-bold">Prazo</th><th className="p-3 font-bold text-center">Dias Atraso</th><th className="p-3 font-bold text-right">Multa (MT)</th></tr></thead>
-                  <tbody>{dadosProcessados.map((atr, i) => (<tr key={atr.Id} className="border-b border-gray-200"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{atr.Obra}</td><td className="p-3">{atr.Cliente}</td><td className="p-3 text-xs">{atr.ClienteEmail || '—'}<br/>{atr.ClienteTelefone || '—'}</td><td className="p-3 text-red-600 font-semibold">{atr.DataPrevistaDevolucao}</td><td className="p-3 text-center text-red-600 font-bold">{atr.DiasAtraso}</td><td className="p-3 text-right font-bold text-red-700">{Number(atr.ValorMulta).toLocaleString('pt-MZ')} MT</td></tr>))}</tbody>
-                </table>
-              </div>
-            )}
-
-            {tipo === 'clientes' && (
-              <table className="w-full text-left border-collapse text-sm">
-                <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Nome</th><th className="p-3 font-bold">Email</th><th className="p-3 font-bold">Telefone</th><th className="p-3 font-bold">PI</th><th className="p-3 font-bold">NUIT</th><th className="p-3 font-bold text-center">Empréstimos</th></tr></thead>
-                <tbody>{dadosProcessados.map((cli, i) => (<tr key={cli.Id} className="border-b border-gray-200"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{cli.Nome}</td><td className="p-3">{cli.Email || '—'}</td><td className="p-3">{cli.Telefone || '—'}</td><td className="p-3">{cli.PI || '—'}</td><td className="p-3">{cli.NUIT || '—'}</td><td className="p-3 text-center">{cli.TotalEmprestimos || 0}</td></tr>))}</tbody>
-              </table>
-            )}
-
-            {tipo === 'topLeitores' && (
-              <div>
-                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-yellow-400 p-4 rounded-md mb-6">
-                  <p className="text-sm text-yellow-900 flex items-center gap-2"><Award size={16} /> <span><strong>Ranking de leitores</strong> — baseado no número total de empréstimos.</span></p>
-                </div>
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold w-16">Pos.</th><th className="p-3 font-bold">Nome</th><th className="p-3 font-bold">Email</th><th className="p-3 font-bold">Telefone</th><th className="p-3 font-bold text-center">Total Empréstimos</th></tr></thead>
-                  <tbody>{dadosProcessados.map((cli, i) => { const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}º`; return (<tr key={cli.Id} className={`border-b border-gray-200 ${i < 3 ? 'bg-yellow-50/50' : ''}`}><td className="p-3 font-bold text-center text-lg">{medalha}</td><td className="p-3 font-medium">{cli.Nome}</td><td className="p-3">{cli.Email || '—'}</td><td className="p-3">{cli.Telefone || '—'}</td><td className="p-3 text-center font-bold text-at-blue text-lg">{cli.TotalEmprestimos || 0}</td></tr>); })}</tbody>
-                </table>
-              </div>
-            )}
-
-            {tipo === 'nuncaEmprestadas' && (
-              <div>
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-400 p-4 rounded-md mb-6">
-                  <p className="text-sm text-orange-900 flex items-center gap-2"><BookX size={16} /> <span><strong>Atenção:</strong> Estas obras nunca foram requisitadas.</span></p>
-                </div>
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead><tr className="bg-gray-100 text-gray-700 border-b-2 border-at-blue"><th className="p-3 font-bold">#</th><th className="p-3 font-bold">Título</th><th className="p-3 font-bold">Autor</th><th className="p-3 font-bold">Editora</th><th className="p-3 font-bold text-center">Ano</th></tr></thead>
-                  <tbody>{dadosProcessados.map((obra, i) => (<tr key={obra.Id} className="border-b border-gray-200"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{obra.Titulo}</td><td className="p-3">{obra.Autor || '—'}</td><td className="p-3">{obra.Editora || '—'}</td><td className="p-3 text-center">{obra.Ano}</td></tr>))}</tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="mt-10 pt-6 border-t border-gray-300 text-center text-xs text-gray-500">
-              <p>Total de registos: <strong>{dadosProcessados.length}</strong></p>
-              <p className="mt-2">Sistema de Gestão de Biblioteca - AT Moçambique</p>
-            </div>
-          </>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse print:text-sm">
+              <thead>
+                <tr className="bg-gray-100 text-gray-700 text-xs uppercase tracking-wider print:bg-gray-200 print:text-black">
+                  {Object.keys(dados[0]).map((key) => (
+                    <th key={key} className="px-4 py-3 font-bold border-b border-gray-300">
+                      {formatarCabecalho(key)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {dados.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                    {Object.values(row).map((val: any, i) => (
+                      <td key={i} className="px-4 py-3 text-sm text-gray-700 border-b border-gray-100 print:border-gray-300 print:text-black">
+                        {val === null || val === '' ? <span className="text-gray-400 italic">—</span> : val}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
+        
+        <div className="hidden print:block mt-8 text-center text-xs text-gray-500 pt-4 border-t border-gray-300">
+          Documento gerado pelo Sistema de Gestão de Biblioteca da AT Moçambique.
+        </div>
+
       </div>
     </main>
   );
