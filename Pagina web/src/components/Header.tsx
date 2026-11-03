@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { 
-  LogOut, User, BookOpen, ShieldCheck, Home, 
+  LogOut, User, BookOpen, Home, 
   Library, BookMarked, History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -57,7 +57,6 @@ export function Header() {
   const TopBar = () => (
     <div className="bg-white text-[#004B93] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Lado Esquerdo: Logo e Título */}
         <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
           <div className="hidden md:block border-l border-gray-300 pl-4">
@@ -66,7 +65,6 @@ export function Header() {
           </div>
         </Link>
 
-        {/* Lado Direito: Perfil e Notificações */}
         <div className="flex items-center gap-3">
           <Notificacoes />
           <div className="w-px h-8 bg-gray-200"></div>
