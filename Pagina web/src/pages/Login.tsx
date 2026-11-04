@@ -43,7 +43,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 relative overflow-hidden">
+    <div className="min-h-screen flex bg-[#004B93] relative overflow-hidden">
       {/* Círculos decorativos */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full -mr-64 -mt-64"></div>
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-white/5 rounded-full -ml-48 -mb-48"></div>
@@ -66,10 +66,7 @@ export function Login() {
           <p className="text-blue-100 text-lg font-medium">
             Sistema de Gestão de Biblioteca
           </p>
-          <p className="text-blue-200 text-sm mt-6 max-w-sm mx-auto leading-relaxed">
-            Gestão integrada do acervo bibliográfico, empréstimos, 
-            reservas e relatórios da biblioteca da AT Moçambique.
-          </p>
+          {/* Texto removido conforme pedido */}
         </div>
       </div>
 
@@ -85,7 +82,7 @@ export function Login() {
                 className="w-full h-full object-contain"
               />
             </div>
-            <h1 className="text-xl font-bold text-at-blue leading-tight">
+            <h1 className="text-xl font-bold text-[#004B93] leading-tight">
               Autoridade Tributária de Moçambique
             </h1>
             <p className="text-gray-500 text-sm mt-1">Sistema de Gestão de Biblioteca</p>
@@ -93,7 +90,7 @@ export function Login() {
 
           {/* Cabeçalho do formulário (desktop) */}
           <div className="hidden lg:block text-center mb-8">
-            <h2 className="text-2xl font-bold text-at-blue">Bem-vindo</h2>
+            <h2 className="text-2xl font-bold text-[#004B93]">Bem-vindo</h2>
             <p className="text-gray-500 text-sm mt-1">Inicia sessão para continuar</p>
           </div>
 
@@ -109,7 +106,7 @@ export function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-at-blue focus:border-transparent transition-all"
+                  className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004B93] focus:border-transparent transition-all"
                   placeholder="o.teu@email.com"
                 />
               </div>
@@ -126,7 +123,7 @@ export function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-at-blue focus:border-transparent transition-all"
+                  className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004B93] focus:border-transparent transition-all"
                   placeholder="••••••••"
                 />
               </div>
@@ -135,21 +132,14 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-at-blue text-white py-3.5 rounded-lg font-semibold hover:bg-at-blue-light transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-[#004B93] text-white py-3.5 rounded-lg font-semibold hover:bg-[#003870] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 mt-2"
             >
               <LogIn size={18} />
               {loading ? 'A entrar...' : 'Entrar no Sistema'}
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">
-              © {new Date().getFullYear()} Autoridade Tributária de Moçambique
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              Todos os direitos reservados
-            </p>
-          </div>
+          {/* Rodapé removido conforme pedido */}
         </div>
       </div>
     </div>
