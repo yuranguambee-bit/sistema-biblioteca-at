@@ -68,7 +68,9 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Notificacoes />
           <div className="w-px h-8 bg-gray-200"></div>
-          <div className="flex items-center gap-3">
+          
+          {/* CORRIGIDO: O perfil agora é um Link que leva para /perfil */}
+          <Link to="/perfil" className="flex items-center gap-3 hover:opacity-70 transition-opacity cursor-pointer" title="Ver o meu perfil">
             <div className="w-9 h-9 rounded-full bg-[#004B93] text-white flex items-center justify-center shadow-sm">
               <User size={18} />
             </div>
@@ -76,7 +78,8 @@ export function Header() {
               <p className="text-sm font-bold text-gray-800 leading-tight">{user?.nome || 'Utilizador'}</p>
               <p className="text-xs text-gray-500">{user?.role}</p>
             </div>
-          </div>
+          </Link>
+          
           <button onClick={handleLogout} className="ml-2 flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-md transition-colors text-sm font-semibold border border-transparent hover:border-red-100" title="Terminar sessão">
             <LogOut size={16} /> <span className="hidden md:inline">Sair</span>
           </button>

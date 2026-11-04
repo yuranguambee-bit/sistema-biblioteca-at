@@ -58,16 +58,16 @@ export function PortalHome() {
   return (
     <main className="max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       
-      {/* 1. BANNER DE BOAS-VINDAS (Idêntico ao Admin) */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      {/* 1. BANNER DE BOAS-VINDAS (COR SÓLIDA #004B93) */}
+      <div className="relative overflow-hidden bg-[#004B93] rounded-3xl shadow-xl p-8 mb-6 text-white">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           
           <div className="flex items-start gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center flex-shrink-0">
               <Sun className="text-yellow-400 fill-yellow-400" size={32} />
             </div>
             <div>
-              <p className="text-sm text-blue-200 font-medium mb-1">Bom dia,</p>
+              <p className="text-sm text-blue-100 font-medium mb-1">Bom dia,</p>
               <h1 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">
                 {user?.nome?.split(' ')[0] || 'Leitor'}!
               </h1>
@@ -77,10 +77,10 @@ export function PortalHome() {
               </p>
               
               <div className="flex flex-wrap items-center gap-3 mt-5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs font-medium text-blue-50">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-xs font-medium text-blue-50">
                   <Calendar size={14} /> {dataFormatada}
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-xs font-medium text-blue-50">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-xs font-medium text-blue-50">
                   <Clock size={14} /> {horaAtual}
                 </span>
               </div>
@@ -102,19 +102,17 @@ export function PortalHome() {
         </div>
       </div>
 
-      {/* 2. GRELHA DE CARTÕES - NOVO DESIGN (ESTILO ILUSTRAÇÃO) */}
+      {/* 2. GRELHA DE CARTÕES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
         
-        {/* Cartão 1: Catálogo */}
         <Link to="/catalogo" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100">
           <div className="w-24 h-24 mb-3 text-blue-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <BookOpen size={80} strokeWidth={1} />
           </div>
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Obras Disponíveis</h3>
-          <p className="text-4xl font-black text-at-blue">{totalDisponiveis}</p>
+          <p className="text-4xl font-black text-[#004B93]">{totalDisponiveis}</p>
         </Link>
 
-        {/* Cartão 2: Histórico */}
         <Link to="/meu-historico" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100">
           <div className="w-24 h-24 mb-3 text-green-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <History size={80} strokeWidth={1} />
@@ -123,7 +121,6 @@ export function PortalHome() {
           <p className="text-4xl font-black text-green-600">{totalHistorico}</p>
         </Link>
 
-        {/* Cartão 3: Empréstimos */}
         <Link to="/meus-emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100">
           <div className="w-24 h-24 mb-3 text-red-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <BookMarked size={80} strokeWidth={1} />
@@ -132,7 +129,6 @@ export function PortalHome() {
           <p className="text-4xl font-black text-red-600">{emprestimos.length}</p>
         </Link>
 
-        {/* Cartão 4: Fila */}
         <Link to="/meus-emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100">
           <div className="w-24 h-24 mb-3 text-yellow-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <BellRing size={80} strokeWidth={1} />
@@ -148,7 +144,7 @@ export function PortalHome() {
         <div className="space-y-4 mb-6">
           {requisicoes.length > 0 && (
             <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+              <div className="w-10 h-10 rounded-xl bg-[#004B93] flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
                 <BellRing className="text-white" size={20} />
               </div>
               <div className="flex-1">
@@ -200,7 +196,7 @@ export function PortalHome() {
             </div>
           </div>
           {emprestimos.length > 0 && (
-            <Link to="/meus-emprestimos" className="hidden sm:flex items-center gap-1 text-xs font-bold text-at-blue hover:underline">
+            <Link to="/meus-emprestimos" className="hidden sm:flex items-center gap-1 text-xs font-bold text-[#004B93] hover:underline">
               Ver todos <ChevronRight size={14} />
             </Link>
           )}
@@ -208,7 +204,7 @@ export function PortalHome() {
 
         {loading ? (
           <div className="p-10 text-center text-slate-500">
-            <div className="w-6 h-6 border-2 border-slate-200 border-t-at-blue rounded-full animate-spin mx-auto mb-3"></div>
+            <div className="w-6 h-6 border-2 border-slate-200 border-t-[#004B93] rounded-full animate-spin mx-auto mb-3"></div>
             A carregar...
           </div>
         ) : emprestimos.length === 0 ? (
@@ -216,7 +212,7 @@ export function PortalHome() {
             <BookMarked size={48} className="mx-auto mb-3 text-slate-300" />
             <p className="text-slate-700 font-bold">Não tens empréstimos ativos.</p>
             <p className="text-sm text-slate-500 mt-1 mb-5">Explora o catálogo e requisita o teu próximo livro.</p>
-            <Link to="/catalogo" className="inline-flex items-center gap-2 bg-at-blue text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-at-blue-light transition-colors text-sm shadow-sm">
+            <Link to="/catalogo" className="inline-flex items-center gap-2 bg-[#004B93] text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-[#003870] transition-colors text-sm shadow-sm">
               <BookOpen size={16} /> Explorar Catálogo
             </Link>
           </div>
@@ -227,7 +223,7 @@ export function PortalHome() {
               return (
                 <div key={emp.Id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm ${atrasado ? 'bg-red-500' : 'bg-at-blue'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-sm ${atrasado ? 'bg-red-500' : 'bg-[#004B93]'}`}>
                       <BookOpen size={18} />
                     </div>
                     <div className="min-w-0">

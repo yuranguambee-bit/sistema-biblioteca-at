@@ -133,8 +133,8 @@ export function Dashboard() {
 
   return (
       <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-        {/* BANNER DE BOAS-VINDAS - COR EXATA DO SITE DA AT */}
-        <div className="relative overflow-hidden bg-[#0E4D92] rounded-3xl shadow-2xl p-8 mb-8 text-white animate-fade-down">
+        {/* BANNER DE BOAS-VINDAS */}
+        <div className="relative overflow-hidden bg-[#004B93] rounded-3xl shadow-2xl p-8 mb-8 text-white animate-fade-down">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
         <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-white/5 rounded-full"></div>
@@ -200,17 +200,14 @@ export function Dashboard() {
 
       {/* CARTÕES DE ESTATÍSTICA */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        
-        {/* Cartão 1: Catálogo */}
         <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
           <div className="w-24 h-24 mb-3 text-blue-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <BookOpen size={80} strokeWidth={1} />
           </div>
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Livros Cadastrados</h3>
-          <p className="text-4xl font-black text-at-blue">{stats.totalObras}</p>
+          <p className="text-4xl font-black text-[#004B93]">{stats.totalObras}</p>
         </Link>
 
-        {/* Cartão 2: Disponíveis */}
         <Link to="/acervo" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
           <div className="w-24 h-24 mb-3 text-green-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <CheckCircle size={80} strokeWidth={1} />
@@ -219,7 +216,6 @@ export function Dashboard() {
           <p className="text-4xl font-black text-green-600">{stats.disponiveis}</p>
         </Link>
 
-        {/* Cartão 3: Empréstimos */}
         <Link to="/emprestimos" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
           <div className="w-24 h-24 mb-3 text-red-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <BookMarked size={80} strokeWidth={1} />
@@ -228,7 +224,6 @@ export function Dashboard() {
           <p className="text-4xl font-black text-red-600">{stats.emprestimosAtivos}</p>
         </Link>
 
-        {/* Cartão 4: Reservas */}
         <Link to="/reservas" className="group bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center text-center border border-gray-100 relative overflow-hidden">
           <div className="w-24 h-24 mb-3 text-yellow-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <Bookmark size={80} strokeWidth={1} />
@@ -240,12 +235,12 @@ export function Dashboard() {
 
       {/* AÇÕES RÁPIDAS */}
       <div className="mb-8">
-        <h3 className="text-lg font-bold text-at-blue mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-bold text-[#004B93] mb-4 flex items-center gap-2">
           <Sparkles size={20} /> Ações Rápidas
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Link to="/cadastrar-obra" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><BookOpen className="text-at-blue" size={22} /></div>
+            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"><BookOpen className="text-[#004B93]" size={22} /></div>
             <p className="text-xs font-bold text-gray-700">Nova Obra</p>
           </Link>
           <Link to="/cadastrar-autor" className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all p-4 flex flex-col items-center text-center">
@@ -272,16 +267,16 @@ export function Dashboard() {
       </div>
 
       {/* ANÁLISE VISUAL (GRÁFICOS) */}
-      <h3 className="text-lg font-bold text-at-blue mb-4 flex items-center gap-2">
+      <h3 className="text-lg font-bold text-[#004B93] mb-4 flex items-center gap-2">
         <TrendingUp size={20} /> Análise Visual
       </h3>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
         <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><BarChart3 className="text-at-blue" size={18} /></div>
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><BarChart3 className="text-[#004B93]" size={18} /></div>
               <div>
-                <h4 className="text-base font-bold text-at-blue">Empréstimos por Mês</h4>
+                <h4 className="text-base font-bold text-[#004B93]">Empréstimos por Mês</h4>
                 <p className="text-xs text-gray-400">Últimos 6 meses</p>
               </div>
             </div>
@@ -294,17 +289,12 @@ export function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={graficos.emprestimosPorMes.map(d => ({ ...d, Mes: formatarMes(d.Mes) }))} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#003366" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#004080" stopOpacity={0.75} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="Mes" tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} axisLine={false} tickLine={false} dy={8} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 500 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 8 }} />
-                <Bar dataKey="Total" fill="url(#gradBar)" radius={[10, 10, 0, 0]} name="Empréstimos" maxBarSize={55} />
+                {/* CORRIGIDO: Barras com a cor oficial #004B93 */}
+                <Bar dataKey="Total" fill="#004B93" radius={[10, 10, 0, 0]} name="Empréstimos" maxBarSize={55} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -314,7 +304,7 @@ export function Dashboard() {
           <div className="flex items-center gap-2 mb-6">
             <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center"><PieChart className="text-purple-600" size={18} /></div>
             <div>
-              <h4 className="text-base font-bold text-at-blue">Estado das Obras</h4>
+              <h4 className="text-base font-bold text-[#004B93]">Estado das Obras</h4>
               <p className="text-xs text-gray-400">Distribuição atual</p>
             </div>
           </div>
@@ -360,7 +350,7 @@ export function Dashboard() {
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-yellow-50 flex items-center justify-center"><Award className="text-yellow-600" size={18} /></div>
             <div>
-              <h3 className="text-base font-bold text-at-blue">Top 5 Livros</h3>
+              <h3 className="text-base font-bold text-[#004B93]">Top 5 Livros</h3>
               <p className="text-xs text-gray-400">Mais emprestados</p>
             </div>
           </div>
@@ -381,10 +371,10 @@ export function Dashboard() {
                       index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-50 text-gray-500'
                     }`}>{medalha}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm truncate group-hover:text-at-blue">{obra.Titulo}</p>
+                      <p className="font-semibold text-gray-800 text-sm truncate group-hover:text-[#004B93]">{obra.Titulo}</p>
                       <p className="text-[10px] text-gray-500 truncate">{obra.Autor || 'Autor desconhecido'}</p>
                     </div>
-                    <div className="text-right"><p className="text-sm font-bold text-at-blue">{obra.TotalEmprestimos}</p></div>
+                    <div className="text-right"><p className="text-sm font-bold text-[#004B93]">{obra.TotalEmprestimos}</p></div>
                   </Link>
                 );
               })}
@@ -397,7 +387,7 @@ export function Dashboard() {
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-pink-50 flex items-center justify-center"><Bookmark className="text-pink-600" size={18} /></div>
             <div>
-              <h3 className="text-base font-bold text-at-blue">Fila de Reservas</h3>
+              <h3 className="text-base font-bold text-[#004B93]">Fila de Reservas</h3>
               <p className="text-xs text-gray-400">À espera de disponibilidade</p>
             </div>
           </div>
@@ -418,7 +408,7 @@ export function Dashboard() {
                 </div>
               ))}
               <div className="p-3 bg-gray-50 text-center">
-                <Link to="/reservas" className="text-xs font-semibold text-at-blue hover:underline">Ver todas as reservas</Link>
+                <Link to="/reservas" className="text-xs font-semibold text-[#004B93] hover:underline">Ver todas as reservas</Link>
               </div>
             </div>
           )}
@@ -427,9 +417,9 @@ export function Dashboard() {
         {/* Atividade Recente */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><Bell className="text-at-blue" size={18} /></div>
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><Bell className="text-[#004B93]" size={18} /></div>
             <div>
-              <h3 className="text-base font-bold text-at-blue">Atividade Recente</h3>
+              <h3 className="text-base font-bold text-[#004B93]">Atividade Recente</h3>
               <p className="text-xs text-gray-400">Últimos eventos no sistema</p>
             </div>
           </div>
