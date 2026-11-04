@@ -189,18 +189,18 @@ export function CadastrarAutor() {
   };
 
   const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
-  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004B93]";
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
+      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-[#004B93] mb-6">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-[#004B93] flex items-center justify-center text-white shadow-lg">
               {editandoId ? <Edit3 size={24} /> : <UserPlus size={24} />}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-at-blue">
+              <h2 className="text-2xl font-bold text-[#004B93]">
                 {editandoId ? 'Editar Autor' : 'Cadastrar Novo Autor'}
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -302,7 +302,7 @@ export function CadastrarAutor() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
-            <button type="submit" disabled={salvando || !podeSubmeter} className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+            <button type="submit" disabled={salvando || !podeSubmeter} className="bg-[#004B93] text-white px-8 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
               {salvando ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
               {salvando ? 'A guardar...' : editandoId ? 'Guardar Alterações' : 'Guardar Autor'}
             </button>
@@ -322,7 +322,7 @@ export function CadastrarAutor() {
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center"><Users className="text-purple-600" size={22} /></div>
               <div>
-                <h3 className="text-lg font-bold text-at-blue">Lista de Autores</h3>
+                <h3 className="text-lg font-bold text-[#004B93]">Lista de Autores</h3>
                 <p className="text-xs text-gray-400">{autores.length} autor{autores.length !== 1 ? 'es' : ''} cadastrado{autores.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
@@ -330,7 +330,7 @@ export function CadastrarAutor() {
 
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por nome, sobrenome ou nacionalidade..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm" />
+            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por nome, sobrenome ou nacionalidade..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm" />
           </div>
         </div>
 
@@ -362,7 +362,7 @@ export function CadastrarAutor() {
                     <tr key={autor.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{iniciais}</div>
+                          <div className="w-10 h-10 rounded-xl bg-[#004B93] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{iniciais}</div>
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-800 truncate">{nomeCompleto}</p>
                             {autor.Biografia && <p className="text-xs text-gray-400 truncate max-w-xs">{autor.Biografia.substring(0, 50)}...</p>}
@@ -378,7 +378,7 @@ export function CadastrarAutor() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleEditar(autor)} disabled={!podeEditar} className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Editar"><Edit3 size={14} /></button>
+                          <button onClick={() => handleEditar(autor)} disabled={!podeEditar} className="bg-[#004B93] text-white p-2 rounded-md hover:bg-[#003870] transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Editar"><Edit3 size={14} /></button>
                           {(user?.role === 'Admin' || podeApagar) && (
                             <button onClick={() => handleEliminar(autor)} disabled={!podeApagar} className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Eliminar"><Trash2 size={14} /></button>
                           )}

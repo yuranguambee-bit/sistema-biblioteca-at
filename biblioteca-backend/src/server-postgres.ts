@@ -338,7 +338,6 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
 
 app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (req, res) => {
     try {
-        // CTE para calcular a posição na fila (só se for FILA_ESPERA)
         const result = await pool.query(`
             WITH Fila AS (
                 SELECT id, obraid, clienteid, datareserva, status, tipo,
@@ -496,7 +495,6 @@ app.post('/api/portal/reservar', verificarToken, apenasCliente, async (req, res)
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ ROTA CLIENTE: SOLICITAR RENOVAÇÃO ============
 app.put('/api/portal/emprestimos/:id/renovar', verificarToken, apenasCliente, async (req, res) => {
     const emprestimoId = req.params.id;
     const ClienteId = (req as any).user.id;
@@ -768,7 +766,6 @@ app.get('/api/obras/:id/historico', verificarToken, async (req, res) => {
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ ROTA: BUSCAR ISBN ============
 app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
     const { isbn } = req.params;
     
@@ -1166,7 +1163,6 @@ app.get('/api/emprestimos/:id/comprovativo', verificarToken, async (req, res) =>
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ CONFIRMAR REQUISIÇÃO DO PORTAL ============
 app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, verificarPermissao('emprestimos_criar'), async (req, res) => {
     const reservaId = req.params.reservaId;
     const diasEmprestimo = await obterConfig('DiasEmprestimo', 15);
@@ -1402,6 +1398,109 @@ app.delete('/api/notificacoes/:id', verificarToken, async (req, res) => {
 
 app.delete('/api/notificacoes', verificarToken, apenasAdmin, async (req, res) => {
     try { await pool.query('DELETE FROM Notificacoes WHERE lida = TRUE AND ClienteId IS NULL'); res.json({ message: 'Removidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+// ============ RELATÓRIOS (NOVO) ============
+app.get('/api/relatorios/inventario', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT O.titulo as "Titulo", 
+                   COALESCE(A.nome || ' ' || A.sobrenome, 'Desconhecido') as "Autor", 
+                   COALESCE(E.nome, 'Desconhecida') as "Editora", 
+                   O.ano as "Ano", 
+                   COALESCE(O.isbn, '—') as "ISBN", 
+                   COALESCE(O.codigo, '—') as "Codigo", 
+                   COALESCE(O.localizacao, '—') as "Localizacao", 
+                   O.status as "Status" 
+            FROM Obras O 
+            LEFT JOIN Autores A ON O.autorid = A.id 
+            LEFT JOIN Editoras E ON O.editoraid = E.id 
+            ORDER BY O.titulo ASC
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/relatorios/emprestimos', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT E.id as "ID", 
+                   O.titulo as "Obra", 
+                   C.nome as "Cliente", 
+                   TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "Data Emprestimo", 
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "Devolucao Prevista", 
+                   TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "Devolvido Em", 
+                   E.status as "Status" 
+            FROM Emprestimos E 
+            INNER JOIN Obras O ON E.obraid = O.id 
+            INNER JOIN Clientes C ON E.clienteid = C.id 
+            ORDER BY E.dataemprestimo DESC
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/relatorios/atrasos', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
+    try {
+        const valorMulta = await obterConfig('ValorMultaDia', 40);
+        const result = await pool.query(`
+            SELECT O.titulo as "Obra", 
+                   C.nome as "Cliente", 
+                   TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "Data Prevista", 
+                   (CURRENT_DATE - E.dataprevistadevolucao::date) as "Dias Atraso",
+                   (CURRENT_DATE - E.dataprevistadevolucao::date) * $1 as "Valor Multa (MT)"
+            FROM Emprestimos E 
+            INNER JOIN Obras O ON E.obraid = O.id 
+            INNER JOIN Clientes C ON E.clienteid = C.id 
+            WHERE E.status = 'ATIVO' AND E.dataprevistadevolucao < CURRENT_DATE 
+            ORDER BY (CURRENT_DATE - E.dataprevistadevolucao::date) DESC
+        `, [valorMulta]);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/relatorios/clientes', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT C.nome as "Nome", 
+                   C.email as "Email", 
+                   COALESCE(C.telefone, '—') as "Telefone", 
+                   (SELECT COUNT(*) FROM Emprestimos WHERE clienteid = C.id) as "Total Emprestimos" 
+            FROM Clientes C 
+            ORDER BY C.nome ASC
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/relatorios/top-leitores', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT C.nome as "Cliente", 
+                   COUNT(E.id) as "Total Emprestimos" 
+            FROM Clientes C 
+            INNER JOIN Emprestimos E ON C.id = E.clienteid 
+            GROUP BY C.id, C.nome 
+            ORDER BY COUNT(E.id) DESC 
+            LIMIT 10
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+});
+
+app.get('/api/relatorios/nunca-emprestadas', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT O.titulo as "Obra", 
+                   COALESCE(A.nome, 'Desconhecido') as "Autor", 
+                   O.ano as "Ano" 
+            FROM Obras O 
+            LEFT JOIN Autores A ON O.autorid = A.id 
+            WHERE O.id NOT IN (SELECT obraid FROM Emprestimos) 
+            ORDER BY O.titulo ASC
+        `);
+        res.json(result.rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 // ============ ESTATÍSTICAS ============

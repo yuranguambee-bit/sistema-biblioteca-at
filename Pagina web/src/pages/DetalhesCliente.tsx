@@ -96,7 +96,7 @@ export function DetalhesCliente() {
           <h2 className="text-xl font-bold text-gray-700 mb-2">Cliente não encontrado</h2>
           <p className="text-gray-500 text-sm mb-6">O cliente que procuras não existe ou foi removido.</p>
           <button onClick={() => navigate('/clientes')}
-            className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">
+            className="bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors">
             Voltar à lista de clientes
           </button>
         </div>
@@ -112,12 +112,12 @@ export function DetalhesCliente() {
   return (
     <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
       <Link to="/clientes"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#004B93] hover:text-[#003870] transition-colors mb-4">
         <ArrowLeft size={16} /> Voltar à lista de clientes
       </Link>
 
       {/* CABEÇALHO */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      <div className="relative overflow-hidden bg-[#004B93] rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
 
@@ -176,10 +176,10 @@ export function DetalhesCliente() {
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
             <div className="flex items-center gap-2 mb-2">
-              <BookMarked className="text-at-blue" size={18} />
+              <BookMarked className="text-[#004B93]" size={18} />
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p>
             </div>
-            <p className="text-3xl font-bold text-at-blue">{estatisticas.totalEmprestimos}</p>
+            <p className="text-3xl font-bold text-[#004B93]">{estatisticas.totalEmprestimos}</p>
             <p className="text-xs text-gray-400 mt-1">empréstimos</p>
           </div>
         </div>
@@ -235,7 +235,7 @@ export function DetalhesCliente() {
               <Bookmark className="text-yellow-600" size={20} />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-bold text-at-blue">Reservas Ativas</h3>
+              <h3 className="text-base font-bold text-[#004B93]">Reservas Ativas</h3>
               <p className="text-xs text-gray-400">Obras que este cliente está à espera</p>
             </div>
             <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-bold">
@@ -259,7 +259,7 @@ export function DetalhesCliente() {
                 </div>
                 <Link
                   to={`/obras/${reserva.ObraId}`}
-                  className="text-xs font-semibold text-at-blue hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-[#004B93] hover:underline flex items-center gap-1"
                 >
                   Ver Obra →
                 </Link>
@@ -273,10 +273,10 @@ export function DetalhesCliente() {
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <History className="text-at-blue" size={20} />
+            <History className="text-[#004B93]" size={20} />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-at-blue">Histórico de Empréstimos</h3>
+            <h3 className="text-base font-bold text-[#004B93]">Histórico de Empréstimos</h3>
             <p className="text-xs text-gray-400">Todas as obras requisitadas por este cliente</p>
           </div>
           {estatisticas.totalEmprestimos > 0 && (
@@ -349,12 +349,12 @@ export function DetalhesCliente() {
 
       {/* RESUMO */}
       {estatisticas.totalEmprestimos > 0 && (
-        <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-at-blue rounded-2xl p-5 flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-at-blue flex items-center justify-center text-white flex-shrink-0 shadow-md">
+        <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-[#004B93] rounded-2xl p-5 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#004B93] flex items-center justify-center text-white flex-shrink-0 shadow-md">
             <TrendingUp size={22} />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-at-blue">Resumo do Leitor</h3>
+            <h3 className="text-base font-bold text-[#004B93]">Resumo do Leitor</h3>
             <p className="text-sm text-gray-700 mt-1">
               {cliente.Nome.split(' ')[0]} já requisitou <strong>{estatisticas.totalEmprestimos}</strong> obra(s) 
               {emprestimosDevolvidos > 0 && (

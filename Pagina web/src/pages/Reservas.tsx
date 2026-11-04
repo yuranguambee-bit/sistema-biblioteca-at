@@ -46,15 +46,8 @@ export function Reservas() {
 
   useEffect(() => { carregarReservas(); }, []);
 
-  // Separação por tipo
-  const requisicoesLevantamento = useMemo(
-    () => reservas.filter((r) => r.Tipo === 'LEVANTAMENTO'),
-    [reservas]
-  );
-  const filaEspera = useMemo(
-    () => reservas.filter((r) => r.Tipo === 'FILA_ESPERA'),
-    [reservas]
-  );
+  const requisicoesLevantamento = useMemo(() => reservas.filter((r) => r.Tipo === 'LEVANTAMENTO'), [reservas]);
+  const filaEspera = useMemo(() => reservas.filter((r) => r.Tipo === 'FILA_ESPERA'), [reservas]);
 
   const handleConfirmarRequisicao = async (reserva: Reserva) => {
     if (!podeConfirmar) return showToast('Não tens permissão para confirmar empréstimos.', 'error');
@@ -70,9 +63,7 @@ export function Reservas() {
 
     setProcessando(reserva.Id);
     try {
-      const response = await apiFetch(`/api/emprestimos/confirmar-requisicao/${reserva.Id}`, {
-        method: 'POST',
-      });
+      const response = await apiFetch(`/api/emprestimos/confirmar-requisicao/${reserva.Id}`, { method: 'POST' });
       const data = await response.json();
 
       if (response.ok) {
@@ -127,7 +118,7 @@ export function Reservas() {
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       {/* CABEÇALHO */}
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-8 text-white relative overflow-hidden">
+      <div className="bg-[#004B93] rounded-2xl shadow-xl p-6 mb-8 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -156,7 +147,7 @@ export function Reservas() {
 
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
-          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-at-blue" />
+          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-[#004B93]" />
           A carregar...
         </div>
       ) : reservas.length === 0 ? (
@@ -168,7 +159,7 @@ export function Reservas() {
           </p>
           <Link
             to="/acervo"
-            className="inline-flex items-center gap-2 bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm"
+            className="inline-flex items-center gap-2 bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors text-sm"
           >
             Ver Acervo <ArrowRight size={16} />
           </Link>
@@ -183,7 +174,7 @@ export function Reservas() {
                   <Send className="text-yellow-700" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-at-blue">Requisições de Levantamento</h3>
+                  <h3 className="text-lg font-bold text-[#004B93]">Requisições de Levantamento</h3>
                   <p className="text-xs text-gray-500">
                     Pedidos feitos pelo portal. Confirma a entrega quando o leitor chegar à biblioteca.
                   </p>
@@ -261,7 +252,7 @@ export function Reservas() {
                   <Clock className="text-blue-700" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-at-blue">Fila de Espera</h3>
+                  <h3 className="text-lg font-bold text-[#004B93]">Fila de Espera</h3>
                   <p className="text-xs text-gray-500">
                     Leitores à espera que uma obra emprestada seja devolvida.
                   </p>
@@ -280,11 +271,11 @@ export function Reservas() {
                     <div key={obraId} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                       <div className="bg-gradient-to-r from-gray-50 to-blue-50/50 px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-at-blue flex items-center justify-center text-white">
+                          <div className="w-10 h-10 rounded-xl bg-[#004B93] flex items-center justify-center text-white">
                             <Bookmark size={18} />
                           </div>
                           <div>
-                            <h4 className="text-base font-bold text-at-blue">{obra.Obra}</h4>
+                            <h4 className="text-base font-bold text-[#004B93]">{obra.Obra}</h4>
                             <p className="text-xs text-gray-500">{listaReservas.length} pessoa(s) na fila de espera</p>
                           </div>
                         </div>
@@ -293,7 +284,7 @@ export function Reservas() {
                             <span className={`w-1.5 h-1.5 rounded-full ${isEmprestada ? 'bg-red-500' : 'bg-green-500'}`}></span>
                             {obra.ObraStatus}
                           </span>
-                          <Link to={`/obras/${obraId}`} className="text-xs font-semibold text-at-blue hover:underline flex items-center gap-1">
+                          <Link to={`/obras/${obraId}`} className="text-xs font-semibold text-[#004B93] hover:underline flex items-center gap-1">
                             Ver Obra <ArrowRight size={12} />
                           </Link>
                         </div>

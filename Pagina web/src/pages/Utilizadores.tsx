@@ -64,47 +64,47 @@ export function Utilizadores() {
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border-l-4 border-at-blue">
-        <h2 className="text-2xl font-bold text-at-blue">Gestão de Utilizadores</h2>
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border-l-4 border-[#004B93]">
+        <h2 className="text-2xl font-bold text-[#004B93]">Gestão de Utilizadores</h2>
         <p className="text-gray-500 text-sm mt-1">Só administradores podem gerir utilizadores do sistema.</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
-        <h3 className="text-lg font-bold text-at-blue mb-4">Criar Novo Utilizador</h3>
+        <h3 className="text-lg font-bold text-[#004B93] mb-4">Criar Novo Utilizador</h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Nome</label>
-            <input type="text" required value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" placeholder="Nome completo" />
+            <input type="text" required value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" placeholder="Nome completo" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" placeholder="email@at.gov.mz" />
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" placeholder="email@at.gov.mz" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" placeholder="••••••••" />
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" placeholder="••••••••" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Perfil</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue">
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]">
               <option value="Bibliotecario">Bibliotecário</option>
               <option value="Admin">Administrador</option>
             </select>
           </div>
           <div className="md:col-span-4">
-            <button type="submit" className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors">Criar Utilizador</button>
+            <button type="submit" className="bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors">Criar Utilizador</button>
           </div>
         </form>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-at-blue">Utilizadores Registados ({utilizadores.length})</h3>
+          <h3 className="text-lg font-bold text-[#004B93]">Utilizadores Registados ({utilizadores.length})</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-at-blue text-white text-sm">
+              <tr className="bg-[#004B93] text-white text-sm">
                 <th className="p-4 font-semibold">Nome</th>
                 <th className="p-4 font-semibold">Email</th>
                 <th className="p-4 font-semibold">Perfil</th>

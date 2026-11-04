@@ -96,7 +96,7 @@ export function HistoricoEmprestimos() {
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
+      <div className="bg-[#004B93] rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -123,11 +123,11 @@ export function HistoricoEmprestimos() {
           <div className="relative">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <History className="text-at-blue" size={20} />
+                <History className="text-[#004B93]" size={20} />
               </div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total de Registos</p>
             </div>
-            <p className="text-3xl font-bold text-at-blue">{emprestimos.length}</p>
+            <p className="text-3xl font-bold text-[#004B93]">{emprestimos.length}</p>
             <p className="text-xs text-gray-400 mt-1">desde o início do sistema</p>
           </div>
         </div>
@@ -172,7 +172,7 @@ export function HistoricoEmprestimos() {
                 value={pesquisa}
                 onChange={(e) => setPesquisa(e.target.value)}
                 placeholder="Obra ou cliente..."
-                className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
+                className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm"
               />
             </div>
           </div>
@@ -182,7 +182,7 @@ export function HistoricoEmprestimos() {
             <select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value as any)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm"
             >
               <option value="TODOS">Todos ({emprestimos.length})</option>
               <option value="ATIVO">Em Curso ({totalAtivos})</option>
@@ -195,7 +195,7 @@ export function HistoricoEmprestimos() {
             <select
               value={filtroData}
               onChange={(e) => setFiltroData(e.target.value as any)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm"
             >
               <option value="TODOS">Todo o Histórico</option>
               <option value="MES">Este Mês</option>
@@ -236,7 +236,7 @@ export function HistoricoEmprestimos() {
               {temFiltrosAtivos && (
                 <button
                   onClick={limparFiltros}
-                  className="mt-4 text-at-blue font-semibold hover:underline text-sm"
+                  className="mt-4 text-[#004B93] font-semibold hover:underline text-sm"
                 >
                   Limpar filtros
                 </button>
@@ -305,7 +305,7 @@ export function HistoricoEmprestimos() {
               >
                 <ChevronLeft size={14} /> Anterior
               </button>
-              <span className="px-4 py-2 bg-at-blue text-white rounded-md text-sm font-semibold">
+              <span className="px-4 py-2 bg-[#004B93] text-white rounded-md text-sm font-semibold">
                 {paginaAtual} / {totalPaginas}
               </span>
               <button

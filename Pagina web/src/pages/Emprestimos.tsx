@@ -382,14 +382,14 @@ export function Emprestimos() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-8">
+      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-[#004B93] mb-8">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-[#004B93] flex items-center justify-center text-white shadow-lg">
               <BookMarked size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-at-blue">Novo Empréstimo</h2>
+              <h2 className="text-2xl font-bold text-[#004B93]">Novo Empréstimo</h2>
               <p className="text-xs text-gray-500 mt-0.5">Preenche os dados do empréstimo</p>
             </div>
           </div>
@@ -432,7 +432,7 @@ export function Emprestimos() {
           )}
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
-            <button type="submit" disabled={processando || obras.length === 0 || clientes.length === 0 || !podeCriar} className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+            <button type="submit" disabled={processando || obras.length === 0 || clientes.length === 0 || !podeCriar} className="bg-[#004B93] text-white px-8 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
               {processando ? <RefreshCw size={18} className="animate-spin" /> : <CheckCircle size={18} />}
               {processando ? 'A processar...' : 'Registar Empréstimo'}
             </button>
@@ -443,7 +443,7 @@ export function Emprestimos() {
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-bold text-at-blue">
+          <h3 className="text-lg font-bold text-[#004B93]">
             Empréstimos Ativos ({emprestimos.length})
             {totalAtrasados > 0 && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">{totalAtrasados} em atraso</span>}
             {renovacoesPendentes.length > 0 && <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-bold">{renovacoesPendentes.length} renovação(ões) pendente(s)</span>}
@@ -458,7 +458,7 @@ export function Emprestimos() {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-at-blue text-white text-sm">
+                <tr className="bg-[#004B93] text-white text-sm">
                   <th className="p-4 font-semibold">Obra</th>
                   <th className="p-4 font-semibold">Cliente</th>
                   <th className="p-4 font-semibold">Empréstimo</th>
@@ -499,7 +499,7 @@ export function Emprestimos() {
                         </td>
                         <td className="p-4 text-center">
                           <div className="flex flex-wrap items-center justify-center gap-2">
-                            <button onClick={() => navigate(`/comprovativo/${emp.Id}`)} className="bg-at-blue text-white px-3 py-1 rounded text-xs font-semibold hover:bg-at-blue-light transition-colors inline-flex items-center gap-1" title="Ver comprovativo"><Printer size={12} /> Comprovativo</button>
+                            <button onClick={() => navigate(`/comprovativo/${emp.Id}`)} className="bg-[#004B93] text-white px-3 py-1 rounded text-xs font-semibold hover:bg-[#003870] transition-colors inline-flex items-center gap-1" title="Ver comprovativo"><Printer size={12} /> Comprovativo</button>
                             <button onClick={() => handleRenovarDireto(emp.Id)} disabled={!podeRenovar} className="bg-yellow-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeRenovar ? "Renovar diretamente (admin)" : "Sem permissão"}>+{diasEmprestimo}d</button>
                             <button onClick={() => handleDevolver(emp.Id, emp.Obra)} disabled={!podeDevolver} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title={podeDevolver ? "Devolver" : "Sem permissão"}>Devolver</button>
                           </div>
@@ -519,8 +519,8 @@ export function Emprestimos() {
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg"><Settings size={20} /></div>
-                <div><h3 className="text-lg font-bold text-at-blue">Configurações do Sistema</h3><p className="text-xs text-gray-500">Definições dos empréstimos</p></div>
+                <div className="w-11 h-11 rounded-xl bg-[#004B93] flex items-center justify-center text-white shadow-lg"><Settings size={20} /></div>
+                <div><h3 className="text-lg font-bold text-[#004B93]">Configurações do Sistema</h3><p className="text-xs text-gray-500">Definições dos empréstimos</p></div>
               </div>
               <button type="button" onClick={() => setModalConfigAberto(false)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={20} /></button>
             </div>
@@ -529,18 +529,18 @@ export function Emprestimos() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">📅 Dias de Empréstimo</label>
                 <p className="text-xs text-gray-500 mb-2">Prazo padrão para devolução das obras</p>
-                <input type="number" min={1} max={365} value={configTemporaria.dias} onChange={(e) => setConfigTemporaria({ ...configTemporaria, dias: Number(e.target.value) || 1 })} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-center font-bold text-lg" />
-                <div className="flex flex-wrap gap-2 mt-2">{[3, 7, 15, 30].map((d) => (<button key={d} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, dias: d })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.dias === d ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{d} dias</button>))}</div>
+                <input type="number" min={1} max={365} value={configTemporaria.dias} onChange={(e) => setConfigTemporaria({ ...configTemporaria, dias: Number(e.target.value) || 1 })} className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-center font-bold text-lg" />
+                <div className="flex flex-wrap gap-2 mt-2">{[3, 7, 15, 30].map((d) => (<button key={d} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, dias: d })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.dias === d ? 'bg-[#004B93] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{d} dias</button>))}</div>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">💰 Valor da Multa (MT/dia)</label>
                 <p className="text-xs text-gray-500 mb-2">Valor cobrado por cada dia de atraso</p>
                 <div className="relative">
-                  <input type="number" min={0} max={100000} value={configTemporaria.multa} onChange={(e) => setConfigTemporaria({ ...configTemporaria, multa: Number(e.target.value) || 0 })} className="w-full p-3 pr-16 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-center font-bold text-lg" />
+                  <input type="number" min={0} max={100000} value={configTemporaria.multa} onChange={(e) => setConfigTemporaria({ ...configTemporaria, multa: Number(e.target.value) || 0 })} className="w-full p-3 pr-16 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-center font-bold text-lg" />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">MT/dia</span>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">{[10, 20, 40, 50, 100].map((v) => (<button key={v} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, multa: v })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.multa === v ? 'bg-at-blue text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{v} MT</button>))}</div>
+                <div className="flex flex-wrap gap-2 mt-2">{[10, 20, 40, 50, 100].map((v) => (<button key={v} type="button" onClick={() => setConfigTemporaria({ ...configTemporaria, multa: v })} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${configTemporaria.multa === v ? 'bg-[#004B93] text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{v} MT</button>))}</div>
               </div>
 
               <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
@@ -551,7 +551,7 @@ export function Emprestimos() {
 
             <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
               <button type="button" onClick={() => setModalConfigAberto(false)} className="px-5 py-2.5 rounded-md bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
-              <button type="button" onClick={salvarConfiguracoes} disabled={salvandoConfig} className="px-5 py-2.5 rounded-md bg-at-blue text-white font-semibold hover:bg-at-blue-light transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
+              <button type="button" onClick={salvarConfiguracoes} disabled={salvandoConfig} className="px-5 py-2.5 rounded-md bg-[#004B93] text-white font-semibold hover:bg-[#003870] transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
                 {salvandoConfig ? <><RefreshCw size={16} className="animate-spin" /> A guardar...</> : <><Save size={16} /> Guardar Configurações</>}
               </button>
             </div>

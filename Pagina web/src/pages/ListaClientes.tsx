@@ -212,13 +212,13 @@ export function ListaClientes() {
   };
 
   const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
-  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004B93]";
 
   const contaAtiva = (c: Cliente) => c.ContaAtiva === true || c.ContaAtiva === 1;
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
+      <div className="bg-[#004B93] rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -236,7 +236,7 @@ export function ListaClientes() {
               <p className="text-3xl font-bold mt-1">{clientes.length}</p>
             </div>
             {podeCriar && (
-              <button onClick={() => navigate('/cadastrar-cliente')} className="bg-white text-at-blue px-5 py-3 rounded-md font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
+              <button onClick={() => navigate('/cadastrar-cliente')} className="bg-white text-[#004B93] px-5 py-3 rounded-md font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
                 <UserPlus size={16} /> Novo Cliente
               </button>
             )}
@@ -248,7 +248,7 @@ export function ListaClientes() {
         <label className="block text-sm font-semibold text-gray-700 mb-2">🔍 Pesquisar Cliente</label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Nome, email, telefone, PI ou NUIT..." className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" />
+          <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Nome, email, telefone, PI ou NUIT..." className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" />
         </div>
       </div>
 
@@ -261,7 +261,7 @@ export function ListaClientes() {
               <Users size={56} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-500 font-semibold">{pesquisa ? 'Nenhum cliente corresponde à pesquisa.' : 'Sem clientes registados.'}</p>
               {!pesquisa && podeCriar && (
-                <button onClick={() => navigate('/cadastrar-cliente')} className="inline-flex items-center gap-2 mt-4 bg-at-blue text-white px-5 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm">
+                <button onClick={() => navigate('/cadastrar-cliente')} className="inline-flex items-center gap-2 mt-4 bg-[#004B93] text-white px-5 py-2.5 rounded-md font-semibold hover:bg-[#003870] transition-colors text-sm">
                   <UserPlus size={16} /> Cadastrar Primeiro Cliente
                 </button>
               )}
@@ -286,7 +286,7 @@ export function ListaClientes() {
                     <tr key={cliente.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{iniciais}</div>
+                          <div className="w-10 h-10 rounded-xl bg-[#004B93] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{iniciais}</div>
                           <p className="font-semibold text-gray-800">{cliente.Nome}</p>
                         </div>
                       </td>
@@ -323,7 +323,7 @@ export function ListaClientes() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1.5">
-                          <button onClick={() => navigate(`/clientes/${cliente.Id}`)} className="bg-at-blue text-white p-2 rounded-md hover:bg-at-blue-light transition-colors" title="Ver detalhes"><Eye size={14} /></button>
+                          <button onClick={() => navigate(`/clientes/${cliente.Id}`)} className="bg-[#004B93] text-white p-2 rounded-md hover:bg-[#003870] transition-colors" title="Ver detalhes"><Eye size={14} /></button>
                           <button onClick={() => abrirEdicao(cliente)} disabled={!podeEditar} className="bg-yellow-500 text-white p-2 rounded-md hover:bg-yellow-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" title="Editar"><Edit3 size={14} /></button>
                           {isAdmin && cliente.Email && (
                             <button onClick={() => abrirModalPassword(cliente)} className="bg-purple-500 text-white p-2 rounded-md hover:bg-purple-600 transition-colors" title="Redefinir password do portal"><KeyRound size={14} /></button>
@@ -350,7 +350,7 @@ export function ListaClientes() {
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white shadow-lg"><Edit3 size={20} /></div>
                 <div>
-                  <h3 className="text-lg font-bold text-at-blue">Editar Cliente</h3>
+                  <h3 className="text-lg font-bold text-[#004B93]">Editar Cliente</h3>
                   <p className="text-xs text-gray-500">Altera os dados do leitor</p>
                 </div>
               </div>
@@ -423,7 +423,7 @@ export function ListaClientes() {
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={fecharModal} className="px-5 py-2.5 rounded-md bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
-                <button type="submit" disabled={salvando || !podeSubmeter} className="px-5 py-2.5 rounded-md bg-at-blue text-white font-semibold hover:bg-at-blue-light transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
+                <button type="submit" disabled={salvando || !podeSubmeter} className="px-5 py-2.5 rounded-md bg-[#004B93] text-white font-semibold hover:bg-[#003870] transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
                   {salvando ? <><RefreshCw size={16} className="animate-spin" /> A guardar...</> : <><Save size={16} /> Guardar Alterações</>}
                 </button>
               </div>
@@ -440,7 +440,7 @@ export function ListaClientes() {
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg"><KeyRound size={20} /></div>
                 <div>
-                  <h3 className="text-lg font-bold text-at-blue">Redefinir Password do Portal</h3>
+                  <h3 className="text-lg font-bold text-[#004B93]">Redefinir Password do Portal</h3>
                   <p className="text-xs text-gray-500">Cliente: {clienteReset.Nome}</p>
                 </div>
               </div>

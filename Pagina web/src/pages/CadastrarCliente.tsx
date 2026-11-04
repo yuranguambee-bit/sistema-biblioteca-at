@@ -51,13 +51,13 @@ export function CadastrarCliente() {
   };
 
   const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
-  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004B93]";
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-white rounded-lg shadow-sm p-8 border-t-4 border-at-blue">
+      <div className="bg-white rounded-lg shadow-sm p-8 border-t-4 border-[#004B93]">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-at-blue flex items-center gap-2"><UserPlus size={24}/> Cadastrar Novo Cliente</h2>
+          <h2 className="text-2xl font-bold text-[#004B93] flex items-center gap-2"><UserPlus size={24}/> Cadastrar Novo Cliente</h2>
           {!podeCriar && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold">
               <Lock size={16} /> Modo de Leitura
@@ -126,7 +126,7 @@ export function CadastrarCliente() {
           </div>
 
           <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
-            <button type="submit" disabled={loading || !podeCriar} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <button type="submit" disabled={loading || !podeCriar} className="bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
               {loading ? <RefreshCw size={18} className="animate-spin" /> : <UserPlus size={18} />}
               {loading ? 'A guardar...' : 'Guardar Cliente'}
             </button>

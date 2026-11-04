@@ -207,7 +207,7 @@ export function Permissoes() {
 
   return (
     <main className="max-w-7xl mx-auto p-6 mt-6 animate-fade-up">
-      <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
+      <div className="bg-[#004B93] rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -217,7 +217,7 @@ export function Permissoes() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Gestão de Permissões</h2>
-                <p className="text-purple-100 text-sm">Controla acessos, ações e campos</p>
+                <p className="text-blue-100 text-sm">Controla acessos, ações e campos</p>
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@ export function Permissoes() {
 
       {admins.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-bold text-at-blue mb-3 flex items-center gap-2"><Crown className="text-yellow-500" size={20} /> Administradores</h3>
+          <h3 className="text-lg font-bold text-[#004B93] mb-3 flex items-center gap-2"><Crown className="text-yellow-500" size={20} /> Administradores</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {admins.map((admin) => (
               <div key={admin.Id} className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-2xl p-5 flex items-center gap-3">
@@ -252,7 +252,7 @@ export function Permissoes() {
       )}
 
       <div>
-        <h3 className="text-lg font-bold text-at-blue mb-3 flex items-center gap-2"><Users size={20} /> Bibliotecários ({bibliotecarios.length})</h3>
+        <h3 className="text-lg font-bold text-[#004B93] mb-3 flex items-center gap-2"><Users size={20} /> Bibliotecários ({bibliotecarios.length})</h3>
 
         {bibliotecarios.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
@@ -267,7 +267,7 @@ export function Permissoes() {
                 <div key={utilizador.Id} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
                   <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
                     <div className="flex items-center gap-3 flex-1 min-w-[250px]">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white font-bold">
+                      <div className="w-12 h-12 rounded-xl bg-[#004B93] flex items-center justify-center text-white font-bold">
                         {utilizador.Nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -301,7 +301,7 @@ export function Permissoes() {
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
-                      <div className="flex items-center gap-2 mb-4"><BookOpen size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Obras</h4></div>
+                      <div className="flex items-center gap-2 mb-4"><BookOpen size={18} className="text-[#004B93]" /><h4 className="text-sm font-bold text-[#004B93] uppercase tracking-wider">Detalhes do Módulo: Obras</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                           <p className="text-xs font-bold text-blue-800 mb-3 flex items-center gap-2"><Edit3 size={14} /> Ações Permitidas</p>
@@ -315,7 +315,7 @@ export function Permissoes() {
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
-                      <div className="flex items-center gap-2 mb-4"><UserPlus size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Autores</h4></div>
+                      <div className="flex items-center gap-2 mb-4"><UserPlus size={18} className="text-[#004B93]" /><h4 className="text-sm font-bold text-[#004B93] uppercase tracking-wider">Detalhes do Módulo: Autores</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                           <p className="text-xs font-bold text-blue-800 mb-3 flex items-center gap-2"><Edit3 size={14} /> Ações Permitidas</p>
@@ -329,7 +329,7 @@ export function Permissoes() {
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
-                      <div className="flex items-center gap-2 mb-4"><Building2 size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Editoras</h4></div>
+                      <div className="flex items-center gap-2 mb-4"><Building2 size={18} className="text-[#004B93]" /><h4 className="text-sm font-bold text-[#004B93] uppercase tracking-wider">Detalhes do Módulo: Editoras</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100">
                           <p className="text-xs font-bold text-orange-800 mb-3 flex items-center gap-2"><Edit3 size={14} /> Ações Permitidas</p>
@@ -343,7 +343,7 @@ export function Permissoes() {
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
-                      <div className="flex items-center gap-2 mb-4"><Users size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Detalhes do Módulo: Clientes</h4></div>
+                      <div className="flex items-center gap-2 mb-4"><Users size={18} className="text-[#004B93]" /><h4 className="text-sm font-bold text-[#004B93] uppercase tracking-wider">Detalhes do Módulo: Clientes</h4></div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                           <p className="text-xs font-bold text-blue-800 mb-3 flex items-center gap-2"><Edit3 size={14} /> Ações Permitidas</p>
@@ -358,13 +358,13 @@ export function Permissoes() {
 
                     <div className="border-t border-gray-100 pt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div>
-                         <div className="flex items-center gap-2 mb-4"><BookMarked size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Ações: Empréstimos</h4></div>
+                         <div className="flex items-center gap-2 mb-4"><BookMarked size={18} className="text-[#004B93]" /><h4 className="text-sm font-bold text-[#004B93] uppercase tracking-wider">Ações: Empréstimos</h4></div>
                          <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 flex flex-col gap-2">
                             {ACOES_EMPRESTIMOS.map(acao => renderCheckbox(utilizador, acao, 'blue'))}
                          </div>
                       </div>
                       <div>
-                         <div className="flex items-center gap-2 mb-4"><Bookmark size={18} className="text-at-blue" /><h4 className="text-sm font-bold text-at-blue uppercase tracking-wider">Ações: Reservas</h4></div>
+                         <div className="flex items-center gap-2 mb-4"><Bookmark size={18} className="text-[#004B93]" /><h4 className="text-sm font-bold text-[#004B93] uppercase tracking-wider">Ações: Reservas</h4></div>
                          <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 flex flex-col gap-2">
                             {ACOES_RESERVAS.map(acao => renderCheckbox(utilizador, acao, 'blue'))}
                          </div>
@@ -373,7 +373,7 @@ export function Permissoes() {
                   </div>
 
                   <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-                    <button onClick={() => guardarPermissoes(utilizador)} disabled={salvando === utilizador.Id} className="bg-at-blue text-white px-6 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
+                    <button onClick={() => guardarPermissoes(utilizador)} disabled={salvando === utilizador.Id} className="bg-[#004B93] text-white px-6 py-2.5 rounded-md font-semibold hover:bg-[#003870] transition-colors text-sm flex items-center gap-2 disabled:bg-gray-400">
                       {salvando === utilizador.Id ? <><RefreshCw size={14} className="animate-spin" /> A guardar...</> : <><Save size={14} /> Guardar Permissões</>}
                     </button>
                   </div>

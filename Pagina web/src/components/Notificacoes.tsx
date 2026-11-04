@@ -48,7 +48,8 @@ export function Notificacoes() {
 
   useEffect(() => {
     carregarContagem();
-    const intervalo = setInterval(carregarContagem, 30000); // 30 em 30 seg
+    // Atualiza a cada 10 segundos para ser mais rápido
+    const intervalo = setInterval(carregarContagem, 10000); 
     return () => clearInterval(intervalo);
   }, []);
 
@@ -56,7 +57,6 @@ export function Notificacoes() {
     if (aberto) carregarNotificacoes();
   }, [aberto]);
 
-  // Fechar ao clicar fora
   useEffect(() => {
     function handleClickFora(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -113,12 +113,13 @@ export function Notificacoes() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setAberto(!aberto)}
-        className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white"
+        // CORRIGIDO: Cores para aparecer no fundo branco
+        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors text-[#004B93]"
         title="Notificações"
       >
-        <Bell size={18} />
+        <Bell size={22} />
         {naoLidas > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center animate-pulse">
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center animate-pulse border-2 border-white shadow-sm">
             {naoLidas > 99 ? '99+' : naoLidas}
           </span>
         )}
@@ -126,8 +127,7 @@ export function Notificacoes() {
 
       {aberto && (
         <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[100] animate-scale-in">
-          {/* Cabeçalho do Dropdown */}
-          <div className="bg-gradient-to-r from-at-blue to-at-blue-light p-4 text-white flex items-center justify-between">
+          <div className="bg-gradient-to-r from-[#004B93] to-[#003870] p-4 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bell size={18} />
               <h3 className="font-bold text-sm">Notificações</h3>
@@ -153,7 +153,6 @@ export function Notificacoes() {
             </div>
           </div>
 
-          {/* Lista de Notificações */}
           <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-50">
             {loading ? (
               <div className="p-8 text-center text-sm text-gray-400">A carregar...</div>
@@ -229,7 +228,6 @@ export function Notificacoes() {
             )}
           </div>
 
-          {/* Rodapé */}
           {notificacoes.length > 0 && (
             <div className="p-2 bg-gray-50 border-t border-gray-100 text-center">
               <p className="text-[10px] text-gray-400">
@@ -243,7 +241,6 @@ export function Notificacoes() {
   );
 }
 
-// Ícone para reservas
 function Bookmark({ size, className }: { size: number, className: string }) {
   return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>;
 }

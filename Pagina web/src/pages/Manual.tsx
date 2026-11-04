@@ -170,7 +170,7 @@ export function Manual() {
       conteudo: (
         <div className="space-y-4">
           <p className="text-gray-700">Em caso de problemas técnicos ou dúvidas sobre o teu empréstimo, contacta:</p>
-          <div className="bg-gradient-to-br from-at-blue to-at-blue-light text-white rounded-lg p-6">
+          <div className="bg-[#004B93] text-white rounded-lg p-6">
             <p className="text-sm text-blue-100 font-medium mb-1">Biblioteca da AT</p>
             <p className="text-xl font-bold">Autoridade Tributária de Moçambique</p>
             <p className="text-sm text-blue-100 mt-3">📧 biblioteca@at.gov.mz<br />📞 +258 21 000 000</p>
@@ -258,7 +258,7 @@ export function Manual() {
         <div className="space-y-4">
           <p className="text-gray-700">As obras são os livros e publicações do acervo da biblioteca.</p>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><Hash size={16} className="text-at-blue" /> Como Cadastrar uma Obra</p>
+            <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><Hash size={16} className="text-[#004B93]" /> Como Cadastrar uma Obra</p>
             <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
               <li>Clica em <strong>"Cadastrar Obra"</strong> no menu superior</li>
               <li>Preenche o <strong>título</strong> da obra</li>
@@ -352,7 +352,7 @@ export function Manual() {
           <p className="text-gray-700">Podes gerar relatórios e exportar dados para análise externa.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><FileText size={16} className="text-at-blue" /> Relatórios</p>
+              <p className="font-bold text-gray-800 mb-2 flex items-center gap-2"><FileText size={16} className="text-[#004B93]" /> Relatórios</p>
               <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
                 <li>Inventário completo</li>
                 <li>Empréstimos ativos</li>
@@ -409,13 +409,12 @@ export function Manual() {
       conteudo: (
         <div className="space-y-4">
           <p className="text-gray-700">Em caso de problemas técnicos ou dúvidas, contacta:</p>
-          <div className="bg-gradient-to-br from-at-blue to-at-blue-light text-white rounded-lg p-6"><p className="text-sm text-blue-100 font-medium mb-1">Suporte Técnico</p><p className="text-xl font-bold">Autoridade Tributária de Moçambique</p><p className="text-sm text-blue-100 mt-3">📧 suporte.ti@at.gov.mz<br />📞 +258 21 000 000</p></div>
+          <div className="bg-[#004B93] text-white rounded-lg p-6"><p className="text-sm text-blue-100 font-medium mb-1">Suporte Técnico</p><p className="text-xl font-bold">Autoridade Tributária de Moçambique</p><p className="text-sm text-blue-100 mt-3">📧 suporte.ti@at.gov.mz<br />📞 +258 21 000 000</p></div>
         </div>
       ),
     },
   ], []);
 
-  // Escolhe o conjunto de secções com base no papel do utilizador
   const seccoes = isCliente ? seccoesCliente : seccoesAdmin;
 
   const toggleSeccao = (id: string) => {
@@ -447,7 +446,7 @@ export function Manual() {
 
   return (
     <main className="w-full max-w-6xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
+      <div className="bg-[#004B93] rounded-3xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 right-32 w-40 h-40 bg-white/5 rounded-full -mb-20"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-6">
@@ -476,9 +475,9 @@ export function Manual() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[250px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar secção do manual..." className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" />
+            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar secção do manual..." className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" />
           </div>
-          <button onClick={abrirTodas} className="px-4 py-3 rounded-md bg-at-blue text-white font-semibold hover:bg-at-blue-light transition-colors text-sm">Abrir Todas</button>
+          <button onClick={abrirTodas} className="px-4 py-3 rounded-md bg-[#004B93] text-white font-semibold hover:bg-[#003870] transition-colors text-sm">Abrir Todas</button>
           <button onClick={fecharTodas} className="px-4 py-3 rounded-md bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm">Fechar Todas</button>
         </div>
       </div>
@@ -516,7 +515,7 @@ export function Manual() {
 
       <div className="bg-white rounded-2xl shadow-sm p-6 mt-6 text-center">
         <p className="text-sm text-gray-600 mb-2">Precisas de ajuda adicional? Contacta a biblioteca.</p>
-        <Link to={isCliente ? "/" : "/dashboard"} className="inline-flex items-center gap-2 text-at-blue font-semibold hover:underline text-sm">
+        <Link to={isCliente ? "/" : "/dashboard"} className="inline-flex items-center gap-2 text-[#004B93] font-semibold hover:underline text-sm">
           Voltar ao Início <ArrowRight size={14} />
         </Link>
       </div>

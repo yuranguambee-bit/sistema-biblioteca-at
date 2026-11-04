@@ -157,7 +157,7 @@ export function DetalhesObra() {
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
           <XCircle size={56} className="mx-auto mb-4 text-red-400" />
           <h2 className="text-xl font-bold text-gray-700 mb-2">Obra não encontrada</h2>
-          <button onClick={() => navigate('/acervo')} className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors mt-4">Voltar ao Acervo</button>
+          <button onClick={() => navigate('/acervo')} className="bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors mt-4">Voltar ao Acervo</button>
         </div>
       </main>
     );
@@ -171,11 +171,11 @@ export function DetalhesObra() {
 
   return (
     <main className="max-w-6xl mx-auto p-6 mt-6 animate-fade-up">
-      <Link to="/acervo" className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4">
+      <Link to="/acervo" className="inline-flex items-center gap-2 text-sm font-semibold text-[#004B93] hover:text-[#003870] transition-colors mb-4">
         <ArrowLeft size={16} /> Voltar ao Acervo
       </Link>
 
-      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      <div className="relative overflow-hidden bg-[#004B93] rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -mr-36 -mt-36"></div>
         <div className="absolute bottom-0 right-32 w-48 h-48 bg-white/5 rounded-full -mb-24"></div>
 
@@ -203,7 +203,7 @@ export function DetalhesObra() {
 
           <div className="flex flex-col gap-3">
             {isDisponivel ? (
-              <Link to="/emprestimos" className="bg-white text-at-blue px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
+              <Link to="/emprestimos" className="bg-white text-[#004B93] px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors text-sm flex items-center gap-2 shadow-lg">
                 <CheckCircle size={18} /> Requisitar Obra
               </Link>
             ) : (
@@ -225,8 +225,8 @@ export function DetalhesObra() {
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5 relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-20 h-20 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative">
-            <div className="flex items-center gap-2 mb-2"><BookMarked className="text-at-blue" size={18} /><p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p></div>
-            <p className="text-3xl font-bold text-at-blue">{totalEmprestimos}</p>
+            <div className="flex items-center gap-2 mb-2"><BookMarked className="text-[#004B93]" size={18} /><p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total</p></div>
+            <p className="text-3xl font-bold text-[#004B93]">{totalEmprestimos}</p>
           </div>
         </div>
 
@@ -299,7 +299,7 @@ export function DetalhesObra() {
           <div className="p-5 border-b border-gray-100 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center"><Bookmark className="text-yellow-600" size={20} /></div>
             <div className="flex-1">
-              <h3 className="text-base font-bold text-at-blue">Fila de Reservas</h3>
+              <h3 className="text-base font-bold text-[#004B93]">Fila de Reservas</h3>
               <p className="text-xs text-gray-400">{reservas.length === 0 ? 'Ninguém à espera' : `${reservas.length} pessoa(s) à espera`}</p>
             </div>
           </div>
@@ -344,9 +344,9 @@ export function DetalhesObra() {
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><History className="text-at-blue" size={20} /></div>
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><History className="text-[#004B93]" size={20} /></div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-at-blue">Histórico de Empréstimos</h3>
+            <h3 className="text-base font-bold text-[#004B93]">Histórico de Empréstimos</h3>
             <p className="text-xs text-gray-400">Todos os empréstimos desta obra</p>
           </div>
           {totalEmprestimos > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">{totalEmprestimos} registo(s)</span>}

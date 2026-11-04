@@ -162,11 +162,11 @@ export function Acervo() {
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-at-blue">Acervo da Biblioteca</h2>
+          <h2 className="text-2xl font-bold text-[#004B93]">Acervo da Biblioteca</h2>
           <p className="text-gray-500 text-sm mt-1">Consulte, edite, pesquise e exporte o inventário.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-at-blue text-white px-4 py-2 rounded-md">
+          <div className="bg-[#004B93] text-white px-4 py-2 rounded-md">
             <span className="text-sm font-semibold">{obrasFiltradas.length} obra(s)</span>
           </div>
           <button onClick={handleExportarCSV}
@@ -174,7 +174,7 @@ export function Acervo() {
             📊 Exportar Excel
           </button>
           <button onClick={() => window.print()}
-            className="bg-at-blue text-white px-5 py-2.5 rounded-md font-semibold hover:bg-at-blue-light transition-colors flex items-center gap-2 text-sm">
+            className="bg-[#004B93] text-white px-5 py-2.5 rounded-md font-semibold hover:bg-[#003870] transition-colors flex items-center gap-2 text-sm">
             🖨️ Imprimir PDF
           </button>
         </div>
@@ -186,12 +186,12 @@ export function Acervo() {
             <label className="block text-sm font-semibold text-gray-700 mb-2">🔍 Pesquisar</label>
             <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)}
               placeholder="Título, Autor ou Editora..."
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue" />
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Autor</label>
             <select value={filtroAutor} onChange={(e) => setFiltroAutor(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue">
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]">
               <option value="TODOS">Todos os Autores</option>
               {autores.map((a) => <option key={a.Id} value={a.Nome}>{a.Nome}</option>)}
             </select>
@@ -199,7 +199,7 @@ export function Acervo() {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Editora</label>
             <select value={filtroEditora} onChange={(e) => setFiltroEditora(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue">
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]">
               <option value="TODOS">Todas as Editoras</option>
               {editoras.map((ed) => <option key={ed.Id} value={ed.Nome}>{ed.Nome}</option>)}
             </select>
@@ -210,7 +210,7 @@ export function Acervo() {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Estado</label>
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value as any)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue">
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]">
               <option value="TODOS">Todos</option>
               <option value="DISPONIVEL">Disponíveis</option>
               <option value="EMPRESTADO">Emprestados</option>
@@ -234,7 +234,7 @@ export function Acervo() {
               <p className="text-4xl mb-3">📭</p>
               <p className="text-gray-500 font-semibold">Nenhuma obra corresponde aos filtros.</p>
               <button onClick={limparFiltros}
-                className="mt-4 text-at-blue font-semibold hover:underline text-sm">
+                className="mt-4 text-[#004B93] font-semibold hover:underline text-sm">
                 Limpar filtros e ver tudo
               </button>
             </div>
@@ -285,7 +285,7 @@ export function Acervo() {
                         <div className="flex items-center justify-center gap-2">
                           <button 
                             onClick={() => navigate(`/obras/${obra.Id}`)}
-                            className="inline-flex items-center gap-1.5 bg-at-blue text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-at-blue-light transition-colors"
+                            className="inline-flex items-center gap-1.5 bg-[#004B93] text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-[#003870] transition-colors"
                             title="Ver detalhes e histórico"
                           >
                             <Eye size={14} /> Ver Detalhes
@@ -324,7 +324,7 @@ export function Acervo() {
                 className="px-4 py-2 rounded-md border border-gray-300 text-sm font-semibold hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 ‹ Anterior
               </button>
-              <span className="px-4 py-2 bg-at-blue text-white rounded-md text-sm font-semibold">
+              <span className="px-4 py-2 bg-[#004B93] text-white rounded-md text-sm font-semibold">
                 {paginaAtual} / {totalPaginas}
               </span>
               <button onClick={() => irParaPagina(paginaAtual + 1)} disabled={paginaAtual === totalPaginas}
@@ -367,27 +367,27 @@ export function Acervo() {
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <BookOpen size={14} className="text-gray-400" /> Título da Obra
                   </label>
-                  <input type="text" required value={editForm.Titulo} onChange={(e) => setEditForm({...editForm, Titulo: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" />
+                  <input type="text" required value={editForm.Titulo} onChange={(e) => setEditForm({...editForm, Titulo: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" />
                 </div>
 
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Calendar size={14} className="text-gray-400" /> Ano de Publicação
                   </label>
-                  <input type="number" required value={editForm.Ano} onChange={(e) => setEditForm({...editForm, Ano: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" />
+                  <input type="number" required value={editForm.Ano} onChange={(e) => setEditForm({...editForm, Ano: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Hash size={14} className="text-gray-400" /> Nº de Edição
                   </label>
-                  <input type="text" value={editForm.NumeroEdicao} onChange={(e) => setEditForm({...editForm, NumeroEdicao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: 1ª" />
+                  <input type="text" value={editForm.NumeroEdicao} onChange={(e) => setEditForm({...editForm, NumeroEdicao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: 1ª" />
                 </div>
 
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <User size={14} className="text-gray-400" /> Autor
                   </label>
-                  <select required value={editForm.AutorId} onChange={(e) => setEditForm({...editForm, AutorId: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm bg-white">
+                  <select required value={editForm.AutorId} onChange={(e) => setEditForm({...editForm, AutorId: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm bg-white">
                     <option value="">Seleciona o Autor</option>
                     {autores.map(a => <option key={a.Id} value={a.Id}>{a.Nome}</option>)}
                   </select>
@@ -396,7 +396,7 @@ export function Acervo() {
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Building2 size={14} className="text-gray-400" /> Editora
                   </label>
-                  <select required value={editForm.EditoraId} onChange={(e) => setEditForm({...editForm, EditoraId: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm bg-white">
+                  <select required value={editForm.EditoraId} onChange={(e) => setEditForm({...editForm, EditoraId: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm bg-white">
                     <option value="">Seleciona a Editora</option>
                     {editoras.map(ed => <option key={ed.Id} value={ed.Id}>{ed.Nome}</option>)}
                   </select>
@@ -406,26 +406,26 @@ export function Acervo() {
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Barcode size={14} className="text-gray-400" /> Código Físico
                   </label>
-                  <input type="text" value={editForm.Codigo} onChange={(e) => setEditForm({...editForm, Codigo: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: 1925" />
+                  <input type="text" value={editForm.Codigo} onChange={(e) => setEditForm({...editForm, Codigo: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: 1925" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <MapPin size={14} className="text-gray-400" /> Localização
                   </label>
-                  <input type="text" value={editForm.Localizacao} onChange={(e) => setEditForm({...editForm, Localizacao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: E1C1F1" />
+                  <input type="text" value={editForm.Localizacao} onChange={(e) => setEditForm({...editForm, Localizacao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: E1C1F1" />
                 </div>
 
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Tags size={14} className="text-gray-400" /> Área de Conhecimento
                   </label>
-                  <input type="text" value={editForm.AreaConhecimento} onChange={(e) => setEditForm({...editForm, AreaConhecimento: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: Direito" />
+                  <input type="text" value={editForm.AreaConhecimento} onChange={(e) => setEditForm({...editForm, AreaConhecimento: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: Direito" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Hash size={14} className="text-gray-400" /> ISBN
                   </label>
-                  <input type="text" value={editForm.ISBN} onChange={(e) => setEditForm({...editForm, ISBN: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-at-blue text-sm" placeholder="Ex: 978-989..." />
+                  <input type="text" value={editForm.ISBN} onChange={(e) => setEditForm({...editForm, ISBN: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: 978-989..." />
                 </div>
 
               </div>

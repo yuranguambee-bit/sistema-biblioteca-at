@@ -123,7 +123,7 @@ export function Perfil() {
           <AlertTriangle size={56} className="mx-auto mb-4 text-red-400" />
           <h2 className="text-xl font-bold text-gray-700 mb-2">Erro ao carregar perfil</h2>
           <button onClick={() => navigate('/')}
-            className="bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors mt-4">
+            className="bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors mt-4">
             Voltar ao Início
           </button>
         </div>
@@ -135,7 +135,7 @@ export function Perfil() {
 
   return (
     <main className="max-w-5xl mx-auto p-6 mt-6">
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
+      <div className="bg-[#004B93] rounded-2xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 right-24 w-40 h-40 bg-white/5 rounded-full -mb-20"></div>
         
@@ -167,10 +167,10 @@ export function Perfil() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-                <User className="text-at-blue" size={18} />
+                <User className="text-[#004B93]" size={18} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-at-blue">Informações Pessoais</h3>
+                <h3 className="text-base font-bold text-[#004B93]">Informações Pessoais</h3>
                 <p className="text-xs text-gray-400">Os teus dados no sistema</p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export function Perfil() {
                 <History className="text-orange-600" size={18} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-at-blue">Atividade Recente</h3>
+                <h3 className="text-base font-bold text-[#004B93]">Atividade Recente</h3>
                 <p className="text-xs text-gray-400">Últimos empréstimos no sistema</p>
               </div>
             </div>
@@ -234,7 +234,7 @@ export function Perfil() {
               <Key className="text-red-600" size={18} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-at-blue">Alterar Password</h3>
+              <h3 className="text-base font-bold text-[#004B93]">Alterar Password</h3>
               <p className="text-xs text-gray-400">Mantém a tua conta segura</p>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function Perfil() {
                   required
                   value={passwordAtual}
                   onChange={(e) => setPasswordAtual(e.target.value)}
-                  className="w-full pl-9 pr-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
+                  className="w-full pl-9 pr-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]"
                   placeholder="A tua password atual"
                 />
                 <button
@@ -275,7 +275,7 @@ export function Perfil() {
                   required
                   value={passwordNova}
                   onChange={(e) => setPasswordNova(e.target.value)}
-                  className="w-full pl-9 pr-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue"
+                  className="w-full pl-9 pr-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]"
                   placeholder="Mínimo 6 caracteres"
                 />
                 <button
@@ -323,7 +323,7 @@ export function Perfil() {
                   className={`w-full pl-9 pr-10 p-3 border rounded-md focus:outline-none focus:ring-2 ${
                     passwordConfirmar && passwordNova !== passwordConfirmar
                       ? 'border-red-300 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-at-blue'
+                      : 'border-gray-300 focus:ring-[#004B93]'
                   }`}
                   placeholder="Repete a nova password"
                 />
@@ -351,7 +351,7 @@ export function Perfil() {
               <button
                 type="submit"
                 disabled={alterando || !passwordAtual || !passwordNova || passwordNova !== passwordConfirmar}
-                className="w-full bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Save size={16} />
                 {alterando ? 'A alterar...' : 'Alterar Password'}

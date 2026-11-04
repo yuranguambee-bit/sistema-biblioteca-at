@@ -158,18 +158,18 @@ export function CadastrarEditora() {
   };
 
   const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
-  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004B93]";
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
+      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-[#004B93] mb-6">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white shadow-lg">
               {editandoId ? <Edit3 size={24} /> : <Plus size={24} />}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-at-blue">{editandoId ? 'Editar Editora' : 'Cadastrar Nova Editora'}</h2>
+              <h2 className="text-2xl font-bold text-[#004B93]">{editandoId ? 'Editar Editora' : 'Cadastrar Nova Editora'}</h2>
               <p className="text-xs text-gray-500 mt-0.5">{editandoId ? 'Altera os dados e guarda as mudanças' : 'Preenche os dados da editora abaixo'}</p>
             </div>
           </div>
@@ -254,7 +254,7 @@ export function CadastrarEditora() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
-            <button type="submit" disabled={salvando || !podeSubmeter} className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+            <button type="submit" disabled={salvando || !podeSubmeter} className="bg-[#004B93] text-white px-8 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
               {salvando ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
               {salvando ? 'A guardar...' : editandoId ? 'Guardar Alterações' : 'Guardar Editora'}
             </button>
@@ -273,14 +273,14 @@ export function CadastrarEditora() {
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center"><Building2 className="text-orange-600" size={22} /></div>
               <div>
-                <h3 className="text-lg font-bold text-at-blue">Lista de Editoras</h3>
+                <h3 className="text-lg font-bold text-[#004B93]">Lista de Editoras</h3>
                 <p className="text-xs text-gray-400">{editoras.length} editora{editoras.length !== 1 ? 's' : ''} cadastrada{editoras.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
           </div>
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por nome, país, endereço..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm" />
+            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por nome, país, endereço..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm" />
           </div>
         </div>
 

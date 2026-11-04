@@ -29,7 +29,6 @@ export function CadastrarObra() {
   const navigate = useNavigate();
 
   const [isbn, setIsbn] = useState('');
-
   const [titulo, setTitulo] = useState('');
   const [ano, setAno] = useState('');
   const [numeroEdicao, setNumeroEdicao] = useState('');
@@ -38,17 +37,14 @@ export function CadastrarObra() {
   const [editoraId, setEditoraId] = useState('');
   const [exemplares, setExemplares] = useState(1);
   
-  // Novos campos do Inventário
   const [codigo, setCodigo] = useState('');
   const [areaConhecimento, setAreaConhecimento] = useState('');
   const [localizacao, setLocalizacao] = useState('');
 
   const [loading, setLoading] = useState(false);
-
   const [obras, setObras] = useState<Obra[]>([]);
   const [loadingObras, setLoadingObras] = useState(true);
   const [pesquisa, setPesquisa] = useState('');
-
   const [autores, setAutores] = useState<Autor[]>([]);
   const [editoras, setEditoras] = useState<Editora[]>([]);
 
@@ -69,7 +65,6 @@ export function CadastrarObra() {
 
   useEffect(() => {
     carregarObras();
-
     apiFetch('/api/autores').then((r) => r.json()).then((data) => {
       const lista = Array.isArray(data) ? data : [];
       setAutores(lista);
@@ -120,7 +115,6 @@ export function CadastrarObra() {
               NacionalidadeLivro: nacionalidadeLivro.trim() || null,
               AutorId: Number(autorId),
               EditoraId: Number(editoraId),
-              // Novos campos
               Codigo: codigo.trim() || null,
               AreaConhecimento: areaConhecimento.trim() || null,
               Localizacao: localizacao.trim() || null,
@@ -134,15 +128,8 @@ export function CadastrarObra() {
 
       if (todasOk) {
         showToast(exemplares > 1 ? `${exemplares} exemplares cadastrados!` : 'Obra cadastrada!', 'success');
-        setTitulo('');
-        setAno('');
-        setIsbn('');
-        setNumeroEdicao('');
-        setNacionalidadeLivro('');
-        setCodigo('');
-        setAreaConhecimento('');
-        setLocalizacao('');
-        setExemplares(1);
+        setTitulo(''); setAno(''); setIsbn(''); setNumeroEdicao(''); setNacionalidadeLivro('');
+        setCodigo(''); setAreaConhecimento(''); setLocalizacao(''); setExemplares(1);
         carregarObras(); 
       } else {
         showToast('Erro ao cadastrar. Verifica os dados.', 'error');
@@ -155,18 +142,19 @@ export function CadastrarObra() {
   };
 
   const disabledClass = "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200";
-  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-at-blue";
+  const enabledClass = "bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004B93]";
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-at-blue mb-6">
+      {/* COR SÓLIDA APLICADA AQUI */}
+      <div className="bg-white rounded-2xl shadow-sm p-8 border-t-4 border-[#004B93] mb-6">
         <div className="flex items-center justify-between mb-6 pb-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-[#004B93] flex items-center justify-center text-white shadow-lg">
               <BookOpen size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-at-blue">Cadastrar Nova Obra</h2>
+              <h2 className="text-2xl font-bold text-[#004B93]">Cadastrar Nova Obra</h2>
               <p className="text-xs text-gray-500 mt-0.5">Preenche os dados do livro para adicionar ao acervo</p>
             </div>
           </div>
@@ -198,14 +186,7 @@ export function CadastrarObra() {
               </label>
               <div className="relative">
                 <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input 
-                  type="text" 
-                  value={isbn} 
-                  onChange={(e) => setIsbn(e.target.value)} 
-                  disabled={campoBloqueado('obras_campo_isbn')} 
-                  className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_isbn') ? disabledClass : enabledClass}`} 
-                  placeholder="Ex: 978-989-20-1234-5" 
-                />
+                <input type="text" value={isbn} onChange={(e) => setIsbn(e.target.value)} disabled={campoBloqueado('obras_campo_isbn')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('obras_campo_isbn') ? disabledClass : enabledClass}`} placeholder="Ex: 978-989-20-1234-5" />
               </div>
               <p className="text-xs text-gray-400 mt-1">Se preencheres o ISBN, o sistema tentará procurar a capa do livro automaticamente.</p>
             </div>
@@ -257,7 +238,6 @@ export function CadastrarObra() {
             </div>
           </div>
 
-          {/* CAMPOS DO INVENTÁRIO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
@@ -307,7 +287,8 @@ export function CadastrarObra() {
           )}
 
           <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-gray-100">
-            <button type="submit" disabled={loading || autores.length === 0 || !podeCriar} className="bg-at-blue text-white px-8 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+            {/* BOTÃO COM A COR SÓLIDA */}
+            <button type="submit" disabled={loading || autores.length === 0 || !podeCriar} className="bg-[#004B93] text-white px-8 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
               {loading ? <RefreshCw size={18} className="animate-spin" /> : <BookOpen size={18} />}
               {loading ? 'A guardar...' : exemplares > 1 ? `Guardar ${exemplares} Exemplares` : 'Guardar Obra'}
             </button>
@@ -319,9 +300,9 @@ export function CadastrarObra() {
         <div className="p-6 border-b border-gray-100">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center"><BookOpen className="text-at-blue" size={22} /></div>
+              <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center"><BookOpen className="text-[#004B93]" size={22} /></div>
               <div>
-                <h3 className="text-lg font-bold text-at-blue">Obras Registadas</h3>
+                <h3 className="text-lg font-bold text-[#004B93]">Obras Registadas</h3>
                 <p className="text-xs text-gray-400">{obras.length} obra(s) no acervo</p>
               </div>
             </div>
@@ -329,7 +310,7 @@ export function CadastrarObra() {
 
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por título, autor, editora, código..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm" />
+            <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Pesquisar por título, autor, editora, código..." className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm" />
           </div>
         </div>
 
@@ -372,7 +353,7 @@ export function CadastrarObra() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button onClick={() => navigate(`/obras/${obra.Id}`)} className="inline-flex items-center gap-1.5 bg-at-blue text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-at-blue-light transition-colors">
+                      <button onClick={() => navigate(`/obras/${obra.Id}`)} className="inline-flex items-center gap-1.5 bg-[#004B93] text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-[#003870] transition-colors">
                         <Eye size={14} /> Detalhes
                       </button>
                     </td>
