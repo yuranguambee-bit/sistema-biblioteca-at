@@ -212,7 +212,7 @@ export function Dashboard() {
           <div className="w-24 h-24 mb-3 text-green-500 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
             <CheckCircle size={80} strokeWidth={1} />
           </div>
-          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Livros Disponiveis</h3>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Livros Disponíveis</h3>
           <p className="text-4xl font-black text-green-600">{stats.disponiveis}</p>
         </Link>
 
