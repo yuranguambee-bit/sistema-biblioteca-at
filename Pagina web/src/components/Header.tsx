@@ -69,7 +69,6 @@ export function Header() {
           <Notificacoes />
           <div className="w-px h-8 bg-gray-200"></div>
           
-          {/* CORRIGIDO: O perfil agora é um Link que leva para /perfil */}
           <Link to="/perfil" className="flex items-center gap-3 hover:opacity-70 transition-opacity cursor-pointer" title="Ver o meu perfil">
             <div className="w-9 h-9 rounded-full bg-[#004B93] text-white flex items-center justify-center shadow-sm">
               <User size={18} />
@@ -96,8 +95,10 @@ export function Header() {
             <>
               <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
-              <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Meus Empréstimos</Link>
-              <Link to="/meu-historico" className={linkClasses}><History size={16} /> Meu Histórico</Link>
+              {/* ALTERAÇÃO AQUI: "Empréstimos" em vez de "Meus Empréstimos" */}
+              <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Empréstimos</Link>
+              {/* ALTERAÇÃO AQUI: "Histórico" em vez de "Meu Histórico" */}
+              <Link to="/meu-historico" className={linkClasses}><History size={16} /> Histórico</Link>
               <Link to="/manual" className={linkClasses}><BookOpen size={16} /> Manual</Link>
             </>
           ) : (
