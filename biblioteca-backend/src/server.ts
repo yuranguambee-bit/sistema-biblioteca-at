@@ -94,7 +94,7 @@ async function seedAdmin() {
         if (check.recordset[0].total === 0) {
             const hash = await bcrypt.hash('admin123', 10);
             await pool.request()
-                .input('Nome', sql.NVarChar, 'Maurício Guambe').input('Email', sql.NVarChar, 'admin@at.gov.mz')
+                .input('Nome', sql.NVarChar, 'Yuran Guambe').input('Email', sql.NVarChar, 'admin@at.gov.mz')
                 .input('PasswordHash', sql.NVarChar, hash).input('Role', sql.NVarChar, 'Admin')
                 .query("INSERT INTO Usuarios (Nome, Email, PasswordHash, Role, Permissoes) VALUES (@Nome, @Email, @PasswordHash, @Role, '{}')");
             console.log('🌱 Utilizador Admin criado: admin@at.gov.mz / admin123');

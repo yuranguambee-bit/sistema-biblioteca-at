@@ -82,7 +82,7 @@ async function seedAdmin() {
         const check = await pool.query('SELECT COUNT(*) as total FROM Usuarios');
         if (Number(check.rows[0].total) === 0) {
             const hash = await bcrypt.hash('admin123', 10);
-            await pool.query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role, Permissoes) VALUES ($1, $2, $3, $4, $5)', ['Maurício Guambe', 'admin@at.gov.mz', hash, 'Admin', '{}']);
+            await pool.query('INSERT INTO Usuarios (Nome, Email, PasswordHash, Role, Permissoes) VALUES ($1, $2, $3, $4, $5)', ['Yuran Guambe', 'admin@at.gov.mz', hash, 'Admin', '{}']);
             console.log('🌱 Utilizador Admin criado: admin@at.gov.mz / admin123');
         }
     } catch (error) { console.error('Erro ao criar admin:', error); }
