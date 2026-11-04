@@ -62,13 +62,13 @@ export function MeuHistorico() {
     <main className="max-w-5xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#004B93] hover:text-[#003870] transition-colors mb-4"
       >
         <ArrowLeft size={16} /> Voltar ao início
       </Link>
 
-      {/* CABEÇALHO - CORRIGIDO PARA AZUL INSTITUCIONAL */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      {/* CABEÇALHO - COR SÓLIDA */}
+      <div className="relative overflow-hidden bg-[#004B93] rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -100,7 +100,7 @@ export function MeuHistorico() {
                 value={pesquisa}
                 onChange={(e) => setPesquisa(e.target.value)}
                 placeholder="Pesquisar por título ou autor..."
-                className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
+                className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm"
               />
             </div>
             <div className="relative">
@@ -108,7 +108,7 @@ export function MeuHistorico() {
               <select
                 value={filtroAno}
                 onChange={(e) => setFiltroAno(e.target.value)}
-                className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm bg-white"
+                className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm bg-white"
               >
                 <option value="">Todos os anos</option>
                 {anos.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -121,7 +121,7 @@ export function MeuHistorico() {
       {/* CONTEÚDO */}
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
-          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-at-blue" />
+          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-[#004B93]" />
           A carregar histórico...
         </div>
       ) : historico.length === 0 ? (
@@ -133,7 +133,7 @@ export function MeuHistorico() {
           </p>
           <Link
             to="/catalogo"
-            className="inline-flex items-center gap-2 bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm"
+            className="inline-flex items-center gap-2 bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors text-sm"
           >
             <BookOpen size={16} /> Explorar Catálogo
           </Link>
@@ -144,7 +144,7 @@ export function MeuHistorico() {
           <p className="text-gray-500 font-semibold">Nenhum resultado com esses filtros.</p>
           <button
             onClick={() => { setPesquisa(''); setFiltroAno(''); }}
-            className="mt-4 text-at-blue font-semibold hover:underline text-sm"
+            className="mt-4 text-[#004B93] font-semibold hover:underline text-sm"
           >
             Limpar filtros
           </button>
@@ -168,7 +168,7 @@ export function MeuHistorico() {
                   <tr key={h.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white flex-shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-[#004B93] flex items-center justify-center text-white flex-shrink-0">
                           <BookOpen size={16} />
                         </div>
                         <span className="font-semibold text-gray-800">{h.Obra}</span>
@@ -199,7 +199,7 @@ export function MeuHistorico() {
             {historicoFiltrado.map((h) => (
               <div key={h.Id} className="p-4 hover:bg-blue-50/30 transition-colors">
                 <div className="flex items-start gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-at-blue to-at-blue-light flex items-center justify-center text-white flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-[#004B93] flex items-center justify-center text-white flex-shrink-0">
                     <BookOpen size={18} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -225,12 +225,12 @@ export function MeuHistorico() {
 
       {/* RESUMO */}
       {historico.length > 0 && (
-        <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-at-blue rounded-2xl p-5 flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-at-blue flex items-center justify-center text-white flex-shrink-0">
+        <div className="mt-6 bg-blue-50 border-l-4 border-[#004B93] rounded-2xl p-5 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#004B93] flex items-center justify-center text-white flex-shrink-0">
             <History size={22} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-at-blue">Resumo</h3>
+            <h3 className="text-base font-bold text-[#004B93]">Resumo</h3>
             <p className="text-sm text-gray-700 mt-1">
               Já requisitaste <strong>{historico.length}</strong> obra{historico.length !== 1 ? 's' : ''} da biblioteca da AT.
               {historicoFiltrado.length !== historico.length && (

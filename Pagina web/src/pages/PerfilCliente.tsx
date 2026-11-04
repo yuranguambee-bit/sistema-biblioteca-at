@@ -79,15 +79,15 @@ export function PerfilCliente() {
   if (loading) {
     return (
       <main className="max-w-4xl mx-auto p-4 lg:p-8 mt-2 flex justify-center items-center h-64">
-        <RefreshCw size={32} className="animate-spin text-at-blue" />
+        <RefreshCw size={32} className="animate-spin text-[#004B93]" />
       </main>
     );
   }
 
   return (
     <main className="max-w-4xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      {/* CABEÇALHO */}
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
+      {/* CABEÇALHO - COR SÓLIDA */}
+      <div className="bg-[#004B93] rounded-3xl shadow-xl p-8 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-lg">
@@ -102,9 +102,9 @@ export function PerfilCliente() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* DADOS PESSOAIS (APENAS LEITURA) */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-at-blue">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#004B93]">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-            <ShieldCheck className="text-at-blue" size={20} />
+            <ShieldCheck className="text-[#004B93]" size={20} />
             <h2 className="text-lg font-bold text-gray-800">Dados Pessoais</h2>
           </div>
           
@@ -146,15 +146,15 @@ export function PerfilCliente() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded text-xs text-blue-900 mt-6">
+          <div className="bg-blue-50 border-l-4 border-[#004B93] p-3 rounded text-xs text-blue-900 mt-6">
             Para atualizar os teus dados pessoais (email, telefone, etc.), deves dirigir-te à biblioteca com o bibliotecário.
           </div>
         </div>
 
         {/* ALTERAR PASSWORD */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-yellow-500">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#004B93]">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-            <Lock className="text-yellow-600" size={20} />
+            <Lock className="text-[#004B93]" size={20} />
             <h2 className="text-lg font-bold text-gray-800">Alterar Password</h2>
           </div>
 
@@ -168,7 +168,7 @@ export function PerfilCliente() {
                   required
                   value={passwordAtual}
                   onChange={(e) => setPasswordAtual(e.target.value)}
-                  className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]"
                   placeholder="A tua password atual"
                 />
               </div>
@@ -184,7 +184,7 @@ export function PerfilCliente() {
                   minLength={6}
                   value={passwordNova}
                   onChange={(e) => setPasswordNova(e.target.value)}
-                  className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]"
                   placeholder="Mínimo 6 caracteres"
                 />
               </div>
@@ -200,7 +200,7 @@ export function PerfilCliente() {
                   minLength={6}
                   value={passwordConfirmar}
                   onChange={(e) => setPasswordConfirmar(e.target.value)}
-                  className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]"
                   placeholder="Repete a nova password"
                 />
               </div>
@@ -209,7 +209,7 @@ export function PerfilCliente() {
             <button
               type="submit"
               disabled={salvandoPassword}
-              className="w-full bg-yellow-500 text-white px-6 py-3 rounded-md font-semibold hover:bg-yellow-600 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+              className="w-full bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
             >
               {salvandoPassword ? (
                 <><RefreshCw size={18} className="animate-spin" /> A guardar...</>

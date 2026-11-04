@@ -161,7 +161,8 @@ export function Catalogo() {
 
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
-      <div className="bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
+      {/* CABEÇALHO SÓLIDO */}
+      <div className="bg-[#004B93] rounded-2xl shadow-xl p-6 mb-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -191,14 +192,14 @@ export function Catalogo() {
               value={pesquisa}
               onChange={(e) => setPesquisa(e.target.value)}
               placeholder="Pesquisar..."
-              className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm"
+              className="w-full pl-9 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm"
             />
           </div>
 
           <select
             value={filtroArea}
             onChange={(e) => setFiltroArea(e.target.value)}
-            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm bg-white"
+            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm bg-white"
           >
             <option value="">Todas as Áreas</option>
             {areas.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -207,7 +208,7 @@ export function Catalogo() {
           <select
             value={filtroAutor}
             onChange={(e) => setFiltroAutor(e.target.value)}
-            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm bg-white"
+            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm bg-white"
           >
             <option value="">Todos os autores</option>
             {autores.map((a) => <option key={a} value={a}>{a}</option>)}
@@ -216,7 +217,7 @@ export function Catalogo() {
           <select
             value={filtroEditora}
             onChange={(e) => setFiltroEditora(e.target.value)}
-            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-at-blue text-sm bg-white"
+            className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93] text-sm bg-white"
           >
             <option value="">Todas as editoras</option>
             {editoras.map((e) => <option key={e} value={e}>{e}</option>)}
@@ -240,7 +241,7 @@ export function Catalogo() {
 
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
-          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-at-blue" />
+          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-[#004B93]" />
           A carregar catálogo...
         </div>
       ) : obrasFiltradas.length === 0 ? (
@@ -261,8 +262,9 @@ export function Catalogo() {
                   disponivel ? 'border-gray-100' : 'border-orange-200'
                 }`}
               >
+                {/* COR SÓLIDA NO TOPO DO CARTÃO */}
                 <div className={`p-5 text-white relative overflow-hidden ${
-                  disponivel ? 'bg-gradient-to-br from-at-blue to-at-blue-light' : 'bg-gradient-to-br from-orange-500 to-orange-600'
+                  disponivel ? 'bg-[#004B93]' : 'bg-gradient-to-br from-orange-500 to-orange-600'
                 }`}>
                   <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12"></div>
                   <div className="relative">
@@ -284,7 +286,7 @@ export function Catalogo() {
 
                 <div className="p-5 flex-1 flex flex-col gap-2">
                   {obra.AreaConhecimento && (
-                    <div className="text-xs font-semibold text-at-blue bg-blue-50 px-2 py-1 rounded-md mb-1 flex items-center gap-1 w-fit">
+                    <div className="text-xs font-semibold text-[#004B93] bg-blue-50 px-2 py-1 rounded-md mb-1 flex items-center gap-1 w-fit">
                       <Book size={12} /> {obra.AreaConhecimento}
                     </div>
                   )}
@@ -354,7 +356,7 @@ export function Catalogo() {
             className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full animate-scale-in overflow-hidden flex flex-col md:flex-row"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="md:w-2/5 bg-gradient-to-br from-at-blue to-blue-900 p-6 flex flex-col items-center justify-center relative">
+            <div className="md:w-2/5 bg-[#004B93] p-6 flex flex-col items-center justify-center relative">
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
               
               {detalheAberto.ISBN && !imgError ? (
@@ -385,7 +387,7 @@ export function Catalogo() {
                 <div>
                   <h3 className="text-xl font-bold text-gray-800 leading-tight mb-2">{detalheAberto.Titulo}</h3>
                   {detalheAberto.AreaConhecimento && (
-                    <span className="inline-block bg-blue-50 text-at-blue text-xs font-bold px-2 py-1 rounded">
+                    <span className="inline-block bg-blue-50 text-[#004B93] text-xs font-bold px-2 py-1 rounded">
                       {detalheAberto.AreaConhecimento}
                     </span>
                   )}

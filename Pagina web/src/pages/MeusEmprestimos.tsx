@@ -95,13 +95,13 @@ export function MeusEmprestimos() {
     <main className="max-w-5xl mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-at-blue hover:text-at-blue-light transition-colors mb-4"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#004B93] hover:text-[#003870] transition-colors mb-4"
       >
         <ArrowLeft size={16} /> Voltar ao início
       </Link>
 
-      {/* CABEÇALHO - CORRIGIDO PARA AZUL INSTITUCIONAL */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-at-blue via-at-blue-light to-blue-900 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+      {/* CABEÇALHO - COR SÓLIDA */}
+      <div className="relative overflow-hidden bg-[#004B93] rounded-3xl shadow-2xl p-8 mb-6 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -140,7 +140,7 @@ export function MeusEmprestimos() {
       {/* CONTEÚDO */}
       {loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-500">
-          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-at-blue" />
+          <RefreshCw size={32} className="mx-auto mb-3 animate-spin text-[#004B93]" />
           A carregar empréstimos...
         </div>
       ) : (
@@ -153,7 +153,7 @@ export function MeusEmprestimos() {
                   <BellRing className="text-blue-700" size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-at-blue">Reservas e Requisições</h3>
+                  <h3 className="text-lg font-bold text-[#004B93]">Reservas e Requisições</h3>
                   <p className="text-xs text-gray-500">Livros que aguardam levantamento ou a tua vez na fila.</p>
                 </div>
               </div>
@@ -170,7 +170,7 @@ export function MeusEmprestimos() {
                     >
                       <div className="p-4 flex items-start gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
-                          isLevantamento ? 'bg-blue-600' : 'bg-orange-500'
+                          isLevantamento ? 'bg-[#004B93]' : 'bg-orange-500'
                         }`}>
                           <BookOpen className="text-white" size={18} />
                         </div>
@@ -218,7 +218,7 @@ export function MeusEmprestimos() {
                 <BookMarked className="text-blue-700" size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-at-blue">Empréstimos Ativos</h3>
+                <h3 className="text-lg font-bold text-[#004B93]">Empréstimos Ativos</h3>
                 <p className="text-xs text-gray-500">Obras que tens em teu poder neste momento.</p>
               </div>
             </div>
@@ -232,7 +232,7 @@ export function MeusEmprestimos() {
                 </p>
                 <Link
                   to="/catalogo"
-                  className="inline-flex items-center gap-2 bg-at-blue text-white px-6 py-3 rounded-md font-semibold hover:bg-at-blue-light transition-colors text-sm"
+                  className="inline-flex items-center gap-2 bg-[#004B93] text-white px-6 py-3 rounded-md font-semibold hover:bg-[#003870] transition-colors text-sm"
                 >
                   <BookOpen size={16} /> Explorar Catálogo
                 </Link>
@@ -253,7 +253,7 @@ export function MeusEmprestimos() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              atrasado ? 'bg-red-500' : renovacaoPendente ? 'bg-yellow-500' : 'bg-at-blue'
+                              atrasado ? 'bg-red-500' : renovacaoPendente ? 'bg-yellow-500' : 'bg-[#004B93]'
                             }`}>
                               <BookOpen className="text-white" size={18} />
                             </div>
@@ -305,12 +305,11 @@ export function MeusEmprestimos() {
                           </div>
                         )}
 
-                        {/* BOTÃO SOLICITAR RENOVAÇÃO */}
                         {!atrasado && !renovacaoPendente && (
                           <button
                             onClick={() => handleSolicitarRenovacao(emp.Id, emp.Obra)}
                             disabled={processando === emp.Id}
-                            className="w-full mt-2 bg-blue-600 text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full mt-2 bg-[#004B93] text-white px-3 py-2 rounded-md text-xs font-semibold hover:bg-[#003870] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                           >
                             {processando === emp.Id ? (
                               <><RefreshCw size={12} className="animate-spin" /> A enviar pedido...</>
@@ -320,7 +319,6 @@ export function MeusEmprestimos() {
                           </button>
                         )}
 
-                        {/* MENSAGEM SE RENOVAÇÃO ESTÁ PENDENTE */}
                         {!atrasado && renovacaoPendente && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-center">
                             <p className="text-xs text-yellow-800 font-semibold flex items-center justify-center gap-1">
