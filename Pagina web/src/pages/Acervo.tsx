@@ -15,8 +15,10 @@ interface Autor { Id: number; Nome: string; }
 interface Editora { Id: number; Nome: string; }
 
 // Extensão local para apanhar o novo campo do backend
+// MULTI-AUTOR: AutorIds (array de IDs) vem do backend além de Autor (string agregada)
 interface ObraComFila extends Obra {
   ReservasPendentes?: number;
+  AutorIds?: number[];
 }
 
 const ITENS_POR_PAGINA = 10;
@@ -41,6 +43,8 @@ export function Acervo() {
   const [modalAberto, setModalAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
+  // MULTI-AUTOR: picker temporário no modal
+  const [editAutorTemp, setEditAutorTemp] = useState('');
 
   const podeEditar = temPermissao('obras_editar');
 
@@ -72,10 +76,11 @@ export function Acervo() {
     return obras.filter((obra) => {
       const correspondePesquisa =
         obra.Titulo.toLowerCase().includes(pesquisa.toLowerCase()) ||
-        obra.Autor.toLowerCase().includes(pesquisa.toLowerCase()) ||
+        (obra.Autor && obra.Autor.toLowerCase().includes(pesquisa.toLowerCase())) ||
         (obra.Editora && obra.Editora.toLowerCase().includes(pesquisa.toLowerCase()));
       const correspondeStatus = filtroStatus === 'TODOS' || obra.Status === filtroStatus;
-      const correspondeAutor = filtroAutor === 'TODOS' || obra.Autor === filtroAutor;
+      // MULTI-AUTOR: obra.Autor pode ser "Silva, Costa". Verifica se o nome filtrado aparece na string agregada.
+      const correspondeAutor = filtroAutor === 'TODOS' || (obra.Autor && obra.Autor.includes(filtroAutor));
       const correspondeEditora = filtroEditora === 'TODOS' || obra.Editora === filtroEditora;
       return correspondePesquisa && correspondeStatus && correspondeAutor && correspondeEditora;
     });
@@ -116,6 +121,14 @@ export function Acervo() {
 
   // ============ FUNÇÕES DE EDIÇÃO ============
   const handleAbrirEdicao = (obra: ObraComFila) => {
+    // MULTI-AUTOR: lê AutorIds do backend. Se não vier (compatibilidade), usa AutorId singular.
+    let idsIniciais: number[] = [];
+    if (Array.isArray(obra.AutorIds)) {
+      idsIniciais = obra.AutorIds.filter((n) => Number.isInteger(n) && n > 0);
+    } else if ((obra as any).AutorId) {
+      idsIniciais = [Number((obra as any).AutorId)];
+    }
+
     setEditForm({
       Id: obra.Id,
       Titulo: obra.Titulo,
@@ -126,21 +139,59 @@ export function Acervo() {
       Codigo: (obra as any).Codigo || '',
       AreaConhecimento: (obra as any).AreaConhecimento || '',
       Localizacao: (obra as any).Localizacao || '',
-      AutorId: (obra as any).AutorId || '',
+      AutorIds: idsIniciais,
       EditoraId: (obra as any).EditoraId || '',
     });
+    setEditAutorTemp('');
     setModalAberto(true);
   };
+
+  // MULTI-AUTOR: helpers do modal
+  const adicionarAutorEdit = (idStr: string) => {
+    if (!idStr) return;
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0) return;
+    const atuais: number[] = Array.isArray(editForm.AutorIds) ? editForm.AutorIds : [];
+    if (atuais.includes(id)) { setEditAutorTemp(''); return; }
+    setEditForm({ ...editForm, AutorIds: [...atuais, id] });
+    setEditAutorTemp('');
+  };
+
+  const removerAutorEdit = (id: number) => {
+    const atuais: number[] = Array.isArray(editForm.AutorIds) ? editForm.AutorIds : [];
+    setEditForm({ ...editForm, AutorIds: atuais.filter((x) => x !== id) });
+  };
+
+  // Lista de objetos Autor correspondentes aos IDs selecionados no modal
+  const autoresSelecionadosEdit = useMemo(() => {
+    const atuais: number[] = Array.isArray(editForm.AutorIds) ? editForm.AutorIds : [];
+    return atuais
+      .map((id) => autores.find((a) => a.Id === id))
+      .filter((a): a is Autor => Boolean(a));
+  }, [editForm.AutorIds, autores]);
 
   const handleSalvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editForm.EditoraId) return showToast('A editora é obrigatória.', 'error');
+    const ids: number[] = Array.isArray(editForm.AutorIds) ? editForm.AutorIds : [];
+    if (ids.length === 0) return showToast('Adiciona pelo menos um autor.', 'error');
 
     setSalvando(true);
     try {
       const res = await apiFetch(`/api/obras/${editForm.Id}`, {
         method: 'PUT',
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          Titulo: editForm.Titulo,
+          Ano: editForm.Ano,
+          ISBN: editForm.ISBN,
+          NumeroEdicao: editForm.NumeroEdicao,
+          NacionalidadeLivro: editForm.NacionalidadeLivro,
+          Codigo: editForm.Codigo,
+          AreaConhecimento: editForm.AreaConhecimento,
+          Localizacao: editForm.Localizacao,
+          AutorIds: editForm.AutorIds,
+          EditoraId: editForm.EditoraId,
+        }),
       });
       const data = await res.json();
 
@@ -243,7 +294,7 @@ export function Acervo() {
               <thead>
                 <tr className="bg-gray-50/70 text-gray-500 text-xs uppercase tracking-wider">
                   <th className="px-6 py-4 font-bold">Título</th>
-                  <th className="px-6 py-4 font-bold">Autor</th>
+                  <th className="px-6 py-4 font-bold">Autor(es)</th>
                   <th className="px-6 py-4 font-bold">Editora</th>
                   <th className="px-6 py-4 font-bold text-center">Ano</th>
                   <th className="px-6 py-4 font-bold">Status</th>
@@ -257,7 +308,10 @@ export function Acervo() {
                   return (
                     <tr key={obra.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                       <td className="px-6 py-4 font-semibold text-gray-800">{obra.Titulo}</td>
-                      <td className="px-6 py-4 text-gray-600">{obra.Autor}</td>
+                      {/* MULTI-AUTOR: pode vir "Silva, Costa" — truncar com tooltip */}
+                      <td className="px-6 py-4 text-gray-600 max-w-[220px] truncate" title={obra.Autor || ''}>
+                        {obra.Autor || <span className="text-gray-300 italic">—</span>}
+                      </td>
                       <td className="px-6 py-4 text-gray-600">{obra.Editora || <span className="text-gray-300 italic">—</span>}</td>
                       <td className="px-6 py-4 text-center text-gray-600 font-medium">{obra.Ano}</td>
                       <td className="px-6 py-4">
@@ -383,15 +437,61 @@ export function Acervo() {
                   <input type="text" value={editForm.NumeroEdicao} onChange={(e) => setEditForm({...editForm, NumeroEdicao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: 1ª" />
                 </div>
 
-                <div>
+                {/* ═══════════════════════════════════════════════════
+                    MULTI-AUTOR: chips + picker (igual ao CadastrarObra)
+                    ═══════════════════════════════════════════════════ */}
+                <div className="md:col-span-2">
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
-                    <User size={14} className="text-gray-400" /> Autor
+                    <User size={14} className="text-gray-400" /> Autor(es) <span className="text-red-500">*</span>
                   </label>
-                  <select required value={editForm.AutorId} onChange={(e) => setEditForm({...editForm, AutorId: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm bg-white">
-                    <option value="">Seleciona o Autor</option>
-                    {autores.map(a => <option key={a.Id} value={a.Id}>{a.Nome}</option>)}
+
+                  {/* Chips dos autores selecionados */}
+                  {autoresSelecionadosEdit.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                      {autoresSelecionadosEdit.map((a, idx) => (
+                        <span
+                          key={a.Id}
+                          className="inline-flex items-center gap-1.5 bg-[#004B93] text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm"
+                        >
+                          <span className="bg-white/20 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                            {idx + 1}
+                          </span>
+                          <span className="max-w-[160px] truncate" title={a.Nome}>{a.Nome}</span>
+                          <button
+                            type="button"
+                            onClick={() => removerAutorEdit(a.Id)}
+                            className="ml-0.5 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                            title="Remover autor"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Picker: select nativo (edição é mais simples que autocomplete aqui) */}
+                  <select
+                    value={editAutorTemp}
+                    onChange={(e) => { setEditAutorTemp(e.target.value); adicionarAutorEdit(e.target.value); }}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm bg-white"
+                  >
+                    <option value="">
+                      {autoresSelecionadosEdit.length === 0 ? 'Seleciona o primeiro autor...' : 'Adicionar outro autor...'}
+                    </option>
+                    {autores
+                      .filter((a) => {
+                        const atuais: number[] = Array.isArray(editForm.AutorIds) ? editForm.AutorIds : [];
+                        return !atuais.includes(a.Id);
+                      })
+                      .map((a) => <option key={a.Id} value={a.Id}>{a.Nome}</option>)
+                    }
                   </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Podes adicionar vários autores. A ordem importa (1º é o principal).
+                  </p>
                 </div>
+
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <Building2 size={14} className="text-gray-400" /> Editora

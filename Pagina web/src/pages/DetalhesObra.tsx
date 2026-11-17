@@ -16,6 +16,8 @@ interface ObraDetalhe {
   Ano: number;
   Status: string;
   Autor: string | null;
+  // MULTI-AUTOR: array de IDs para future-proofing (ex: link para cada autor)
+  AutorIds?: number[];
   Nacionalidade: string | null;
   Editora: string | null;
   EditoraContacto: string | null;
@@ -259,8 +261,11 @@ export function DetalhesObra() {
         <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-purple-100 flex items-center justify-center flex-shrink-0"><User className="text-purple-600" size={24} /></div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Autor</p>
-            <p className="text-base font-bold text-gray-800 truncate">{obra.Autor || 'Sem autor'}</p>
+            {/* MULTI-AUTOR: label plural + title tooltip (a string pode ser "Silva, Costa, ...") */}
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Autor(es)</p>
+            <p className="text-base font-bold text-gray-800 truncate" title={obra.Autor || ''}>
+              {obra.Autor || 'Sem autor'}
+            </p>
             {obra.Nacionalidade && <p className="text-xs text-gray-500 mt-0.5">🌍 {obra.Nacionalidade}</p>}
           </div>
         </div>

@@ -48,9 +48,18 @@ export function Catalogo() {
 
   useEffect(() => { carregarObras(); }, []);
 
+  // MULTI-AUTOR: Autor pode vir como "Silva, Costa".
+  // O dropdown deve mostrar cada autor individualmente, não a string inteira.
   const autores = useMemo(() => {
     const set = new Set<string>();
-    obras.forEach((o) => { if (o.Autor) set.add(o.Autor); });
+    obras.forEach((o) => {
+      if (o.Autor) {
+        o.Autor.split(',').forEach((a) => {
+          const nome = a.trim();
+          if (nome) set.add(nome);
+        });
+      }
+    });
     return Array.from(set).sort();
   }, [obras]);
 
@@ -77,7 +86,14 @@ export function Catalogo() {
         (o.ISBN && o.ISBN.toLowerCase().includes(p))
       );
     }
-    if (filtroAutor) resultado = resultado.filter((o) => o.Autor === filtroAutor);
+    // MULTI-AUTOR: verifica se o autor filtrado está na lista separada por vírgula
+    if (filtroAutor) {
+      resultado = resultado.filter((o) =>
+        o.Autor
+          ? o.Autor.split(',').map((a) => a.trim()).includes(filtroAutor)
+          : false
+      );
+    }
     if (filtroEditora) resultado = resultado.filter((o) => o.Editora === filtroEditora);
     if (filtroArea) resultado = resultado.filter((o) => o.AreaConhecimento === filtroArea);
     return resultado;
@@ -291,9 +307,12 @@ export function Catalogo() {
                     </div>
                   )}
 
+                  {/* MULTI-AUTOR: title dá tooltip com lista completa */}
                   <div className="flex items-start gap-2 text-sm text-gray-600">
                     <User size={14} className="text-gray-400 flex-shrink-0 mt-0.5" />
-                    <span className="line-clamp-2">{obra.Autor || <span className="text-gray-300 italic">Sem autor</span>}</span>
+                    <span className="line-clamp-2" title={obra.Autor || 'Sem autor'}>
+                      {obra.Autor || <span className="text-gray-300 italic">Sem autor</span>}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -398,13 +417,16 @@ export function Catalogo() {
               </div>
 
               <div className="space-y-4 text-sm flex-1">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                {/* MULTI-AUTOR: bloco pode ter vários nomes separados por vírgula */}
+                <div className="flex items-start gap-3 border-b border-gray-100 pb-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <User size={14} className="text-gray-500" />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 font-semibold">Autor</p>
-                    <p className="font-semibold text-gray-800">{detalheAberto.Autor || '—'}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs text-gray-400 font-semibold">Autor(es)</p>
+                    <p className="font-semibold text-gray-800" title={detalheAberto.Autor || ''}>
+                      {detalheAberto.Autor || '—'}
+                    </p>
                   </div>
                 </div>
                 

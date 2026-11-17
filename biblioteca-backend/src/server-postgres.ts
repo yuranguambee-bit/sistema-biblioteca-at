@@ -77,6 +77,37 @@ async function criarNotificacao(titulo: string, mensagem: string, tipo: string, 
     } catch (error) { console.error('Erro ao criar notificação:', error); }
 }
 
+/**
+ * Grava a lista de autores de uma obra na tabela obras_autores.
+ * Aceita: array [1,2,3], número 5, string "5", ou undefined (não mexe).
+ * Também atualiza obras.autorid com o PRIMEIRO autor (compatibilidade).
+ * Deve ser chamada DENTRO de uma transação, recebendo o client.
+ */
+async function guardarAutoresObra(client: any, obraId: number, autorIds: any) {
+    if (autorIds === undefined) return;
+
+    let ids: number[] = [];
+    if (Array.isArray(autorIds)) {
+        ids = autorIds.map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0);
+    } else if (autorIds !== null && autorIds !== '') {
+        const n = Number(autorIds);
+        if (Number.isInteger(n) && n > 0) ids = [n];
+    }
+    ids = Array.from(new Set(ids));
+
+    await client.query('DELETE FROM obras_autores WHERE obraid = $1', [obraId]);
+
+    for (let i = 0; i < ids.length; i++) {
+        await client.query(
+            'INSERT INTO obras_autores (obraid, autorid, ordem) VALUES ($1, $2, $3) ON CONFLICT (obraid, autorid) DO NOTHING',
+            [obraId, ids[i], i + 1]
+        );
+    }
+
+    const primeiro = ids.length > 0 ? ids[0] : null;
+    await client.query('UPDATE obras SET autorid = $1 WHERE id = $2', [primeiro, obraId]);
+}
+
 async function seedAdmin() {
     try {
         const check = await pool.query('SELECT COUNT(*) as total FROM Usuarios');
@@ -188,7 +219,7 @@ function verificarCamposObra(req: Request, res: Response, next: NextFunction) {
     const proibidos = [];
     if (req.body.Titulo !== undefined && !p['obras_campo_titulo']) proibidos.push('Titulo');
     if (req.body.Ano !== undefined && !p['obras_campo_ano']) proibidos.push('Ano');
-    if (req.body.AutorId !== undefined && !p['obras_campo_autor']) proibidos.push('Autor');
+    if ((req.body.AutorId !== undefined || req.body.AutorIds !== undefined) && !p['obras_campo_autor']) proibidos.push('Autor');
     if (req.body.EditoraId !== undefined && !p['obras_campo_editora']) proibidos.push('Editora');
     if (req.body.NumeroEdicao !== undefined && !p['obras_campo_numeroedicao']) proibidos.push('NumeroEdicao');
     if (req.body.NacionalidadeLivro !== undefined && !p['obras_campo_nacionalidadelivro']) proibidos.push('NacionalidadeLivro');
@@ -292,7 +323,7 @@ app.post('/api/backup/executar', async (req: Request, res: Response) => {
     if (!secretHeader || secretHeader !== process.env.BACKUP_SECRET) return res.status(401).json({ error: 'Não autorizado.' });
 
     try {
-        const tabelas = ['usuarios', 'autores', 'editoras', 'obras', 'clientes', 'emprestimos', 'reservas', 'notificacoes', 'configuracoes', 'favoritos'];
+        const tabelas = ['usuarios', 'autores', 'editoras', 'obras', 'obras_autores', 'clientes', 'emprestimos', 'reservas', 'notificacoes', 'configuracoes', 'favoritos'];
         const dadosBackup: any = { dataBackup: new Date().toISOString(), versao: '1.0', sistema: 'Biblioteca AT', tabelas: {} };
         for (const tabela of tabelas) {
             try { const result = await pool.query(`SELECT * FROM ${tabela}`); dadosBackup.tabelas[tabela] = result.rows; } catch (err: any) { dadosBackup.tabelas[tabela] = []; }
@@ -321,14 +352,13 @@ app.get('/api/portal/meus-emprestimos', verificarToken, apenasCliente, async (re
     try {
         const result = await pool.query(`
             SELECT E.id as "Id", E.obraid as "ObraId", O.titulo as "Obra", 
-                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
+                   O.autores_agregados as "Autor", 
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
                    CASE WHEN E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso",
                    COALESCE(E.renovacaopendente, FALSE) as "RenovacaoPendente"
             FROM Emprestimos E
-            INNER JOIN Obras O ON E.obraid = O.id
-            LEFT JOIN Autores A ON O.autorid = A.id
+            INNER JOIN obras_com_autores O ON E.obraid = O.id
             WHERE E.clienteid = $1 AND E.status = 'ATIVO'
             ORDER BY E.dataemprestimo DESC
         `, [(req as any).user.id]);
@@ -346,12 +376,11 @@ app.get('/api/portal/minhas-requisicoes', verificarToken, apenasCliente, async (
                 WHERE status = 'PENDENTE' AND tipo = 'FILA_ESPERA'
             )
             SELECT R.id as "Id", O.id as "ObraId", O.titulo as "Obra", 
-                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
+                   O.autores_agregados as "Autor", 
                    TO_CHAR(R.datareserva, 'DD/MM/YYYY') as "DataReserva", R.tipo as "Tipo",
                    F.posicao as "PosicaoFila"
             FROM Reservas R
-            INNER JOIN Obras O ON R.obraid = O.id
-            LEFT JOIN Autores A ON O.autorid = A.id
+            INNER JOIN obras_com_autores O ON R.obraid = O.id
             LEFT JOIN Fila F ON R.id = F.id
             WHERE R.clienteid = $1 AND R.status = 'PENDENTE'
             ORDER BY R.datareserva DESC
@@ -364,12 +393,11 @@ app.get('/api/portal/meu-historico', verificarToken, apenasCliente, async (req, 
     try {
         const result = await pool.query(`
             SELECT E.id as "Id", O.titulo as "Obra", 
-                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
+                   O.autores_agregados as "Autor", 
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
                    TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao"
             FROM Emprestimos E
-            INNER JOIN Obras O ON E.obraid = O.id
-            LEFT JOIN Autores A ON O.autorid = A.id
+            INNER JOIN obras_com_autores O ON E.obraid = O.id
             WHERE E.clienteid = $1 AND E.status = 'DEVOLVIDO'
             ORDER BY E.dataemprestimo DESC
         `, [(req as any).user.id]);
@@ -382,11 +410,10 @@ app.get('/api/portal/favoritos', verificarToken, apenasCliente, async (req, res)
     try {
         const result = await pool.query(`
             SELECT O.id as "Id", O.titulo as "Titulo", 
-                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor",
+                   O.autores_agregados as "Autor",
                    E.nome as "Editora", O.ano as "Ano", O.status as "Status"
             FROM Favoritos F
-            INNER JOIN Obras O ON F.obraid = O.id
-            LEFT JOIN Autores A ON O.autorid = A.id
+            INNER JOIN obras_com_autores O ON F.obraid = O.id
             LEFT JOIN Editoras E ON O.editoraid = E.id
             WHERE F.clienteid = $1
             ORDER BY F.datacriacao DESC
@@ -556,15 +583,14 @@ app.put('/api/portal/password', verificarToken, apenasCliente, async (req, res) 
 app.get('/api/renovacoes/pendentes', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT E.id as "Id", O.titulo as "Obra", (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor",
+            SELECT E.id as "Id", O.titulo as "Obra", O.autores_agregados as "Autor",
                    C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone",
                    TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo",
                    TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao",
                    TO_CHAR(E.renovacaosolicitadaem, 'DD/MM/YYYY HH24:MI') as "SolicitadoEm"
             FROM Emprestimos E
-            INNER JOIN Obras O ON E.obraid = O.id
+            INNER JOIN obras_com_autores O ON E.obraid = O.id
             INNER JOIN Clientes C ON E.clienteid = C.id
-            LEFT JOIN Autores A ON O.autorid = A.id
             WHERE E.status = 'ATIVO' AND COALESCE(E.renovacaopendente, FALSE) = TRUE
             ORDER BY E.renovacaosolicitadaem ASC
         `);
@@ -729,17 +755,18 @@ app.get('/api/obras', verificarToken, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT O.id as "Id", O.titulo as "Titulo", 
-                   (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor", 
+                   O.autores_agregados as "Autor", 
+                   O.autores_ids as "AutorIds",
                    E.nome as "Editora", 
                    O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", 
                    O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel",
                    O.autorid as "AutorId", O.editoraid as "EditoraId",
-                   O.status as "Status",
+                   O.status as "Status", O.quantidade as "Quantidade",
                    (SELECT COUNT(*) FROM Emprestimos WHERE obraid = O.id) as "TotalEmprestimos",
                    (SELECT COUNT(*) FROM Reservas WHERE obraid = O.id AND status = 'PENDENTE') as "ReservasPendentes"
-            FROM Obras O 
-            LEFT JOIN Autores A ON O.autorid = A.id 
+            FROM obras_com_autores O 
             LEFT JOIN Editoras E ON O.editoraid = E.id
+            ORDER BY O.titulo ASC
         `);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -747,7 +774,7 @@ app.get('/api/obras', verificarToken, async (req, res) => {
 
 app.get('/api/obras/disponiveis', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", (A.nome || ' ' || COALESCE(A.sobrenome, '')) as "Autor" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id WHERE O.status = 'DISPONIVEL'`);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.autores_agregados as "Autor" FROM obras_com_autores O WHERE O.status = 'DISPONIVEL'`);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -804,6 +831,7 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
         res.json({
             titulo: book.title || '',
             ano: book.publishedDate ? book.publishedDate.substring(0, 4) : '',
+            autores: book.authors || [],
             autor: book.authors ? book.authors[0] : '',
             editora: book.publisher || ''
         });
@@ -815,41 +843,68 @@ app.get('/api/obras/buscar-isbn/:isbn', verificarToken, async (req, res) => {
 
 app.get('/api/obras/:id', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel", O.status as "Status", A.nome as "Autor", A.nacionalidade as "Nacionalidade", E.nome as "Editora", E.telefone as "EditoraContacto", O.autorid as "AutorId", O.editoraid as "EditoraId" FROM Obras O LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.ano as "Ano", O.numeroedicao as "NumeroEdicao", O.nacionalidadelivro as "NacionalidadeLivro", O.isbn as "ISBN", O.codigo as "Codigo", O.area_conhecimento as "AreaConhecimento", O.localizacao as "Localizacao", O.ordem_excel as "OrdemExcel", O.status as "Status", O.quantidade as "Quantidade", O.autores_agregados as "Autor", O.autores_ids as "AutorIds", E.nome as "Editora", E.telefone as "EditoraContacto", O.autorid as "AutorId", O.editoraid as "EditoraId" FROM obras_com_autores O LEFT JOIN Editoras E ON O.editoraid = E.id WHERE O.id = $1`, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
 app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
+    const { Titulo, Ano, AutorId, AutorIds, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
+    // Suporta tanto AutorId (singular, legado) como AutorIds (array, novo)
+    const listaAutoresRaw = AutorIds !== undefined ? AutorIds : AutorId;
+    const listaAutores: number[] = Array.isArray(listaAutoresRaw)
+        ? listaAutoresRaw.map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0)
+        : (listaAutoresRaw !== undefined && listaAutoresRaw !== null && listaAutoresRaw !== '')
+            ? [Number(listaAutoresRaw)].filter((n) => Number.isInteger(n) && n > 0)
+            : [];
+
+    if (listaAutores.length === 0) return res.status(400).json({ error: 'Indica pelo menos um autor.' });
+
+    const client = await pool.connect();
     try {
-        const insertResult = await pool.query(
+        await client.query('BEGIN');
+
+        const insertResult = await client.query(
             "INSERT INTO Obras (titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, codigo, area_conhecimento, localizacao, ordem_excel, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'DISPONIVEL') RETURNING id", 
-            [Titulo, Ano, AutorId, EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null, Codigo || null, AreaConhecimento || null, Localizacao || null, OrdemExcel || null]
+            [Titulo, Ano, listaAutores[0], EditoraId, NumeroEdicao || null, NacionalidadeLivro || null, ISBN || null, Codigo || null, AreaConhecimento || null, Localizacao || null, OrdemExcel || null]
         );
         const novaObraId = insertResult.rows[0].id;
-        
+
+        await guardarAutoresObra(client, novaObraId, listaAutores);
+
+        await client.query('COMMIT');
+
         await criarNotificacao('📚 Nova Obra', `A obra "${Titulo}" foi adicionada.`, 'OBRA', '/acervo', null);
-        
-        res.status(201).json({ message: 'Obra cadastrada!' });
-    } catch (error: any) { res.status(500).json({ error: error.message }); }
+
+        res.status(201).json({ message: 'Obra cadastrada!', obraId: novaObraId });
+    } catch (error: any) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
 });
 
 app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), verificarCamposObra, async (req, res) => {
-    const { Titulo, Ano, AutorId, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
+    const { Titulo, Ano, AutorId, AutorIds, EditoraId, NumeroEdicao, NacionalidadeLivro, ISBN, Codigo, AreaConhecimento, Localizacao, OrdemExcel } = req.body;
     
+    const client = await pool.connect();
     try {
-        const current = await pool.query('SELECT titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, codigo, area_conhecimento, localizacao, ordem_excel FROM Obras WHERE id = $1', [req.params.id]);
-        if (current.rows.length === 0) return res.status(404).json({ error: 'Obra não encontrada.' });
+        await client.query('BEGIN');
+
+        const current = await client.query('SELECT titulo, ano, autorid, editoraid, numeroedicao, nacionalidadelivro, isbn, codigo, area_conhecimento, localizacao, ordem_excel FROM Obras WHERE id = $1', [req.params.id]);
+        if (current.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Obra não encontrada.' });
+        }
         const old = current.rows[0];
 
         const novoTitulo = Titulo !== undefined ? Titulo : old.titulo;
         const novoAno = Ano !== undefined ? Ano : old.ano;
-        const novoAutorId = AutorId !== undefined ? AutorId : old.autorid;
         const novoEditoraId = EditoraId !== undefined ? EditoraId : old.editoraid;
         const novoNumeroEdicao = NumeroEdicao !== undefined ? NumeroEdicao : old.numeroedicao;
         const novoNacionalidade = NacionalidadeLivro !== undefined ? NacionalidadeLivro : old.nacionalidadelivro;
@@ -859,16 +914,35 @@ app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), ve
         const novaLocalizacao = Localizacao !== undefined ? Localizacao : old.localizacao;
         const novaOrdem = OrdemExcel !== undefined ? OrdemExcel : old.ordem_excel;
 
-        await pool.query(`
+        // Compatibilidade: se vier AutorId (singular) e não AutorIds, normaliza
+        let autoresParaGravar: any = undefined;
+        if (AutorIds !== undefined) {
+            autoresParaGravar = AutorIds;
+        } else if (AutorId !== undefined) {
+            autoresParaGravar = AutorId;
+        }
+
+        await client.query(`
             UPDATE Obras 
-            SET titulo = $1, ano = $2, autorid = $3, editoraid = $4, numeroedicao = $5, nacionalidadelivro = $6, isbn = $7, codigo = $8, area_conhecimento = $9, localizacao = $10, ordem_excel = $11
-            WHERE id = $12
-        `, [novoTitulo, novoAno, novoAutorId, novoEditoraId, novoNumeroEdicao, novoNacionalidade, novoISBN, novoCodigo, novaArea, novaLocalizacao, novaOrdem, req.params.id]);
+            SET titulo = $1, ano = $2, editoraid = $3, numeroedicao = $4, nacionalidadelivro = $5, isbn = $6, codigo = $7, area_conhecimento = $8, localizacao = $9, ordem_excel = $10
+            WHERE id = $11
+        `, [novoTitulo, novoAno, novoEditoraId, novoNumeroEdicao, novoNacionalidade, novoISBN, novoCodigo, novaArea, novaLocalizacao, novaOrdem, req.params.id]);
+
+        if (autoresParaGravar !== undefined) {
+            await guardarAutoresObra(client, Number(req.params.id), autoresParaGravar);
+        }
+
+        await client.query('COMMIT');
 
         await criarNotificacao('✏️ Obra Atualizada', `A obra "${novoTitulo}" foi atualizada.`, 'OBRA', '/acervo', null);
 
         res.json({ message: 'Obra atualizada com sucesso!' });
-    } catch (error: any) { res.status(500).json({ error: error.message }); }
+    } catch (error: any) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
 });
 
 app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras_apagar'), async (req, res) => {
@@ -881,7 +955,7 @@ app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras_apagar'),
 // ============ AUTORES ============
 app.get('/api/autores', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT A.id as "Id", A.nome as "Nome", A.sobrenome as "Sobrenome", A.nacionalidade as "Nacionalidade", TO_CHAR(A.datanascimento, 'DD/MM/YYYY') as "DataNascimento", A.biografia as "Biografia", A.sexo as "Sexo", A.tiposlivros as "TiposLivros", (SELECT COUNT(*) FROM Obras WHERE autorid = A.id) as "TotalObras" FROM Autores A ORDER BY A.nome`);
+        const result = await pool.query(`SELECT A.id as "Id", A.nome as "Nome", A.sobrenome as "Sobrenome", A.nacionalidade as "Nacionalidade", TO_CHAR(A.datanascimento, 'DD/MM/YYYY') as "DataNascimento", A.biografia as "Biografia", A.sexo as "Sexo", A.tiposlivros as "TiposLivros", (SELECT COUNT(DISTINCT obraid) FROM obras_autores WHERE autorid = A.id) as "TotalObras" FROM Autores A ORDER BY A.nome`);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -894,7 +968,7 @@ app.post('/api/autores', verificarToken, verificarPermissao('autores_criar'), ve
             [Nome, Sobrenome || null, Nacionalidade || null, DataNascimento || null, Biografia || null, Sexo || null, TiposLivros || null]
         );
         const novoAutorId = insertResult.rows[0].id;
-        res.status(201).json({ message: 'Autor cadastrado!' });
+        res.status(201).json({ message: 'Autor cadastrado!', autorId: novoAutorId });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
@@ -920,7 +994,7 @@ app.put('/api/autores/:id', verificarToken, verificarPermissao('autores_editar')
 
 app.delete('/api/autores/:id', verificarToken, verificarPermissao('autores_apagar'), async (req, res) => {
     try {
-        const check = await pool.query('SELECT COUNT(*) as total FROM Obras WHERE autorid = $1', [req.params.id]);
+        const check = await pool.query('SELECT COUNT(DISTINCT obraid) as total FROM obras_autores WHERE autorid = $1', [req.params.id]);
         if (Number(check.rows[0].total) > 0) return res.status(400).json({ error: `O autor tem ${check.rows[0].total} obra(s) e não pode ser eliminado.` });
         
         await pool.query('DELETE FROM Autores WHERE id = $1', [req.params.id]);
@@ -1008,7 +1082,7 @@ app.delete('/api/clientes/:id', verificarToken, verificarPermissao('clientes_apa
 
 app.get('/api/clientes/:id/historico', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT E.id as "Id", O.titulo as "Obra", A.nome as "Autor", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao", CASE WHEN E.status = 'ATIVO' AND E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso", E.status as "Status" FROM Emprestimos E INNER JOIN Obras O ON E.obraid = O.id LEFT JOIN Autores A ON O.autorid = A.id WHERE E.clienteid = $1 ORDER BY E.dataemprestimo DESC`, [req.params.id]);
+        const result = await pool.query(`SELECT E.id as "Id", O.titulo as "Obra", O.autores_agregados as "Autor", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao", CASE WHEN E.status = 'ATIVO' AND E.dataprevistadevolucao < CURRENT_DATE THEN (CURRENT_DATE - E.dataprevistadevolucao::date) ELSE 0 END as "DiasAtraso", E.status as "Status" FROM Emprestimos E INNER JOIN obras_com_autores O ON E.obraid = O.id WHERE E.clienteid = $1 ORDER BY E.dataemprestimo DESC`, [req.params.id]);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
@@ -1157,7 +1231,7 @@ app.get('/api/emprestimos/historico', verificarToken, async (req, res) => {
 
 app.get('/api/emprestimos/:id/comprovativo', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT E.id as "Id", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao", E.status as "Status", C.id as "ClienteId", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", O.id as "ObraId", O.titulo as "Obra", O.ano as "ObraAno", A.nome as "Autor", Ed.nome as "Editora" FROM Emprestimos E INNER JOIN Clientes C ON E.clienteid = C.id INNER JOIN Obras O ON E.obraid = O.id LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras Ed ON O.editoraid = Ed.id WHERE E.id = $1`, [req.params.id]);
+        const result = await pool.query(`SELECT E.id as "Id", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao", TO_CHAR(E.datadevolucao, 'DD/MM/YYYY') as "DataDevolucao", E.status as "Status", C.id as "ClienteId", C.nome as "Cliente", C.email as "ClienteEmail", C.telefone as "ClienteTelefone", O.id as "ObraId", O.titulo as "Obra", O.ano as "ObraAno", O.autores_agregados as "Autor", Ed.nome as "Editora" FROM Emprestimos E INNER JOIN Clientes C ON E.clienteid = C.id INNER JOIN obras_com_autores O ON E.obraid = O.id LEFT JOIN Editoras Ed ON O.editoraid = Ed.id WHERE E.id = $1`, [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Não encontrado.' });
         res.json(result.rows[0]);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
@@ -1208,13 +1282,12 @@ app.post('/api/emprestimos/confirmar-requisicao/:reservaId', verificarToken, ver
 
         const detalhes = await pool.query(
             `SELECT C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", 
-                    A.nome as "ObraAutor", Ed.nome as "ObraEditora", 
+                    O.autores_agregados as "ObraAutor", Ed.nome as "ObraEditora", 
                     TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", 
                     TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao" 
              FROM Emprestimos E 
              INNER JOIN Clientes C ON E.clienteid = C.id 
-             INNER JOIN Obras O ON E.obraid = O.id 
-             LEFT JOIN Autores A ON O.autorid = A.id 
+             INNER JOIN obras_com_autores O ON E.obraid = O.id 
              LEFT JOIN Editoras Ed ON O.editoraid = Ed.id 
              WHERE E.id = $1`,
             [novoEmprestimoId]
@@ -1274,7 +1347,7 @@ app.post('/api/emprestimos', verificarToken, verificarPermissao('emprestimos_cri
         await client.query("UPDATE Reservas SET status = 'ATENDIDA' WHERE obraid = $1 AND clienteid = $2 AND status = 'PENDENTE'", [ObraId, ClienteId]);
         await client.query('COMMIT');
 
-        const detalhes = await pool.query(`SELECT C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", A.nome as "ObraAutor", Ed.nome as "ObraEditora", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao" FROM Emprestimos E INNER JOIN Clientes C ON E.clienteid = C.id INNER JOIN Obras O ON E.obraid = O.id LEFT JOIN Autores A ON O.autorid = A.id LEFT JOIN Editoras Ed ON O.editoraid = Ed.id WHERE E.id = $1`, [novoEmprestimoId]);
+        const detalhes = await pool.query(`SELECT C.nome as "ClienteNome", C.email as "ClienteEmail", O.titulo as "ObraTitulo", O.autores_agregados as "ObraAutor", Ed.nome as "ObraEditora", TO_CHAR(E.dataemprestimo, 'DD/MM/YYYY') as "DataEmprestimo", TO_CHAR(E.dataprevistadevolucao, 'DD/MM/YYYY') as "DataPrevistaDevolucao" FROM Emprestimos E INNER JOIN Clientes C ON E.clienteid = C.id INNER JOIN obras_com_autores O ON E.obraid = O.id LEFT JOIN Editoras Ed ON O.editoraid = Ed.id WHERE E.id = $1`, [novoEmprestimoId]);
 
         if (detalhes.rows.length > 0) {
             const d = detalhes.rows[0];
@@ -1400,20 +1473,19 @@ app.delete('/api/notificacoes', verificarToken, apenasAdmin, async (req, res) =>
     try { await pool.query('DELETE FROM Notificacoes WHERE lida = TRUE AND ClienteId IS NULL'); res.json({ message: 'Removidas.' }); } catch (error: any) { res.status(500).json({ error: error.message }); }
 });
 
-// ============ RELATÓRIOS (NOVO) ============
+// ============ RELATÓRIOS ============
 app.get('/api/relatorios/inventario', verificarToken, verificarPermissao('relatorios'), async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT O.titulo as "Titulo", 
-                   COALESCE(A.nome || ' ' || A.sobrenome, 'Desconhecido') as "Autor", 
+                   O.autores_agregados as "Autor", 
                    COALESCE(E.nome, 'Desconhecida') as "Editora", 
                    O.ano as "Ano", 
                    COALESCE(O.isbn, '—') as "ISBN", 
                    COALESCE(O.codigo, '—') as "Codigo", 
                    COALESCE(O.localizacao, '—') as "Localizacao", 
                    O.status as "Status" 
-            FROM Obras O 
-            LEFT JOIN Autores A ON O.autorid = A.id 
+            FROM obras_com_autores O 
             LEFT JOIN Editoras E ON O.editoraid = E.id 
             ORDER BY O.titulo ASC
         `);
@@ -1492,10 +1564,9 @@ app.get('/api/relatorios/nunca-emprestadas', verificarToken, verificarPermissao(
     try {
         const result = await pool.query(`
             SELECT O.titulo as "Obra", 
-                   COALESCE(A.nome, 'Desconhecido') as "Autor", 
+                   O.autores_agregados as "Autor", 
                    O.ano as "Ano" 
-            FROM Obras O 
-            LEFT JOIN Autores A ON O.autorid = A.id 
+            FROM obras_com_autores O 
             WHERE O.id NOT IN (SELECT obraid FROM Emprestimos) 
             ORDER BY O.titulo ASC
         `);
@@ -1542,7 +1613,7 @@ app.get('/api/estatisticas/graficos', verificarToken, async (req, res) => {
 
 app.get('/api/dashboard/top-obras', verificarToken, async (req, res) => {
     try {
-        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", A.nome as "Autor", COUNT(E.id) as "TotalEmprestimos" FROM Obras O LEFT JOIN Emprestimos E ON E.obraid = O.id LEFT JOIN Autores A ON O.autorid = A.id GROUP BY O.id, O.titulo, A.nome ORDER BY COUNT(E.id) DESC, O.titulo ASC LIMIT 5`);
+        const result = await pool.query(`SELECT O.id as "Id", O.titulo as "Titulo", O.autores_agregados as "Autor", COUNT(E.id) as "TotalEmprestimos" FROM obras_com_autores O LEFT JOIN Emprestimos E ON E.obraid = O.id GROUP BY O.id, O.titulo, O.autores_agregados ORDER BY COUNT(E.id) DESC, O.titulo ASC LIMIT 5`);
         res.json(result.rows);
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

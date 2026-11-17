@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Autocomplete } from '../components/Autocomplete';
 import { 
   BookOpen, User, Building2, Calendar, Layers, Lock, 
-  RefreshCw, Hash, Globe, Eye, Barcode, MapPin, Tags, Search
+  RefreshCw, Hash, Globe, Eye, Barcode, MapPin, Tags, Search, X
 } from 'lucide-react';
 
 interface Autor { Id: number; Nome: string; Nacionalidade?: string; }
@@ -33,7 +33,11 @@ export function CadastrarObra() {
   const [ano, setAno] = useState('');
   const [numeroEdicao, setNumeroEdicao] = useState('');
   const [nacionalidadeLivro, setNacionalidadeLivro] = useState('');
-  const [autorId, setAutorId] = useState('');
+
+  // MULTI-AUTOR: lista de IDs selecionados + campo temporário para o picker
+  const [autorIds, setAutorIds] = useState<number[]>([]);
+  const [autorTemp, setAutorTemp] = useState('');
+
   const [editoraId, setEditoraId] = useState('');
   const [exemplares, setExemplares] = useState(1);
   
@@ -68,7 +72,6 @@ export function CadastrarObra() {
     apiFetch('/api/autores').then((r) => r.json()).then((data) => {
       const lista = Array.isArray(data) ? data : [];
       setAutores(lista);
-      if (lista.length > 0 && !autorId) setAutorId(lista[0].Id.toString());
     }).catch((e) => console.error(e));
 
     apiFetch('/api/editoras').then((r) => r.json()).then((data) => {
@@ -90,14 +93,41 @@ export function CadastrarObra() {
     );
   }, [obras, pesquisa]);
 
-  const opcoesAutores = autores.map((a) => ({ id: a.Id, label: a.Nome, sublabel: a.Nacionalidade || undefined }));
+  // Opções do picker — exclui autores já selecionados (evita duplicados)
+  const opcoesAutores = autores
+    .filter((a) => !autorIds.includes(a.Id))
+    .map((a) => ({ id: a.Id, label: a.Nome, sublabel: a.Nacionalidade || undefined }));
+
   const opcoesEditoras = editoras.map((e) => ({ id: e.Id, label: e.Nome, sublabel: e.Contacto || undefined }));
+
+  // Lista de objetos Autor correspondentes aos IDs selecionados (para renderizar chips)
+  const autoresSelecionados = useMemo(
+    () => autorIds
+      .map((id) => autores.find((a) => a.Id === id))
+      .filter((a): a is Autor => Boolean(a)),
+    [autorIds, autores]
+  );
+
+  // MULTI-AUTOR: adicionar autor ao array
+  const adicionarAutor = (idStr: string) => {
+    if (!idStr) return;
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || id <= 0) return;
+    if (autorIds.includes(id)) { setAutorTemp(''); return; }
+    setAutorIds((prev) => [...prev, id]);
+    setAutorTemp('');
+  };
+
+  // MULTI-AUTOR: remover autor do array
+  const removerAutor = (id: number) => {
+    setAutorIds((prev) => prev.filter((x) => x !== id));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!podeCriar) return showToast('Não tens permissão para cadastrar obras.', 'error');
-    if (!autorId) return showToast('Seleciona um autor para a obra.', 'error');
+    if (autorIds.length === 0) return showToast('Adiciona pelo menos um autor à obra.', 'error');
     if (!editoraId) return showToast('Seleciona uma editora para a obra.', 'error');
 
     setLoading(true);
@@ -113,7 +143,8 @@ export function CadastrarObra() {
               ISBN: isbn.trim() || null,
               NumeroEdicao: numeroEdicao.trim() || null,
               NacionalidadeLivro: nacionalidadeLivro.trim() || null,
-              AutorId: Number(autorId),
+              // MULTI-AUTOR: enviar o array completo
+              AutorIds: autorIds,
               EditoraId: Number(editoraId),
               Codigo: codigo.trim() || null,
               AreaConhecimento: areaConhecimento.trim() || null,
@@ -129,6 +160,7 @@ export function CadastrarObra() {
       if (todasOk) {
         showToast(exemplares > 1 ? `${exemplares} exemplares cadastrados!` : 'Obra cadastrada!', 'success');
         setTitulo(''); setAno(''); setIsbn(''); setNumeroEdicao(''); setNacionalidadeLivro('');
+        setAutorIds([]); setAutorTemp('');
         setCodigo(''); setAreaConhecimento(''); setLocalizacao(''); setExemplares(1);
         carregarObras(); 
       } else {
@@ -262,9 +294,72 @@ export function CadastrarObra() {
             </div>
           </div>
 
+          {/* ═══════════════════════════════════════════════════
+              MULTI-AUTOR: campo com chips + picker para adicionar
+              ═══════════════════════════════════════════════════ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Autocomplete label="Autor" options={opcoesAutores} value={autorId} onChange={setAutorId} placeholder="Escreve para pesquisar..." icon={<User size={18} />} disabled={campoBloqueado('obras_campo_autor')} required />
-            <Autocomplete label="Editora" options={opcoesEditoras} value={editoraId} onChange={setEditoraId} placeholder="Escreve para pesquisar..." icon={<Building2 size={18} />} disabled={campoBloqueado('obras_campo_editora')} required />
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
+                <span>Autor(es) <span className="text-red-500">*</span></span>
+                {!temPermissao('obras_campo_autor') && <Lock size={12} className="text-red-400" />}
+              </label>
+
+              {/* Chips dos autores selecionados */}
+              {autoresSelecionados.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                  {autoresSelecionados.map((a, idx) => (
+                    <span
+                      key={a.Id}
+                      className="inline-flex items-center gap-1.5 bg-[#004B93] text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm"
+                    >
+                      <span className="bg-white/20 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                        {idx + 1}
+                      </span>
+                      <span className="max-w-[140px] truncate" title={a.Nome}>{a.Nome}</span>
+                      {!campoBloqueado('obras_campo_autor') && (
+                        <button
+                          type="button"
+                          onClick={() => removerAutor(a.Id)}
+                          className="ml-0.5 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                          title="Remover autor"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Picker: Autocomplete SEM label e SEM required, porque agora é só uma ferramenta de adicionar */}
+              <Autocomplete
+                label=""
+                options={opcoesAutores}
+                value={autorTemp}
+                onChange={adicionarAutor}
+                placeholder={
+                  autoresSelecionados.length === 0
+                    ? "Pesquisar e adicionar autor..."
+                    : "Adicionar outro autor..."
+                }
+                icon={<User size={18} />}
+                disabled={campoBloqueado('obras_campo_autor') || autores.length === 0}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Podes adicionar vários autores. A ordem importa (1º autor é o principal).
+              </p>
+            </div>
+
+            <Autocomplete
+              label="Editora"
+              options={opcoesEditoras}
+              value={editoraId}
+              onChange={setEditoraId}
+              placeholder="Escreve para pesquisar..."
+              icon={<Building2 size={18} />}
+              disabled={campoBloqueado('obras_campo_editora')}
+              required
+            />
           </div>
 
           <div>
@@ -327,7 +422,7 @@ export function CadastrarObra() {
               <thead>
                 <tr className="bg-gray-50/70 text-gray-500 text-xs uppercase tracking-wider">
                   <th className="px-6 py-4 font-bold">Título</th>
-                  <th className="px-6 py-4 font-bold">Autor</th>
+                  <th className="px-6 py-4 font-bold">Autor(es)</th>
                   <th className="px-6 py-4 font-bold">Editora</th>
                   <th className="px-6 py-4 font-bold">Código</th>
                   <th className="px-6 py-4 font-bold">Área</th>
@@ -341,7 +436,9 @@ export function CadastrarObra() {
                 {obrasFiltradas.map((obra) => (
                   <tr key={obra.Id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                     <td className="px-6 py-4 font-semibold text-gray-800">{obra.Titulo}</td>
-                    <td className="px-6 py-4 text-gray-600">{obra.Autor}</td>
+                    <td className="px-6 py-4 text-gray-600 max-w-[240px] truncate" title={obra.Autor}>
+                      {obra.Autor || <span className="text-gray-300 italic">—</span>}
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{obra.Editora || <span className="text-gray-300 italic">—</span>}</td>
                     <td className="px-6 py-4 text-gray-600 font-mono text-xs">{obra.Codigo || <span className="text-gray-300 italic">—</span>}</td>
                     <td className="px-6 py-4 text-gray-600 truncate max-w-[150px]" title={obra.AreaConhecimento}>{obra.AreaConhecimento || <span className="text-gray-300 italic">—</span>}</td>
