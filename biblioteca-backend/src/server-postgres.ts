@@ -906,7 +906,7 @@ app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), ve
         const novoTitulo = Titulo !== undefined ? Titulo : old.titulo;
         const novoAno = Ano !== undefined ? Ano : old.ano;
         const novoEditoraId = EditoraId !== undefined ? EditoraId : old.editoraid;
-        const novoNumeroEdicao = NumeroEdicao !== undefined ? NumeroEdicao : old.numeroedicao;
+        const novoNumeroEdicao = NumeroEdicaao !== undefined ? NumeroEdicao : old.numeroedicao;
         const novoNacionalidade = NacionalidadeLivro !== undefined ? NacionalidadeLivro : old.nacionalidadelivro;
         const novoISBN = ISBN !== undefined ? ISBN : old.isbn;
         const novoCodigo = Codigo !== undefined ? Codigo : old.codigo;
@@ -947,9 +947,21 @@ app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), ve
 
 app.delete('/api/obras/:id', verificarToken, verificarPermissao('obras_apagar'), async (req, res) => {
     try {
+        const checkEmp = await pool.query("SELECT COUNT(*) as total FROM Emprestimos WHERE obraid = $1 AND status = 'ATIVO'", [req.params.id]);
+        if (Number(checkEmp.rows[0].total) > 0) {
+            return res.status(400).json({ error: 'Não é possível apagar. Esta obra tem empréstimos ativos.' });
+        }
+        
+        const checkRes = await pool.query("SELECT COUNT(*) as total FROM Reservas WHERE obraid = $1 AND status = 'PENDENTE'", [req.params.id]);
+        if (Number(checkRes.rows[0].total) > 0) {
+            return res.status(400).json({ error: 'Não é possível apagar. Existem leitores na fila de espera.' });
+        }
+
         await pool.query('DELETE FROM Obras WHERE id = $1', [req.params.id]);
-        res.json({ message: 'Obra removida.' });
-    } catch (error: any) { res.status(500).json({ error: error.message }); }
+        res.json({ message: 'Obra removida com sucesso.' });
+    } catch (error: any) { 
+        res.status(500).json({ error: 'Erro ao apagar obra: ' + error.message }); 
+    }
 });
 
 // ============ AUTORES ============

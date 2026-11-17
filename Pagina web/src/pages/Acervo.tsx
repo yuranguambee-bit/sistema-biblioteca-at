@@ -4,9 +4,10 @@ import { Obra } from '../types';
 import { apiFetch } from '../services/api';
 import { exportarParaCSV } from '../utils/exportar';
 import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  Eye, Edit, X, Save, RefreshCw, BookOpen, 
+  Eye, Edit, Trash2, X, Save, RefreshCw, BookOpen, 
   User, Building2, Calendar, Hash, Barcode, MapPin, Tags, Clock
 } from 'lucide-react';
 import { TableSkeleton } from '../components/Skeleton';
@@ -15,7 +16,6 @@ interface Autor { Id: number; Nome: string; }
 interface Editora { Id: number; Nome: string; }
 
 // Extensão local para apanhar o novo campo do backend
-// MULTI-AUTOR: AutorIds (array de IDs) vem do backend além de Autor (string agregada)
 interface ObraComFila extends Obra {
   ReservasPendentes?: number;
   AutorIds?: number[];
@@ -25,6 +25,7 @@ const ITENS_POR_PAGINA = 10;
 
 export function Acervo() {
   const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const { temPermissao } = useAuth();
   const navigate = useNavigate();
   
@@ -47,6 +48,7 @@ export function Acervo() {
   const [editAutorTemp, setEditAutorTemp] = useState('');
 
   const podeEditar = temPermissao('obras_editar');
+  const podeApagar = temPermissao('obras_apagar');
 
   useEffect(() => {
     carregarDados();
@@ -209,6 +211,34 @@ export function Acervo() {
     }
   };
 
+  // ============ FUNÇÃO DE APAGAR ============
+  const handleApagarObra = async (id: number, titulo: string) => {
+    if (!podeApagar) return showToast('Não tens permissão para apagar obras.', 'error');
+    
+    const ok = await confirm({
+      title: 'Apagar Obra',
+      message: `Tens a certeza que queres apagar a obra "${titulo}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Apagar Definitivamente',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    try {
+      const res = await apiFetch(`/api/obras/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      
+      if (res.ok) {
+        showToast('Obra apagada com sucesso!', 'success');
+        carregarDados();
+      } else {
+        showToast(data.error || 'Erro ao apagar obra.', 'error');
+      }
+    } catch (error) {
+      showToast('Erro de ligação ao servidor.', 'error');
+    }
+  };
+
   return (
     <main className="w-full mx-auto p-4 lg:p-8 mt-2 animate-fade-up">
       <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -342,7 +372,7 @@ export function Acervo() {
                             className="inline-flex items-center gap-1.5 bg-[#004B93] text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-[#003870] transition-colors"
                             title="Ver detalhes e histórico"
                           >
-                            <Eye size={14} /> Ver Detalhes
+                            <Eye size={14} /> Ver
                           </button>
                           
                           {podeEditar && (
@@ -352,6 +382,16 @@ export function Acervo() {
                               title="Editar dados da obra"
                             >
                               <Edit size={14} /> Editar
+                            </button>
+                          )}
+
+                          {podeApagar && (
+                            <button 
+                              onClick={() => handleApagarObra(obra.Id, obra.Titulo)}
+                              className="inline-flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-red-600 transition-colors"
+                              title="Apagar obra do sistema"
+                            >
+                              <Trash2 size={14} /> Apagar
                             </button>
                           )}
                         </div>
@@ -437,9 +477,7 @@ export function Acervo() {
                   <input type="text" value={editForm.NumeroEdicao} onChange={(e) => setEditForm({...editForm, NumeroEdicao: e.target.value})} className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#004B93] text-sm" placeholder="Ex: 1ª" />
                 </div>
 
-                {/* ═══════════════════════════════════════════════════
-                    MULTI-AUTOR: chips + picker (igual ao CadastrarObra)
-                    ═══════════════════════════════════════════════════ */}
+                {/* MULTI-AUTOR: chips + picker (igual ao CadastrarObra) */}
                 <div className="md:col-span-2">
                   <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <User size={14} className="text-gray-400" /> Autor(es) <span className="text-red-500">*</span>
