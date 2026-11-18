@@ -248,7 +248,7 @@ export function ListaClientes() {
         <label className="block text-sm font-semibold text-gray-700 mb-2">🔍 Pesquisar Cliente</label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Nome, email, telefone, PI ou NUIT..." className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" />
+          <input type="text" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} placeholder="Nome, email, telefone, BI ou NUIT..." className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004B93]" />
         </div>
       </div>
 
@@ -299,7 +299,7 @@ export function ListaClientes() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="space-y-1 text-xs">
-                          {cliente.PI && <p className="text-gray-600 flex items-center gap-1"><CreditCard size={12}/> PI: {cliente.PI}</p>}
+                          {cliente.PI && <p className="text-gray-600 flex items-center gap-1"><CreditCard size={12}/> BI: {cliente.PI}</p>}
                           {cliente.NUIT && <p className="text-gray-600 flex items-center gap-1"><FileText size={12}/> NUIT: {cliente.NUIT}</p>}
                           {!cliente.PI && !cliente.NUIT && <span className="text-gray-300 italic">—</span>}
                         </div>
@@ -394,7 +394,7 @@ export function ListaClientes() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                    <span>PI</span>
+                    <span>BI</span>
                     {!temPermissao('clientes_campo_pi') && <Lock size={12} className="text-red-400" />}
                   </label>
                   <div className="relative">

@@ -12,7 +12,7 @@ export function CadastrarCliente() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [pi, setPi] = useState('');
+  const [bi, setBi] = useState('');
   const [nuit, setNuit] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -42,7 +42,8 @@ export function CadastrarCliente() {
     try {
       const response = await apiFetch('/api/clientes', {
         method: 'POST',
-        body: JSON.stringify({ Nome: nome, Email: email, Telefone: telefone, PI: pi, NUIT: nuit }),
+        // O backend espera 'PI', mesmo que na interface se chame BI
+        body: JSON.stringify({ Nome: nome, Email: email, Telefone: telefone, PI: bi, NUIT: nuit }),
       });
 
       const data = await response.json();
@@ -66,7 +67,7 @@ export function CadastrarCliente() {
   };
 
   const handleNovoRegisto = () => {
-    setNome(''); setEmail(''); setTelefone(''); setPi(''); setNuit('');
+    setNome(''); setEmail(''); setTelefone(''); setBi(''); setNuit('');
     setSucesso(false);
     setSenhaGerada('');
   };
@@ -184,12 +185,12 @@ export function CadastrarCliente() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center justify-between">
-                <span>PI (Bilhete de Identidade)</span>
+                <span>BI (Bilhete de Identidade)</span>
                 {!temPermissao('clientes_campo_pi') && <Lock size={12} className="text-red-400" />}
               </label>
               <div className="relative">
                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input type="text" value={pi} onChange={(e) => setPi(e.target.value)} disabled={campoBloqueado('clientes_campo_pi')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('clientes_campo_pi') ? disabledClass : enabledClass}`} placeholder="Ex: 123456789A" />
+                <input type="text" value={bi} onChange={(e) => setBi(e.target.value)} disabled={campoBloqueado('clientes_campo_pi')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('clientes_campo_pi') ? disabledClass : enabledClass}`} placeholder="Ex: 123456789A" />
               </div>
             </div>
 
@@ -200,7 +201,7 @@ export function CadastrarCliente() {
               </label>
               <div className="relative">
                 <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input type="text" value={nuit} onChange={(e) => setNuit(e.target.value)} disabled={campoBloqueado('clientes_campo_nuit')} className={`w-full pl-10 p-3 border rounded-md transition-colors ${campoBloqueado('clientes_campo_nuit') ? disabledClass : enabledClass}`} placeholder="Ex: 123456789" />
+                <input type="text" value={nuit} onChange={(e) => setNuit(e.target.value)} disabled={campoBloqueado('clientes_campo_nuit')} className={`w-full pl-10 p-3 rounded-md transition-colors ${campoBloqueado('clientes_campo_nuit') ? disabledClass : enabledClass}`} placeholder="Ex: 123456789" />
               </div>
             </div>
           </div>

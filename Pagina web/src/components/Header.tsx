@@ -55,13 +55,18 @@ export function Header() {
   const linkClasses = "px-3 py-4 hover:bg-white/10 transition-colors text-[14px] font-medium flex items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent hover:border-white";
 
   const TopBar = () => (
-    <div className="bg-white text-[#004B93] shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="bg-white shadow-sm border-b-4 border-[#FFC107]">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
         <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-          <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
-          <div className="hidden md:block border-l border-gray-300 pl-4">
-            <h1 className="text-xl font-bold leading-tight uppercase tracking-wide">Autoridade Tributária</h1>
-            <p className="text-sm font-semibold text-gray-500">de Moçambique</p>
+          <img src="/logo-at.png" alt="Logotipo AT" className="h-16 w-auto object-contain" />
+          <div className="flex flex-col justify-center">
+            <h1 className="text-2xl md:text-[28px] font-bold text-[#004B93] leading-none tracking-wide mb-1.5">
+              Autoridade Tributária
+            </h1>
+            <p className="text-lg md:text-[22px] font-bold text-[#004B93] leading-none tracking-wide">
+              de Moçambique
+            </p>
           </div>
         </Link>
 
@@ -95,9 +100,7 @@ export function Header() {
             <>
               <Link to="/" className={linkClasses}><Home size={16} /> Início</Link>
               <Link to="/catalogo" className={linkClasses}><Library size={16} /> Catálogo</Link>
-              {/* ALTERAÇÃO AQUI: "Empréstimos" em vez de "Meus Empréstimos" */}
               <Link to="/meus-emprestimos" className={linkClasses}><BookMarked size={16} /> Empréstimos</Link>
-              {/* ALTERAÇÃO AQUI: "Histórico" em vez de "Meu Histórico" */}
               <Link to="/meu-historico" className={linkClasses}><History size={16} /> Histórico</Link>
               <Link to="/manual" className={linkClasses}><BookOpen size={16} /> Manual</Link>
             </>
