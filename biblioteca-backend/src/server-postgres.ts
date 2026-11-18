@@ -11,7 +11,8 @@ import {
     enviarEmailBackup, 
     enviarEmailLembrete, 
     enviarEmailAtraso, 
-    enviarEmailReservaDisponivel 
+    enviarEmailReservaDisponivel,
+    enviarEmailBemVindoCliente
 } from './utils/email';
 
 dotenv.config();
@@ -77,12 +78,6 @@ async function criarNotificacao(titulo: string, mensagem: string, tipo: string, 
     } catch (error) { console.error('Erro ao criar notificação:', error); }
 }
 
-/**
- * Grava a lista de autores de uma obra na tabela obras_autores.
- * Aceita: array [1,2,3], número 5, string "5", ou undefined (não mexe).
- * Também atualiza obras.autorid com o PRIMEIRO autor (compatibilidade).
- * Deve ser chamada DENTRO de uma transação, recebendo o client.
- */
 async function guardarAutoresObra(client: any, obraId: number, autorIds: any) {
     if (autorIds === undefined) return;
 
@@ -854,7 +849,6 @@ app.post('/api/obras', verificarToken, verificarPermissao('obras_criar'), verifi
     
     if (!EditoraId) return res.status(400).json({ error: 'A editora é obrigatória.' });
 
-    // Suporta tanto AutorId (singular, legado) como AutorIds (array, novo)
     const listaAutoresRaw = AutorIds !== undefined ? AutorIds : AutorId;
     const listaAutores: number[] = Array.isArray(listaAutoresRaw)
         ? listaAutoresRaw.map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0)
@@ -906,7 +900,7 @@ app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), ve
         const novoTitulo = Titulo !== undefined ? Titulo : old.titulo;
         const novoAno = Ano !== undefined ? Ano : old.ano;
         const novoEditoraId = EditoraId !== undefined ? EditoraId : old.editoraid;
-        const novoNumeroEdicao = NumeroEdicaao !== undefined ? NumeroEdicao : old.numeroedicao;
+        const novoNumeroEdicao = NumeroEdicao !== undefined ? NumeroEdicao : old.numeroedicao;
         const novoNacionalidade = NacionalidadeLivro !== undefined ? NacionalidadeLivro : old.nacionalidadelivro;
         const novoISBN = ISBN !== undefined ? ISBN : old.isbn;
         const novoCodigo = Codigo !== undefined ? Codigo : old.codigo;
@@ -914,7 +908,6 @@ app.put('/api/obras/:id', verificarToken, verificarPermissao('obras_editar'), ve
         const novaLocalizacao = Localizacao !== undefined ? Localizacao : old.localizacao;
         const novaOrdem = OrdemExcel !== undefined ? OrdemExcel : old.ordem_excel;
 
-        // Compatibilidade: se vier AutorId (singular) e não AutorIds, normaliza
         let autoresParaGravar: any = undefined;
         if (AutorIds !== undefined) {
             autoresParaGravar = AutorIds;
@@ -1044,11 +1037,23 @@ app.post('/api/clientes', verificarToken, verificarPermissao('clientes_criar'), 
             [Nome, Email || null, Telefone || null, PI || null, NUIT || null, hash]
         );
 
+        let emailEnviado = false;
+        if (Email) {
+            emailEnviado = await enviarEmailBemVindoCliente({
+                clienteNome: Nome,
+                clienteEmail: Email,
+                passwordInicial: passwordFinal
+            });
+        }
+
         res.status(201).json({
             message: Email
-                ? `Cliente cadastrado! Password inicial: ${passwordFinal} (o leitor deve alterá-la no portal).`
+                ? emailEnviado
+                    ? `Cliente cadastrado! Email de boas-vindas enviado para ${Email}.`
+                    : `Cliente cadastrado, mas falhou o envio do email. Password: ${passwordFinal}`
                 : 'Cliente cadastrado (sem conta de portal porque não tem email).',
-            clienteId: insertResult.rows[0].id
+            clienteId: insertResult.rows[0].id,
+            passwordGerada: Email ? passwordFinal : null
         });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
 });

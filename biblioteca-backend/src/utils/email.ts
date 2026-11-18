@@ -149,7 +149,6 @@ export async function enviarEmailBackup({ destinatario, dataBackup, conteudo }: 
 
   const json = JSON.stringify(conteudo, null, 2);
   const buffer = Buffer.from(json, 'utf-8');
-  const tamanhoKB = (buffer.length / 1024).toFixed(2);
   const nomeFicheiro = `backup_biblioteca_at_${new Date().toISOString().slice(0, 10)}.json`;
 
   try {
@@ -166,7 +165,7 @@ export async function enviarEmailBackup({ destinatario, dataBackup, conteudo }: 
   }
 }
 
-// ============ NOVAS NOTIFICAÇÕES AUTOMÁTICAS ============
+// ============ NOTIFICAÇÕES AUTOMÁTICAS ============
 
 export async function enviarEmailLembrete({ clienteNome, clienteEmail, obraTitulo, dataPrevista }: any): Promise<boolean> {
   if (!process.env.RESEND_API_KEY || !clienteEmail) return false;
@@ -226,6 +225,56 @@ export async function enviarEmailReservaDisponivel({ clienteNome, clienteEmail, 
           <p style="font-size: 16px; color: #333;">A obra <strong>"${obraTitulo}"</strong> que reservaste acabou de ser devolvida e já está disponível na biblioteca!</p>
           <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
             <p style="margin: 0; font-size: 16px; color: #065f46;"><strong>Atenção:</strong> A obra está reservada em teu nome. Passa na biblioteca para a requisitar.</p>
+          </div>
+        </div>
+      `,
+    });
+    return true;
+  } catch (error) { return false; }
+}
+
+// ============ NOVO: BOAS-VINDAS AO CLIENTE ============
+export async function enviarEmailBemVindoCliente({ clienteNome, clienteEmail, passwordInicial }: any): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY || !clienteEmail) return false;
+  try {
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+      to: [clienteEmail],
+      subject: `📚 Bem-vindo à Biblioteca da AT Moçambique — As tuas credenciais`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+          <div style="background-color: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            
+            <div style="background-color: #004B93; padding: 30px 20px; text-align: center;">
+              <h1 style="color: #fff; margin: 0; font-size: 24px;">Bem-vindo à Biblioteca</h1>
+              <p style="color: #a5c4e5; margin: 5px 0 0 0; font-size: 14px;">Autoridade Tributária de Moçambique</p>
+            </div>
+
+            <div style="padding: 30px 20px;">
+              <h2 style="color: #333; margin-top: 0;">Olá ${clienteNome},</h2>
+              <p style="font-size: 16px; color: #555; line-height: 1.5;">
+                A tua conta de leitor foi criada com sucesso no nosso sistema. 
+                A partir de agora, já podes explorar o catálogo online, fazer requisições e acompanhar os teus empréstimos.
+              </p>
+
+              <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 20px; margin: 25px 0; border-radius: 6px;">
+                <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 16px;">🔑 As tuas credenciais de acesso:</h3>
+                <p style="margin: 0 0 5px 0; font-size: 15px; color: #333;"><strong>Email:</strong> ${clienteEmail}</p>
+                <p style="margin: 0; font-size: 15px; color: #333;"><strong>Password Inicial:</strong> ${passwordInicial}</p>
+              </div>
+
+              <p style="font-size: 14px; color: #e11d48; font-weight: bold; margin-bottom: 20px;">
+                ⚠️ Por razões de segurança, deves alterar a tua password assim que iniciares sessão pela primeira vez.
+              </p>
+
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="https://sistema-biblioteca-at.vercel.app/login" style="background-color: #004B93; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Iniciar Sessão no Portal</a>
+              </div>
+            </div>
+
+            <div style="background-color: #f9fafb; padding: 15px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0;">Este é um email automático. Por favor, não respondas.</p>
+            </div>
           </div>
         </div>
       `,
