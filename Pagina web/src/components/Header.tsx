@@ -56,24 +56,24 @@ export function Header() {
 
   const TopBar = () => (
     <div className="bg-white border-b-[3px] border-[#FFC107]">
-      <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         
         {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
         <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-          <img src="/logo-at.png" alt="Logotipo AT" className="h-[55px] w-auto object-contain" />
+          <img src="/logo-at.png" alt="Logotipo AT" className="h-[50px] w-auto object-contain" />
           
-          {/* Linha vertical azul escura (mais alta) */}
-          <div className="h-[42px] w-[3px] bg-[#004B93]"></div>
+          {/* Linha vertical azul escura */}
+          <div className="h-[38px] w-[3px] bg-[#004B93]"></div>
 
-          {/* Tipografia forçada a ser estreita (condensada) igual à oficial */}
+          {/* Tipografia ligeiramente reduzida */}
           <div 
             className="flex flex-col justify-center"
             style={{ fontFamily: '"Arial Narrow", "Roboto Condensed", sans-serif' }}
           >
-            <h1 className="text-[26px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
+            <h1 className="text-[22px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
               Autoridade Tributária
             </h1>
-            <p className="text-[24px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
+            <p className="text-[20px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
               de Moçambique
             </p>
           </div>
