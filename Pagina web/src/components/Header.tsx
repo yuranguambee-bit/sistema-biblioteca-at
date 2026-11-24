@@ -62,18 +62,18 @@ export function Header() {
         <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <img src="/logo-at.png" alt="Logotipo AT" className="h-[50px] w-auto object-contain" />
           
-          {/* Linha vertical azul escura */}
-          <div className="h-[38px] w-[3px] bg-[#004B93]"></div>
+          {/* Linha vertical agora com o azul escuro oficial */}
+          <div className="h-[38px] w-[3px] bg-[#002B5C]"></div>
 
-          {/* Tipografia ligeiramente reduzida */}
+          {/* Texto agora com o azul escuro oficial */}
           <div 
             className="flex flex-col justify-center"
             style={{ fontFamily: '"Arial Narrow", "Roboto Condensed", sans-serif' }}
           >
-            <h1 className="text-[22px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
+            <h1 className="text-[22px] font-bold text-[#002B5C] leading-[1.1] tracking-tight">
               Autoridade Tributária
             </h1>
-            <p className="text-[20px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
+            <p className="text-[20px] font-bold text-[#002B5C] leading-[1.1] tracking-tight">
               de Moçambique
             </p>
           </div>
