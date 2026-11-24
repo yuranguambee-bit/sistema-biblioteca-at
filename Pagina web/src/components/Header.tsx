@@ -55,17 +55,20 @@ export function Header() {
   const linkClasses = "px-3 py-4 hover:bg-white/10 transition-colors text-[14px] font-medium flex items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent hover:border-white";
 
   const TopBar = () => (
-    // Removida a borda amarela grossa, colocada uma linha cinzenta fina
-    <div className="bg-white shadow-sm border-b border-gray-300">
+    <div className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
-        <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <img src="/logo-at.png" alt="Logotipo AT" className="h-16 w-auto object-contain" />
+          
+          {/* Linha vertical cinzenta a separar o logo do texto */}
+          <div className="h-10 w-px bg-gray-300 mx-1"></div>
+
           <div className="flex flex-col justify-center">
-            <h1 className="text-xl md:text-2xl font-bold text-[#004B93] leading-none tracking-wide mb-1 uppercase">
+            <h1 className="text-xl md:text-[22px] font-bold text-[#004B93] leading-tight mb-0.5">
               Autoridade Tributária
             </h1>
-            <p className="text-lg md:text-xl font-semibold text-[#004B93] leading-none tracking-wide">
+            <p className="text-lg md:text-[20px] font-bold text-[#004B93] leading-tight">
               de Moçambique
             </p>
           </div>
@@ -94,7 +97,8 @@ export function Header() {
   );
 
   const NavBar = () => (
-    <div className="bg-[#004B93] text-white">
+    // A barra amarela agora está aqui, na base do menu azul
+    <div className="bg-[#004B93] text-white border-b-4 border-[#FFC107]">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between overflow-x-auto scrollbar-hide">
         <nav className="flex items-center gap-1">
           {isCliente ? (
@@ -141,7 +145,7 @@ export function Header() {
   );
 
   return (
-    <header className="relative z-50 flex flex-col shadow-sm print:hidden">
+    <header className="relative z-50 flex flex-col shadow-md print:hidden">
       <TopBar />
       <NavBar />
     </header>
