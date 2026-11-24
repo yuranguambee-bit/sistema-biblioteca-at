@@ -55,20 +55,21 @@ export function Header() {
   const linkClasses = "px-3 py-4 hover:bg-white/10 transition-colors text-[14px] font-medium flex items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent hover:border-white";
 
   const TopBar = () => (
-    <div className="bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="bg-white">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img src="/logo-at.png" alt="Logotipo AT" className="h-16 w-auto object-contain" />
+        <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+          <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
           
           {/* Linha vertical cinzenta a separar o logo do texto */}
-          <div className="h-10 w-px bg-gray-300 mx-1"></div>
+          <div className="h-10 w-px bg-gray-300"></div>
 
+          {/* Tipografia ajustada para ficar idêntica à do site oficial */}
           <div className="flex flex-col justify-center">
-            <h1 className="text-xl md:text-[22px] font-bold text-[#004B93] leading-tight mb-0.5">
+            <h1 className="text-[22px] font-semibold text-[#004B93] leading-none mb-1.5 tracking-tight">
               Autoridade Tributária
             </h1>
-            <p className="text-lg md:text-[20px] font-bold text-[#004B93] leading-tight">
+            <p className="text-[18px] font-semibold text-[#004B93] leading-none tracking-tight">
               de Moçambique
             </p>
           </div>
@@ -97,8 +98,7 @@ export function Header() {
   );
 
   const NavBar = () => (
-    // A barra amarela agora está aqui, na base do menu azul
-    <div className="bg-[#004B93] text-white border-b-4 border-[#FFC107]">
+    <div className="bg-[#004B93] text-white">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between overflow-x-auto scrollbar-hide">
         <nav className="flex items-center gap-1">
           {isCliente ? (
@@ -145,9 +145,11 @@ export function Header() {
   );
 
   return (
-    <header className="relative z-50 flex flex-col shadow-md print:hidden">
+    <header className="relative z-50 flex flex-col shadow-sm print:hidden">
       <TopBar />
       <NavBar />
+      {/* BARRA AMARELA FINA NO FUNDO */}
+      <div className="h-[3px] w-full bg-[#FFC107]"></div>
     </header>
   );
 }
