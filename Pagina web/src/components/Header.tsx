@@ -56,20 +56,20 @@ export function Header() {
 
   const TopBar = () => (
     <div className="bg-white">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
         <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
           
-          {/* Linha vertical cinzenta a separar o logo do texto */}
-          <div className="h-10 w-px bg-gray-300"></div>
+          {/* Linha vertical azul escura (igual às letras) */}
+          <div className="h-10 w-[2px] bg-[#004B93]"></div>
 
-          {/* Tipografia ajustada para ficar idêntica à do site oficial */}
+          {/* Tipografia carregada (Bold) e compacta igual ao site oficial */}
           <div className="flex flex-col justify-center">
-            <h1 className="text-[22px] font-semibold text-[#004B93] leading-none mb-1.5 tracking-tight">
+            <h1 className="text-[22px] font-bold text-[#004B93] leading-[1.1] mb-0.5 tracking-tight">
               Autoridade Tributária
             </h1>
-            <p className="text-[18px] font-semibold text-[#004B93] leading-none tracking-tight">
+            <p className="text-[20px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
               de Moçambique
             </p>
           </div>
@@ -147,9 +147,11 @@ export function Header() {
   return (
     <header className="relative z-50 flex flex-col shadow-sm print:hidden">
       <TopBar />
+      
+      {/* BARRA AMARELA FINA ENTRE O BRANCO E O AZUL (Tamanho reduzido) */}
+      <div className="h-[2px] w-full bg-[#FFC107]"></div>
+      
       <NavBar />
-      {/* BARRA AMARELA FINA NO FUNDO */}
-      <div className="h-[3px] w-full bg-[#FFC107]"></div>
     </header>
   );
 }
