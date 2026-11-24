@@ -58,18 +58,18 @@ export function Header() {
     <div className="bg-white">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
-        <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-          <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <img src="/logo-at.png" alt="Logotipo AT" className="h-12 w-auto object-contain" />
           
-          {/* Linha vertical azul escura (igual às letras) */}
-          <div className="h-10 w-[2px] bg-[#004B93]"></div>
+          {/* Linha vertical escura e fina (igual à cor do texto) */}
+          <div className="h-10 w-[2px] bg-[#003366]"></div>
 
-          {/* Tipografia carregada (Bold) e compacta igual ao site oficial */}
+          {/* Tipografia mais pequena e escura, igual ao site oficial */}
           <div className="flex flex-col justify-center">
-            <h1 className="text-[22px] font-bold text-[#004B93] leading-[1.1] mb-0.5 tracking-tight">
+            <h1 className="text-[20px] font-bold text-[#003366] leading-tight tracking-wide">
               Autoridade Tributária
             </h1>
-            <p className="text-[20px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
+            <p className="text-[18px] font-bold text-[#003366] leading-tight tracking-wide">
               de Moçambique
             </p>
           </div>
@@ -80,7 +80,7 @@ export function Header() {
           <div className="w-px h-8 bg-gray-200"></div>
           
           <Link to="/perfil" className="flex items-center gap-3 hover:opacity-70 transition-opacity cursor-pointer" title="Ver o meu perfil">
-            <div className="w-9 h-9 rounded-full bg-[#004B93] text-white flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-[#003366] text-white flex items-center justify-center shadow-sm">
               <User size={18} />
             </div>
             <div className="hidden sm:block text-right">
@@ -98,7 +98,7 @@ export function Header() {
   );
 
   const NavBar = () => (
-    <div className="bg-[#004B93] text-white">
+    <div className="bg-[#003366] text-white">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between overflow-x-auto scrollbar-hide">
         <nav className="flex items-center gap-1">
           {isCliente ? (
@@ -145,11 +145,11 @@ export function Header() {
   );
 
   return (
-    <header className="relative z-50 flex flex-col shadow-sm print:hidden">
+    <header className="relative z-50 flex flex-col print:hidden">
       <TopBar />
       
-      {/* BARRA AMARELA FINA ENTRE O BRANCO E O AZUL (Tamanho reduzido) */}
-      <div className="h-[2px] w-full bg-[#FFC107]"></div>
+      {/* BARRA AMARELA: Fica EXATAMENTE entre o branco e o azul, e tem 4px de altura */}
+      <div className="h-[4px] w-full bg-[#FFC107]"></div>
       
       <NavBar />
     </header>
