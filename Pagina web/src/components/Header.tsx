@@ -52,24 +52,26 @@ export function Header() {
     }
   };
 
-  const linkClasses = "px-4 py-4 hover:bg-white/10 transition-colors text-[14px] font-medium flex items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent hover:border-white";
+  const linkClasses = "px-4 py-3 hover:bg-white/10 transition-colors text-[15px] font-semibold flex items-center gap-1.5 whitespace-nowrap border-b-[3px] border-transparent hover:border-[#FFC107]";
 
   const TopBar = () => (
-    <div className="bg-white">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    // A borda amarela é aplicada diretamente no fundo branco para não haver espaços
+    <div className="bg-white border-b-[3px] border-[#FFC107]">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+        
         {/* SECÇÃO DO LOGO E TEXTO INSTITUCIONAL */}
         <Link to="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-          <img src="/logo-at.png" alt="Logotipo AT" className="h-14 w-auto object-contain" />
+          <img src="/logo-at.png" alt="Logotipo AT" className="h-[60px] w-auto object-contain" />
           
-          {/* Linha vertical fina e escura */}
-          <div className="h-10 w-[1px] bg-[#004B93]"></div>
+          {/* Linha vertical espessa e azul escura */}
+          <div className="h-[42px] w-[3px] bg-[#004B93]"></div>
 
-          {/* Tipografia ajustada para ficar compacta e igual à oficial */}
-          <div className="flex flex-col justify-center">
-            <h1 className="text-[22px] font-bold text-[#004B93] leading-[1.1] mb-0.5 tracking-tight">
+          {/* Tipografia carregada, escura e compacta */}
+          <div className="flex flex-col justify-center mt-0.5">
+            <h1 className="text-[23px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
               Autoridade Tributária
             </h1>
-            <p className="text-[20px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
+            <p className="text-[21px] font-bold text-[#004B93] leading-[1.1] tracking-tight">
               de Moçambique
             </p>
           </div>
@@ -147,10 +149,6 @@ export function Header() {
   return (
     <header className="relative z-50 flex flex-col print:hidden">
       <TopBar />
-      
-      {/* BARRA AMARELA FINA (2px) EXATAMENTE ENTRE O BRANCO E O AZUL */}
-      <div className="h-[2px] w-full bg-[#FFD100]"></div>
-      
       <NavBar />
     </header>
   );
